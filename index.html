@@ -199,12 +199,17 @@ details.more > :not(summary) { margin-top: 8px; }
 
 .tag {
   pointer-events: auto; cursor: pointer; white-space: nowrap;
-  font: 500 11.5px/1 var(--f-body); color: var(--ink);
-  background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 3px rgba(20,20,19,.12);
-  padding: 5px 8px; border-radius: 6px; transform: translateY(-14px);
+  font: 500 11px/1 var(--f-body); color: var(--ink-2);
+  background: rgba(255,255,255,.9); border: 1px solid rgba(20,20,19,.08); box-shadow: 0 1px 2px rgba(20,20,19,.1);
+  padding: 4px 7px; border-radius: 5px; transform: translateY(-14px);
+  transition: opacity .15s;
 }
-.tag:hover { border-color: var(--edge); }
-.tag.on { border-color: var(--accent); color: var(--accent); }
+.tag:hover { border-color: var(--edge); color: var(--ink); z-index: 9999 !important; }
+.tag.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+/* Labels without room shrink to a dot; pointing at a dot shows its name */
+.tag.dot { font-size: 0; width: 10px; height: 10px; padding: 0; border-radius: 50%; background: var(--surface); border: 2px solid var(--edge); box-shadow: 0 1px 3px rgba(20,20,19,.25); transform: translateY(-14px); }
+.tag.dot:hover, .tag.dot:focus-visible { font-size: 11px; width: auto; height: auto; padding: 4px 7px; border-radius: 5px; border-width: 1px; background: #fff; }
+.tag.gone { display: none !important; }
 .tag.quiet { background: none; border: 0; box-shadow: none; color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 
 
@@ -2206,7 +2211,7 @@ document.getElementById('map-view').addEventListener('click', e => {
 const EYE = 1.65, WALK_SPEED = 1.4;
 const walk = { on: false, x: 0, z: 0, feet: 0, eye: EYE, yaw: 0, pitch: 0, wheel: 0, drag: null, objs: [], rects: [], saved: null };
 const walkRay = new THREE.Raycaster();
-const torch = new THREE.PointLight(0xffd8a8, 0, 30, 1.5);   // a lamp you carry, lit only indoors
+const torch = new THREE.PointLight(0xffd8a8, 0, 30, 1.6);   // a lamp you carry, lit only indoors
 scene.add(torch);
 const DOWN = V(0, -1, 0), UP = V(0, 1, 0);
 const hud = document.getElementById('walkhud'), walkBtn = document.getElementById('btn-walk'), startSel = document.getElementById('walk-start');
@@ -2348,8 +2353,8 @@ function walkStep(dt) {
   const want = Math.min(EYE, Math.max(0.6, headroom(walk.x, walk.feet, walk.z) - 0.12));
   walk.eye += (want - walk.eye) * Math.min(1, dt * 8);
   placeCamera();
-  torch.position.copy(camera.position);
-  torch.intensity = walk.inside ? 12 : 0;
+  torch.position.copy(camera.position).addScaledVector(lookDir(), -0.9).add(V(0, 0.4, 0));   // held just behind your head
+  torch.intensity = walk.inside ? 10 : 0;
   drawMinimap();
 }
 
@@ -2387,6 +2392,60 @@ function drawMinimap() {
   mmg.fillStyle = '#c96442'; mmg.beginPath(); mmg.arc(px, py, 4 * (devicePixelRatio > 1 ? 2 : 1), 0, Math.PI * 2); mmg.fill();
 }
 
+
+// ---------- Label layout ----------
+// Every frame: the most important labels are placed first; any label that would overlap one already placed
+// shrinks to a dot (pointing at it shows the name). Smaller features only get a full label once they are
+// big enough on screen, so more names appear as you zoom in.
+const _lv = new THREE.Vector3(), _ls = new THREE.Sphere(), _lb = new THREE.Box3();
+const overlaps = (r, list) => list.some(q => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
+function layoutLabels() {
+  const W = renderer.domElement.clientWidth, H = renderer.domElement.clientHeight;
+  const focal = (H / 2) / Math.tan(camera.fov * D / 2);
+  const items = [];
+  for (const o of ctx.labels) {
+    if (!o.visible) continue;
+    const u = o.userData, el = o.element;
+    if (u.r === undefined) {
+      if (u.id) { _lb.setFromObject(ctx.groups[u.id]).getBoundingSphere(_ls); u.r = _ls.radius; } else u.r = 0;
+    }
+    if (!u.w && el.offsetWidth && !el.classList.contains('dot')) { u.w = el.offsetWidth; u.h = el.offsetHeight; }
+    o.getWorldPosition(_lv);
+    const dist = _lv.distanceTo(camera.position);
+    _lv.project(camera);
+    if (_lv.z > 1 || Math.abs(_lv.x) > 1.1 || Math.abs(_lv.y) > 1.1) continue;
+    const sel = !!u.id && u.id === ctx.selected;
+    const px = u.r ? u.r / dist * focal : 0;              // the feature's size on screen, in pixels
+    const f = u.id && ctx.byId[u.id];
+    const pr = sel ? 1e6 : u.quiet ? 5 : u.surround ? 60 : (u.major ? (f.scan || f.mark ? 70 : 100) : 0) + Math.min(px, 60);
+    items.push({ el, u, sel, px, pr, x: (_lv.x + 1) / 2 * W, y: (1 - _lv.y) / 2 * H });
+  }
+  items.sort((a, b) => b.pr - a.pr);
+  // treat the floating panels as occupied, so labels never hide underneath them
+  const now = performance.now();
+  if (!layoutLabels.ui || now - layoutLabels.t > 400) {
+    layoutLabels.t = now;
+    const host = renderer.domElement.getBoundingClientRect();
+    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .navhelp')]
+      .filter(el => el.offsetWidth > 0).map(el => el.getBoundingClientRect())
+      .map(r => ({ x0: r.left - host.left, x1: r.right - host.left, y0: r.top - host.top, y1: r.bottom - host.top }));
+  }
+  const placed = [...layoutLabels.ui], dots = [];
+  for (const { el, u, sel, px, x, y } of items) {
+    const w = (u.w || 90) + 6, h = (u.h || 22) + 4;
+    const rect = { x0: x - w / 2, x1: x + w / 2, y0: y - 14 - h / 2, y1: y - 14 + h / 2 };
+    const wantsFull = sel || u.quiet || u.surround || u.major || px > 28;
+    let mode = 'gone';
+    if (wantsFull && !overlaps(rect, placed)) { mode = 'full'; placed.push(rect); }
+    else if (!u.quiet) {
+      const d = { x0: x - 8, x1: x + 8, y0: y - 22, y1: y - 6 };
+      if (!overlaps(d, placed) && !overlaps(d, dots)) { mode = 'dot'; dots.push(d); }
+    }
+    el.classList.toggle('dot', mode === 'dot');
+    el.classList.toggle('gone', mode === 'gone');
+  }
+}
+
 // Resize and loop
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -2413,6 +2472,7 @@ renderer.setAnimationLoop(now => {
   if (ctx.mats.bigVoid && ctx.groups.bigVoid.visible) ctx.mats.bigVoid.opacity = 0.32 + 0.14 * Math.sin(now / 600);
   controls.update();
   renderer.render(scene, camera);
+  layoutLabels();
   labelRenderer.render(scene, camera);
 });
 </script>
