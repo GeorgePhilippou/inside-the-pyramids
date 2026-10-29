@@ -66,3 +66,6 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/pt-277-301.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_301_to_277.jpg) |
 | `photos/pt-302-312.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_302_to_312.jpg) |
 | `photos/unas-texts-colour.jpg` | Aidan McRae Thomson | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_Texts_in_Unas%E2%80%99_Pyramid_2017.jpg) |
+| `photos/khufu-lepsius.jpg` | Lepsius expedition artist (1842) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lepsius-inschrift-cheops-pyramide.jpeg) |
+| `photos/khufu-cartouche-mark.jpg` | Karl Richard Lepsius | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Kartu_Chufu01.JPG) |
+| `photos/khufu-gang-names.jpg` | George Andrew Reisner | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Khufu_work_gang_names.png) |

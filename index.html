@@ -369,7 +369,7 @@ body.walking #scene canvas { cursor: crosshair; }
     <nav id="features" aria-label="Inside this pyramid"></nav>
     <details class="more">
       <summary>What about hieroglyphs?</summary>
-      <p class="note">The five 4th-Dynasty pyramids here have no carved hieroglyphic texts on their inside walls; what survives in them are builders’ marks and later inscriptions, shown as clay diamonds. Inscribed burial chambers first appear about 150 years after Menkaure, in the Pyramid of Unas at Saqqara (c. 2350 BC). Open it to see where its Pyramid Texts are, shown in blue.</p>
+      <p class="note">The five 4th-Dynasty pyramids here have no carved hieroglyphic texts on their inside walls; what survives in them are builders’ marks and later inscriptions, shown on the stone where a picture of them exists, or as a dashed clay outline where only the place is known. Inscribed burial chambers first appear about 150 years after Menkaure, in the Pyramid of Unas at Saqqara (c. 2350 BC). Open it to see where its Pyramid Texts are, shown in blue.</p>
     </details>
     <details class="more">
       <summary>Colour key</summary>
@@ -380,7 +380,7 @@ body.walking #scene canvas { cursor: crosshair; }
         <span><i class="sw" style="background:var(--scan)"></i>Found by scanning</span>
         <span><i class="sw" style="background:var(--shaft)"></i>Shafts and tunnels</span>
         <span><i class="sw" style="background:var(--human)"></i>Person, 1.75 m</span>
-        <span><i class="sw" style="background:var(--mark); transform: rotate(45deg) scale(.8)"></i>Inscription or mark</span>
+        <span><i class="sw" style="background:var(--mark)"></i>Inscription or mark</span>
         <span><i class="sw" style="background:var(--texts)"></i>Pyramid Texts</span>
       </div>
     </details>
@@ -823,12 +823,22 @@ function route(id, pts, w, h) {
 }
 // A photograph of an inscribed wall, recoloured like the real walls (signs filled dark blue on pale limestone)
 const wallTexCache = {};
-function wallTexture(file) {
-  if (wallTexCache[file]) return wallTexCache[file];
+function wallTexture(file, { recolor = true, crop = null } = {}) {
+  const key = file + recolor + crop;
+  if (wallTexCache[key]) return wallTexCache[key];
   const c = document.createElement('canvas'), t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const img = new Image();
   img.onload = () => {
+    if (!recolor) {
+      // natural colours; optionally just one part of the picture
+      const [a, b, c2, d2] = crop ?? [0, 0, 1, 1];
+      const sx = a * img.width, sy = b * img.height, sw = (c2 - a) * img.width, sh = (d2 - b) * img.height;
+      c.width = Math.min(1400, Math.round(sw)); c.height = Math.round(sh * c.width / sw);
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      t.needsUpdate = true;
+      return;
+    }
     // trim the dark borders of the old photographs
     const probe = document.createElement('canvas'); probe.width = img.width; probe.height = img.height;
     const pg = probe.getContext('2d'); pg.drawImage(img, 0, 0);
@@ -854,13 +864,42 @@ function wallTexture(file) {
     t.needsUpdate = true;
   };
   img.src = 'photos/' + file;
-  return (wallTexCache[file] = t);
+  return (wallTexCache[key] = t);
+}
+const FACING = { 'z+': 0, 'z-': Math.PI, 'x+': Math.PI / 2, 'x-': -Math.PI / 2 };
+// An inscription shown flat on the stone, with a thin clay frame
+function plaqueMesh(f) {
+  const p = f.plaque, geo = new THREE.PlaneGeometry(p.w, p.w / p.aspect);
+  geo.userData.uv = true;
+  geo.rotateY(FACING[p.facing]);
+  const tex = wallTexture(p.file, { recolor: false, crop: p.crop });
+  // lit a little from within, so it stays readable on shaded faces and in dark rooms
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55, roughness: 0.9 }));
+  m.position.copy(f.at);
+  put(f.id, m, false);
+  const frame = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: COL.mark }));
+  frame.position.copy(f.at);
+  ctx.groups[f.id].add(frame);
+}
+// Where only the place is known: a faint flat patch with a dashed clay outline
+function outlineMesh(f) {
+  const o = f.outline, geo = new THREE.PlaneGeometry(o.w, o.h);
+  geo.userData.uv = true;
+  geo.rotateX(-Math.PI / 2);
+  ctx.mats[f.id].opacity = 0.22;
+  const m = new THREE.Mesh(geo, ctx.mats[f.id]);
+  m.position.copy(f.at);
+  put(f.id, m, false);
+  const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineDashedMaterial({ color: COL.mark, dashSize: o.w / 10, gapSize: o.w / 20 }));
+  line.computeLineDistances();
+  line.position.copy(f.at);
+  ctx.groups[f.id].add(line);
 }
 function wallImage(id, file, aspect, facing, plane, along, cy, maxW, maxH) {
   const w = Math.min(maxW, maxH * aspect), h = w / aspect;
   const geo = new THREE.PlaneGeometry(w, h);
   geo.userData.uv = true;   // keep the picture's own UVs
-  geo.rotateY({ 'z+': 0, 'z-': Math.PI, 'x+': Math.PI / 2, 'x-': -Math.PI / 2 }[facing]);
+  geo.rotateY(FACING[facing]);
   const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: wallTexture(file), roughness: 0.9 }));
   if (facing[0] === 'z') m.position.set(along, cy, plane); else m.position.set(plane, cy, along);
   return put(id, m, false);
@@ -1030,18 +1069,20 @@ const KHUFU = (() => {
         why: 'It proved that muon scanning can find real hidden spaces, and it may help explain how the north face was built.',
         text: 'A hidden corridor behind the chevron blocks, first detected by scans in 2016 and seen directly with an endoscope in 2023. It has a pointed roof and ends after about 9 m. Its purpose is unknown.',
         facts: [['Confirmed', '2023, endoscope'], ['Length', 'c. 9 m'], ['Cross-section', 'c. 2 × 2 m'], ['Height', 'c. 17–23 m above ground']] },
-      { id: 'quarryMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V((KC.x0 + KC.x1) / 2, 61.8, (KC.s0 + KC.s1) / 2), major: true, name: 'Builders\u2019 marks naming Khufu',
+      { id: 'quarryMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V((KC.x0 + KC.x1) / 2, 61.62, KC.s1 + 0.37), plaque: { file: 'khufu-cartouche-mark.jpg', aspect: 1.887, facing: 'z-', w: 1.2 }, major: true, name: 'Builders\u2019 marks naming Khufu',
+        photos: () => [ph('khufu-cartouche-mark.jpg', 'Khufu\u2019s name in a red-painted cartouche', 'Khufu\u2019s name in a cartouche, as painted by a work gang, copied by the Lepsius expedition.', 'Karl Richard Lepsius', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Kartu_Chufu01.JPG', V((KC.x0 + KC.x1) / 2, 61.9, KC.s1 - 1.2), V((KC.x0 + KC.x1) / 2, 61.6, KC.s1 + 0.4)), ph('khufu-gang-names.jpg', 'Four groups of hieroglyphs, each a work-gang name', 'The names of four work gangs painted in the relieving chambers, drawn by George Reisner.', 'George Andrew Reisner', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Khufu_work_gang_names.png', V((KC.x0 + KC.x1) / 2, 61.9, KC.s1 - 1.2), V((KC.x0 + KC.x1) / 2, 61.6, KC.s1 + 0.4))],
         text: 'Red-painted marks left by the work gangs on blocks in the relieving chambers, found by Vyse and Perring in 1837. They include Khufu\u2019s name inside cartouches and gang names such as \u201cFriends of Khufu\u201d. They were painted during quarrying or building and were never meant to be seen.',
         why: 'They are the main physical evidence tying the pyramid to Khufu.',
-        facts: [['Found', '1837'], ['Paint', 'Red ochre'], ['Names', 'Khufu, work gangs']] },
-      { id: 'lepsius', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V(AX, 25, -(B - 25 / K) - 0.6), name: 'Lepsius inscription',
+        facts: [['Found', '1837'], ['Paint', 'Red ochre'], ['Names', 'Khufu, work gangs'], ['On the model', 'One cartouche, placed as an example']] },
+      { id: 'lepsius', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V(AX - 4.5, 26, -(B - 26 / K) - 0.3), plaque: { file: 'khufu-lepsius.jpg', aspect: 1.12, facing: 'z-', w: 0.9, crop: [0.624, 0.0875, 0.803, 0.205] }, name: 'Lepsius inscription',
+        photos: () => [ph('khufu-lepsius.jpg', 'Pencil drawing of the entrance with a small inscribed panel above it', 'The entrance in 1842, drawn by the Lepsius expedition, with the new inscription panel at top right.', 'Lepsius expedition artist', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Lepsius-inschrift-cheops-pyramide.jpeg', V(AX - 4.5, 25.6, -(B - 26 / K) - 3.2), V(AX - 4.5, 26, -(B - 26 / K)))],
         text: 'A hieroglyphic text carved above the entrance in 1842 by the Prussian expedition led by Karl Richard Lepsius, in honour of King Friedrich Wilhelm IV. It is modern, written in the ancient script.',
         why: 'It is the most visible hieroglyphic text on the pyramid, and a record of the birth of scientific Egyptology.',
-        facts: [['Carved', '1842'], ['Script', 'Hieroglyphs (modern)']] },
-      { id: 'djediMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(AX, 62.9, 53.6), name: 'Marks behind the shaft door',
+        facts: [['Carved', '1842'], ['Script', 'Hieroglyphs (modern)'], ['Size on model', 'Estimated from the drawing']] },
+      { id: 'djediMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(AX, 62.9, 53.6), outline: { w: 0.6, h: 0.6 }, name: 'Marks behind the shaft door',
         text: 'In 2011 the Djedi robot pushed a small camera past the stone door in the Queen\u2019s Chamber south shaft and filmed red-painted marks on the floor behind it. They may be builders\u2019 numbers.',
         why: 'They are the only marks ever seen in the shafts, and could help explain how the shafts were laid out.',
-        facts: [['Filmed', '2011, Djedi robot'], ['Paint', 'Red']] },
+        facts: [['Filmed', '2011, Djedi robot'], ['Paint', 'Red'], ['On the model', 'Location only']] },
     ],
     build() {
       const M = ctx.mats;
@@ -1234,7 +1275,7 @@ const KHAFRE = (() => {
         why: 'Its purpose is still debated, so it remains one of the open questions about this pyramid.',
         text: 'A side room opening west off the lower passage, about as long as Khufu’s King’s Chamber (Petrie). Its purpose is unclear; it may have stored burial goods, or it may be left over from an earlier plan.',
         facts: [['Length', 'c. 10.4 m'], ['Roof', 'Gabled'], ['Purpose', 'Unknown']] },
-      { id: 'belzoni', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(5, 3.6, BC.s1 - 0.3), major: true, name: 'Belzoni\u2019s name',
+      { id: 'belzoni', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(5, 3.3, BC.s1 - 0.03), plaque: { file: 'khafre-belzoni.jpg', aspect: 1.6, facing: 'z-', w: 2.4 }, major: true, name: 'Belzoni\u2019s name',
         text: 'Giovanni Belzoni wrote his name and the date in large letters on a wall of the burial chamber when he entered in 1818. It is modern graffiti. No ancient inscriptions have been found inside this pyramid.',
         why: 'It records the first modern entry into the burial chamber.',
         photos: () => [ph('khafre-belzoni.jpg', 'Painted letters reading Belzoni, 2 March 1818', 'Belzoni\'s name and the date, 2 March 1818, on the chamber wall.', 'Inkapigen', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Inscription_in_the_pyramid.jpg', V(5, 3.3, -1.0), V(5, 3.6, BC.s1))],
@@ -1321,10 +1362,10 @@ const MENKAURE = (() => {
         photos: () => [ph('menkaure-niches.jpg', 'Rock-cut room with niches', 'The niche room.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:15_menkaure_chamber_with_five_niches.jpg', V(-5.2, BCy + 0.6, -2.6), V(-3.0, BCy - 0.4, -4.6))],
         text: 'Reached by a short flight of steps from the corridor to the burial chamber. Six small rock-cut storerooms open off it, four on the east and two on the north.',
         facts: [['Storerooms', '6'], ['Access', 'Seven steps'], ['Size shown', 'Approximate']] },
-      { id: 'coffinLid', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(4, fl + 1.2, 0), major: true, name: 'Inscribed coffin lid',
+      { id: 'coffinLid', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(4, fl + 0.03, 0), outline: { w: 2.2, h: 0.7 }, major: true, name: 'Inscribed coffin lid',
         text: 'Howard Vyse found pieces of a wooden coffin lid inscribed with Menkaure\u2019s name here in 1837. It was made about 1,900 years after his death, when priests restored old royal burials, and is now in the British Museum. The chambers themselves carry no inscriptions.',
         why: 'It shows that later Egyptians still honoured and repaired the burials of the pyramid builders.',
-        facts: [['Found', '1837'], ['Made', 'c. 600 BC'], ['Now', 'British Museum']] },
+        facts: [['Found', '1837'], ['Made', 'c. 600 BC'], ['Now', 'British Museum'], ['On the model', 'Find spot, approximate']] },
     ],
     build() {
       passage('descending', entrance, dEnd, 1.05, 1.2);
@@ -1392,8 +1433,8 @@ const RED = (() => {
         photos: () => [ph('red-chamber.jpg', 'Chamber floor covered in broken stone', 'The rough, broken floor of the third chamber.', 'Roland Unger', 'CC BY-SA 3.0', 'https://commons.wikimedia.org/wiki/File:DahshurRedPyrChamber.jpg', V(0, 9.4, c3[0] + 0.3), V(0, 7.0, c3[1] - 1)), ph('red-burial.jpg', 'Looking down from the stair in the burial chamber', 'The burial chamber from the modern stair, under its stepped ceiling.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Massive_corbel-vaulted_ceiling_of_the_main_burial_chamber_-_Red_Pyramid_(14772801236).jpg', V(-2.5, 13, (c3[0] + c3[1]) / 2), V(0.5, 7.2, (c3[0] + c3[1]) / 2))],
         text: 'Entered through an opening about 8 m up the south wall of the second chamber. It runs east–west, unlike the other two, and its rough floor lies below the level of the passage. Human remains, possibly Sneferu’s, were found here in the 1950s.',
         facts: [['Roof height', 'c. 15 m'], ['Floor plan', 'c. 8.4 × 4.2 m'], ['Opening', 'c. 8 m up']] },
-      { id: 'casingMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(B - 10, 1.5, -B + 10), major: true, name: 'Dated builders\u2019 marks',
-        text: 'Red-painted gang names and dates found on casing and backing blocks during excavations around the pyramid. Some give the year of Sneferu\u2019s reign in which the block was placed. The marker shows the general area, not an exact block.',
+      { id: 'casingMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(B - 10, 0.06, -B + 10), outline: { w: 24, h: 24 }, major: true, name: 'Dated builders\u2019 marks',
+        text: 'Red-painted gang names and dates found on casing and backing blocks during excavations around the pyramid. Some give the year of Sneferu\u2019s reign in which the block was placed. The dashed outline shows the general area, not an exact block.',
         why: 'The dates help work out how quickly the pyramid was built.',
         facts: [['Paint', 'Red'], ['Content', 'Gang names, dates']] },
     ],
@@ -1672,12 +1713,11 @@ function load(def, fly) {
   buildShell(def);
   def.build();
   buildSurroundings(def);
-  for (const m of Object.values(ctx.mats)) { m.userData.col = m.color.clone(); m.userData.op = m.opacity; }
   for (const f of def.features) if (f.at) {
-    const m = new THREE.Mesh(new THREE.OctahedronGeometry(1.1), ctx.mats[f.id]);
-    m.position.copy(f.at); m.scale.y = 1.4;
-    put(f.id, m);
+    if (f.plaque) plaqueMesh(f);
+    else if (f.outline) outlineMesh(f);
   }
+  for (const m of Object.values(ctx.mats)) { m.userData.col = m.color.clone(); m.userData.op = m.opacity; }
 
   // Labels
   for (const f of def.features) {
