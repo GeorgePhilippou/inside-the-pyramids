@@ -1,0 +1,1683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="See-through 3D models of five Egyptian pyramids with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
+<title>Inside the Pyramids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D model on warm paper. Floating chrome only: top bar (pyramid switcher), collapsible contents on the left,
+   detail card on the right when something is selected, tool bar at the bottom. Deliberately light, single theme. */
+:root {
+  color-scheme: light;
+  --bg: #f0eee6;          /* warm paper */
+  --surface: #faf9f5;     /* cards */
+  --ink: #141413;
+  --ink-2: #3d3d3a;
+  --muted: #6b6a64;
+  --rule: #e2ded3;
+  --accent: #c96442;      /* clay */
+  --accent-tint: #f5e4dc;
+  --sand: #cdb88c;        /* casing */
+  --edge: #9c8456;        /* casing edges */
+  --lime: #d9ad5b;        /* limestone-built passages */
+  --granite: #c25b4c;     /* Aswan granite */
+  --rock: #8f6a42;        /* cut into bedrock */
+  --scan: #2a8fa6;        /* found by scanning */
+  --shaft: #5a6a86;
+  --cedar: #85582c;
+  --mark: #c96442;        /* inscriptions and marks */
+  --human: #2c5aa8;
+  --grid1: #d8d2c4;
+  --grid2: #e6e1d6;
+  --ok: #2f7a4b;
+  --warn: #9a5f22;
+  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 6px 24px rgba(20,20,19,.08);
+  --gap: 12px;
+  --bar-h: 52px;
+  --f-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+html, body { height: 100%; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#scene { position: fixed; inset: 0; }
+#scene canvas { display: block; touch-action: none; cursor: grab; }
+#scene canvas:active { cursor: grabbing; }
+#labels { position: fixed; inset: 0; pointer-events: none; }
+button { font-family: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 8px; background: none; color: var(--ink-2); cursor: pointer;
+}
+.icon-btn:hover { background: rgba(20,20,19,.05); color: var(--ink); }
+.icon-btn[aria-pressed="true"], .icon-btn[aria-expanded="true"] { background: var(--accent-tint); color: var(--accent); }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Top bar */
+.topbar {
+  position: fixed; z-index: 6; height: var(--bar-h);
+  top: calc(var(--gap) + env(safe-area-inset-top, 0px));
+  left: max(var(--gap), env(safe-area-inset-left, 0px));
+  right: max(var(--gap), env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 10px; padding: 0 8px;
+}
+.brand { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.brand b { font-family: var(--f-display); font-weight: 600; font-size: 17px; white-space: nowrap; }
+.switcher { margin: 0 auto 0 8px; display: flex; gap: 2px; padding: 3px; background: #efece3; border-radius: 10px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.pyr {
+  display: flex; align-items: center; gap: 7px; flex: none;
+  background: none; color: var(--ink-2); border: 0; border-radius: 7px;
+  padding: 7px 12px; cursor: pointer; font: 500 13px/1 var(--f-body); white-space: nowrap;
+}
+.pyr svg { width: 22px; height: 14px; color: var(--edge); }
+.pyr small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.pyr:hover { color: var(--ink); }
+.pyr[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,20,19,.12); }
+.pyr[aria-pressed="true"] svg { color: var(--accent); }
+.bar-right { display: flex; gap: 2px; }
+
+/* Contents (left) */
+.contents {
+  position: fixed; z-index: 5; width: 300px; display: flex; flex-direction: column; overflow: hidden;
+  top: calc(var(--gap) * 2 + var(--bar-h) + env(safe-area-inset-top, 0px));
+  left: max(var(--gap), env(safe-area-inset-left, 0px));
+  bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+}
+.contents-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--rule); display: grid; gap: 4px; }
+.eyebrow { font-size: 11.5px; font-weight: 500; color: var(--accent); }
+h1 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 8px 0 0; font-size: 12px; }
+.stats dt { color: var(--muted); }
+.stats dd { margin: 0; font-family: var(--f-mono); font-size: 11.5px; text-align: right; }
+.contents-body { overflow-y: auto; padding: 10px 8px 14px; display: grid; gap: 14px; align-content: start; min-height: 0; }
+.group-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 2px; padding: 0 8px; }
+#features { display: grid; gap: 12px; }
+.feat-list { display: grid; gap: 1px; }
+.feat {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  font: 400 13.5px/1.3 var(--f-body); color: var(--ink); background: none; border: 0;
+  padding: 6px 8px; border-radius: 7px; cursor: pointer;
+}
+.feat:hover { background: rgba(20,20,19,0.045); }
+.feat[aria-current="true"] { background: var(--accent-tint); }
+.feat .cam { margin-left: auto; width: 14px; height: 14px; color: var(--muted); flex: none; }
+.sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+details.more { border-top: 1px solid var(--rule); padding: 10px 8px 0; }
+details.more summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-2); list-style: none; display: flex; justify-content: space-between; }
+details.more summary::after { content: "+"; color: var(--muted); }
+details.more[open] summary::after { content: "–"; }
+details.more > :not(summary) { margin-top: 8px; }
+.legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: flex; align-items: center; gap: 8px; }
+.note, .sources { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+.sources { font-size: 11.5px; color: var(--muted); }
+.sources b { color: var(--ink-2); font-weight: 600; }
+
+/* Detail card (right) */
+.detail {
+  position: fixed; z-index: 5; width: 380px; display: flex; flex-direction: column; overflow: hidden;
+  top: calc(var(--gap) * 2 + var(--bar-h) + env(safe-area-inset-top, 0px));
+  right: max(var(--gap), env(safe-area-inset-right, 0px));
+  max-height: calc(100% - var(--bar-h) - 64px - var(--gap) * 4 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+.detail-head { display: flex; align-items: flex-start; gap: 8px; padding: 14px 10px 0 16px; }
+.detail-head .titles { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.detail h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 21px; line-height: 1.15; text-wrap: balance; }
+#info { overflow-y: auto; padding: 12px 16px 16px; display: grid; gap: 12px; min-height: 0; }
+#info > p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.conf { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--f-body); padding: 4px 8px; border-radius: 999px; }
+.conf::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.conf.surveyed { color: var(--ok); background: #e5f0e8; }
+.conf.approx { color: var(--warn); background: #f5ead9; }
+.conf.uncertain { color: var(--scan); background: #e0f0f3; }
+.facts { display: grid; grid-template-columns: auto 1fr; margin: 0; font-size: 13px; border-top: 1px solid var(--rule); }
+.facts dt, .facts dd { padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.facts dt { color: var(--muted); padding-right: 14px; }
+.facts dd { margin: 0; font-family: var(--f-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.photo { margin: 0; display: grid; gap: 8px; }
+.photo > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; background: var(--rule); display: block; }
+.photo figcaption { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); display: grid; gap: 2px; }
+.photo .credit { font-size: 11px; color: var(--muted); }
+.photo .credit a { color: var(--muted); }
+.thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+.thumbs button { padding: 0; border: 2px solid transparent; border-radius: 6px; background: none; cursor: pointer; width: 52px; height: 38px; overflow: hidden; }
+.thumbs button[aria-pressed="true"] { border-color: var(--accent); }
+.thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.view-row span { font-size: 11px; color: var(--muted); }
+.text-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 12.5px/1 var(--f-body); color: var(--ink); background: #fff;
+  border: 1px solid var(--rule); border-radius: 8px; padding: 7px 10px; cursor: pointer;
+}
+.text-btn:hover { border-color: var(--edge); }
+.text-btn svg.i { width: 15px; height: 15px; }
+.why { background: var(--accent-tint); border-radius: 8px; padding: 10px 12px; display: grid; gap: 3px; }
+.why b { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.why p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink); }
+
+/* Bottom tool bar */
+.toolbar {
+  position: fixed; z-index: 6; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 2px; padding: 5px; max-width: calc(100% - 2 * var(--gap));
+}
+.toolbar .sep { width: 1px; height: 22px; background: var(--rule); margin: 0 5px; flex: none; }
+.toolbar .icon-btn { position: relative; }
+.toolbar label { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.toolbar input[type="range"] { width: 90px; accent-color: var(--accent); }
+[data-tip]:hover::after, [data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--surface); font-size: 11.5px; font-weight: 500; white-space: nowrap;
+  padding: 5px 8px; border-radius: 6px; pointer-events: none;
+}
+
+/* Navigation help */
+.navhelp {
+  position: fixed; z-index: 4; width: 260px; padding: 12px 14px;
+  right: max(var(--gap), env(safe-area-inset-right, 0px));
+  bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+  font-size: 12px; color: var(--ink-2);
+}
+.navhelp header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.navhelp header b { font-size: 12.5px; color: var(--ink); }
+.navhelp dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; margin: 0; }
+.navhelp dt { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.navhelp dd { margin: 0; color: var(--muted); }
+.navhelp .icon-btn { width: 26px; height: 26px; }
+
+.tag {
+  pointer-events: auto; cursor: pointer; white-space: nowrap;
+  font: 500 11.5px/1 var(--f-body); color: var(--ink);
+  background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 3px rgba(20,20,19,.12);
+  padding: 5px 8px; border-radius: 6px; transform: translateY(-14px);
+}
+.tag:hover { border-color: var(--edge); }
+.tag.on { border-color: var(--accent); color: var(--accent); }
+.tag.quiet { background: none; border: 0; box-shadow: none; color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+
+
+/* View switcher and full-page views */
+.modes { display: flex; gap: 2px; padding: 3px; background: #efece3; border-radius: 10px; flex: none; }
+.mode { display: flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--ink-2); padding: 6px 10px; border-radius: 7px; cursor: pointer; font: 500 13px/1 var(--f-body); }
+.mode svg.i { width: 16px; height: 16px; }
+.mode:hover { color: var(--ink); }
+.mode[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,20,19,.12); }
+body:not([data-mode="model"]) :is(.contents, .detail, .toolbar, .navhelp, #labels) { display: none !important; }
+.view {
+  position: fixed; z-index: 6; overflow-y: auto; padding: 28px 32px 32px;
+  top: calc(var(--gap) * 2 + var(--bar-h) + env(safe-area-inset-top, 0px));
+  left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px));
+  bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.view > * { flex-shrink: 0; }
+.view-head h2 { margin: 4px 0 6px; font-family: var(--f-display); font-weight: 600; font-size: 30px; letter-spacing: -0.01em; }
+.view-head p { margin: 0; max-width: 68ch; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.scroll-x { overflow-x: auto; }
+svg.timeline { width: 100%; min-width: 760px; height: auto; display: block; font-family: var(--f-body); }
+.timeline .dyn { fill: #ebe7dc; } .timeline .dyn.b { fill: #e3ddcf; }
+.timeline .dyn-t { font-size: 11px; font-weight: 600; fill: var(--ink-2); text-anchor: middle; letter-spacing: .03em; }
+.timeline .reign { fill: #d9d2c2; } .timeline .reign.ours { fill: var(--accent); opacity: .85; }
+.timeline .king-t { font-size: 12px; fill: var(--ink-2); text-anchor: middle; }
+.timeline .pm { fill: #b9b2a3; color: #b9b2a3; } .timeline .pm.ours { color: var(--edge); }
+.timeline .tick { stroke: #c9c2b2; } .timeline .axis { stroke: var(--ink-2); }
+.timeline .ax-t { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--f-mono); }
+.timeline .mk-t { font-size: 12px; fill: var(--muted); text-anchor: middle; } .timeline .mk-t.ours { fill: var(--ink); font-weight: 600; }
+.tl-hit { cursor: pointer; outline: none; }
+.tl-hit:hover .mk-t, .tl-hit:focus-visible .mk-t, .tl-hit:hover .map-t, .tl-hit:focus-visible .map-t { fill: var(--accent); }
+.tl-hit:hover .pm.ours, .tl-hit:focus-visible .pm.ours { color: var(--accent); }
+.tl-hit:hover .foot, .tl-hit:focus-visible .foot { fill: var(--accent-tint); stroke: var(--accent); }
+.pcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.pcard { display: grid; gap: 3px; text-align: left; background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 14px; cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
+.pcard:hover { border-color: var(--accent); }
+.pcard b { font-family: var(--f-display); font-size: 19px; font-weight: 600; color: var(--ink); }
+.pcard-icon svg { width: 44px; height: 26px; color: var(--edge); }
+.pcard-date { font-size: 11.5px; font-weight: 600; color: var(--accent); margin-top: 6px; }
+.muted { color: var(--muted); }
+.ctx-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px 20px; font-size: 13px; line-height: 1.5; border-top: 1px solid var(--rule); padding-top: 16px; }
+.fine { margin: 0; font-size: 11.5px; color: var(--muted); }
+.maps { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.maps figure { margin: 0; display: grid; gap: 6px; }
+.maps figcaption { font-size: 12px; color: var(--muted); }
+svg.map { width: 100%; height: auto; max-height: 62vh; display: block; background: #efe9db; border-radius: 10px; border: 1px solid var(--rule); font-family: var(--f-body); }
+.map .desert { fill: #efe9db; } .map .farmland { fill: none; stroke: #d6dfbf; stroke-width: 55; stroke-linejoin: round; stroke-linecap: round; }
+.map .river { fill: none; stroke: #7fa7bf; stroke-width: 4; stroke-linejoin: round; }
+.map .river-t { font-size: 13px; font-style: italic; fill: #5b86a0; }
+.map .ours { fill: var(--accent); } .map .other { fill: #a59d8c; }
+.map .city { fill: var(--ink-2); } .map .city-t { fill: var(--ink-2); }
+.map .map-t { font-size: 12.5px; font-weight: 500; } .map .map-t.ours { font-weight: 600; } .map .small { font-size: 11px; fill: var(--muted); }
+.map .inset-box { fill: none; stroke: var(--accent); stroke-dasharray: 4 3; }
+.map .north { fill: var(--ink-2); } .map .scale { stroke: var(--ink-2); stroke-width: 2; }
+.map .foot { fill: #f6efe0; stroke: var(--edge); stroke-width: 1.5; } .map .foot-x { stroke: var(--edge); stroke-width: .8; opacity: .6; }
+.map .sphinx { fill: #e5dcc8; stroke: var(--edge); }
+.tag.nb { background: rgba(250,249,245,.85); color: var(--ink-2); border-style: dashed; }
+@media (max-width: 860px) {
+  .mode span { display: none; }
+  .mode { padding: 6px 8px; }
+  .view { padding: 18px 16px; }
+  .view-head h2 { font-size: 24px; }
+  .maps { grid-template-columns: 1fr; }
+}
+@media (max-width: 1100px) { .navhelp { display: none; } .navhelp.force { display: block; } }
+@media (max-width: 860px) {
+  .brand b, .pyr small { display: none; }
+  .pyr { padding: 7px 9px; }
+  .contents { width: auto; right: max(var(--gap), env(safe-area-inset-right, 0px)); z-index: 7; }
+  .detail { width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); top: auto; max-height: 52%;
+    bottom: calc(var(--gap) * 2 + 46px + env(safe-area-inset-bottom, 0px)); }
+  .toolbar label span { display: none; }
+  .toolbar input[type="range"] { width: 64px; }
+  .navhelp.force { left: max(var(--gap), env(safe-area-inset-left, 0px)); width: auto; bottom: calc(var(--gap) * 2 + 46px); z-index: 8; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="labels"></div>
+
+<header class="topbar card">
+  <div class="brand">
+    <button class="icon-btn" id="btn-contents" type="button" aria-expanded="true" aria-controls="contents" aria-label="Show or hide contents">
+      <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    </button>
+    <b>Inside the Pyramids</b>
+  </div>
+  <nav class="switcher" id="switcher" aria-label="Choose a pyramid"></nav>
+  <div class="modes" role="group" aria-label="View">
+    <button class="mode" type="button" data-mode="model" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg><span>3D</span></button>
+    <button class="mode" type="button" data-mode="timeline" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h18M7 8v8M12 6v12M17 9v6"/></svg><span>Timeline</span></button>
+    <button class="mode" type="button" data-mode="map" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
+  </div>
+  <div class="bar-right">
+    <button class="icon-btn" id="btn-help" type="button" aria-expanded="false" aria-controls="navhelp" aria-label="How to move around">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 17h.01"/></svg>
+    </button>
+  </div>
+</header>
+
+<aside class="contents card" id="contents" aria-label="Contents">
+  <div class="contents-head">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+    <dl class="stats" id="stats"></dl>
+  </div>
+  <div class="contents-body">
+    <nav id="features" aria-label="Inside this pyramid"></nav>
+    <details class="more">
+      <summary>What about hieroglyphs?</summary>
+      <p class="note">None of these five pyramids has carved hieroglyphic texts on its inside walls. Inscribed burial chambers, the Pyramid Texts, first appear about 150 years after Menkaure, in the pyramid of King Unas at Saqqara (c. 2350 BC). What survives here are builders’ marks and later inscriptions, shown as clay diamonds on the model.</p>
+    </details>
+    <details class="more">
+      <summary>Colour key</summary>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--lime)"></i>Limestone-built</span>
+        <span><i class="sw" style="background:var(--granite)"></i>Granite</span>
+        <span><i class="sw" style="background:var(--rock)"></i>Cut into bedrock</span>
+        <span><i class="sw" style="background:var(--scan)"></i>Found by scanning</span>
+        <span><i class="sw" style="background:var(--shaft)"></i>Shafts and tunnels</span>
+        <span><i class="sw" style="background:var(--human)"></i>Person, 1.75 m</span>
+        <span><i class="sw" style="background:var(--mark); transform: rotate(45deg) scale(.8)"></i>Inscription or mark</span>
+      </div>
+    </details>
+    <details class="more">
+      <summary>Sources</summary>
+      <p class="sources" id="sources"></p>
+    </details>
+  </div>
+</aside>
+
+<aside class="detail card" id="detail" aria-label="Selected feature" hidden>
+  <div class="detail-head">
+    <div class="titles" id="detail-titles"></div>
+    <button class="icon-btn" id="btn-close" type="button" aria-label="Close">
+      <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div id="info" aria-live="polite"></div>
+</aside>
+
+<div class="toolbar card" role="toolbar" aria-label="View">
+  <button class="icon-btn" id="btn-overview" type="button" data-tip="Overview" aria-label="Overview">
+    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-side" type="button" data-tip="Side profile" aria-label="Side profile">
+    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M12 20V9"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-cut" type="button" data-tip="Cut away east half" aria-label="Cut away east half" aria-pressed="false">
+    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h9V4z"/><path d="M15 20h6l-6-11" stroke-dasharray="2 2.5"/></svg>
+  </button>
+  <span class="sep"></span>
+  <button class="icon-btn" id="tg-humans" type="button" data-tip="Human figures" aria-label="Human figures" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 8v7M8 11h8M10 21l2-6 2 6"/></svg>
+  </button>
+  <button class="icon-btn" id="tg-shafts" type="button" data-tip="Shafts" aria-label="Shafts" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><path d="M5 19 19 5M9 19l10-10"/></svg>
+  </button>
+  <button class="icon-btn" id="tg-scan" type="button" data-tip="Scan discoveries" aria-label="Scan discoveries" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><rect x="5" y="9" width="14" height="6" rx="1" stroke-dasharray="3 2"/><path d="M12 3v3M12 18v3"/></svg>
+  </button>
+  <button class="icon-btn" id="tg-marks" type="button" data-tip="Inscriptions" aria-label="Inscriptions" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><path d="M12 3l6 9-6 9-6-9z"/></svg>
+  </button>
+  <button class="icon-btn" id="tg-surround" type="button" data-tip="Neighbouring monuments" aria-label="Neighbouring monuments" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><path d="M2 20h20M4 20l4-7 4 7M12 20l5-10 5 10" /></svg>
+  </button>
+  <button class="icon-btn" id="tg-labels" type="button" data-tip="Labels" aria-label="Labels" aria-pressed="true">
+    <svg class="i" viewBox="0 0 24 24"><path d="M4 5h10l6 7-6 7H4z"/></svg>
+  </button>
+  <span class="sep"></span>
+  <label for="opacity"><span>Walls</span><input id="opacity" type="range" min="0" max="60" value="22"></label>
+</div>
+
+<section class="view card" id="timeline-view" aria-label="Timeline" hidden></section>
+<section class="view card" id="map-view" aria-label="Map" hidden></section>
+
+<section class="navhelp card" id="navhelp" aria-label="How to move around">
+  <header><b>Moving around</b><button class="icon-btn" id="btn-help-close" type="button" aria-label="Hide"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <dl>
+    <dt>Drag</dt><dd>Turn the model</dd>
+    <dt>Two-finger swipe</dt><dd>Turn (trackpad)</dd>
+    <dt>Pinch or wheel</dt><dd>Zoom toward the pointer</dd>
+    <dt>Shift + drag/swipe</dt><dd>Move sideways</dd>
+    <dt>Right-drag</dt><dd>Move sideways</dd>
+    <dt>Double-click</dt><dd>Focus on that spot</dd>
+  </dl>
+</section>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// All models: metres, origin at the centre of the base. +x = east, +y = up, +z = south.
+const D = Math.PI / 180;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+// Photo with its estimated camera position and look-at point (model metres)
+const ph = (src, alt, caption, credit, license, url, cam, look) => ({ src: 'photos/' + src, alt, caption, credit, license, url, cam: cam.toArray(), look: look.toArray() });
+const css = getComputedStyle(document.documentElement);
+const C = n => new THREE.Color(css.getPropertyValue('--' + n).trim());
+const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), cedar: C('cedar'), mark: C('mark'), human: C('human') };
+
+// ---------- Scene ----------
+const host = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+host.appendChild(renderer.domElement);
+const labelRenderer = new CSS2DRenderer({ element: document.getElementById('labels') });
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(css.getPropertyValue('--bg').trim());
+scene.fog = new THREE.Fog(scene.background, 900, 3200);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 8000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.12;
+controls.rotateSpeed = 0.75;
+controls.panSpeed = 1.0;
+controls.screenSpacePanning = true;
+controls.maxDistance = 2600;
+controls.minDistance = 1.5;
+
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1));
+const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
+sun.position.set(200, 300, 120);
+scene.add(sun);
+{
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide }));
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(6000, 300, COL.grid1, COL.grid2);
+  grid.material.transparent = true; grid.material.opacity = 0.9;
+  scene.add(grid);
+}
+const humanMat = new THREE.MeshStandardMaterial({ color: COL.human, emissive: COL.human, emissiveIntensity: 0.25, roughness: 0.6 });
+const shellMat = new THREE.MeshBasicMaterial({ color: COL.sand, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+const clip = new THREE.Plane(V(-1, 0, 0), 0);
+
+// ---------- Building helpers (act on the pyramid being built) ----------
+let ctx = null;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function put(id, mesh, edges = true) {
+  mesh.userData.fid = id;
+  ctx.groups[id].add(mesh);
+  ctx.pickables.push(mesh);
+  if (edges) {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 20), lineMat(id));
+    e.position.copy(mesh.position); e.quaternion.copy(mesh.quaternion);
+    ctx.groups[id].add(e);
+  }
+  return mesh;
+}
+function lineMat(id) {
+  return ctx.lineMats[id] ??= new THREE.LineBasicMaterial({ color: COL[ctx.byId[id].color].clone().multiplyScalar(0.62) });
+}
+// Local frame for a passage running from a to b (floor centreline)
+function frame(a, b) {
+  const dir = b.clone().sub(a); const len = dir.length(); dir.normalize();
+  // "up" for the passage: world up with the along-passage part removed
+  const n = V(0, 1, 0).addScaledVector(dir, -dir.y);
+  if (n.lengthSq() < 1e-6) n.set(0, 0, -1);
+  n.normalize();
+  const x = new THREE.Vector3().crossVectors(n, dir);
+  return { dir, len, n, x, q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, n, dir)) };
+}
+function passage(id, a, b, w, h) {
+  const f = frame(a, b);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, f.len), ctx.mats[id]);
+  m.quaternion.copy(f.q);
+  m.position.copy(a).addScaledVector(f.dir, f.len / 2).addScaledVector(f.n, h / 2);
+  return put(id, m);
+}
+function room(id, x0, x1, y0, y1, s0, s1, mat) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, s1 - s0), mat ?? ctx.mats[id]);
+  m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (s0 + s1) / 2);
+  return put(id, m);
+}
+// Pointed roof with its ridge running east–west (or north–south when ridgeNS)
+function gabledRoom(id, x0, x1, y0, wallH, peakH, s0, s1, ridgeNS = false) {
+  const [a0, a1] = ridgeNS ? [x0, x1] : [s0, s1];
+  const sh = new THREE.Shape();
+  sh.moveTo(a0, y0); sh.lineTo(a1, y0); sh.lineTo(a1, y0 + wallH); sh.lineTo((a0 + a1) / 2, y0 + peakH); sh.lineTo(a0, y0 + wallH); sh.closePath();
+  const depth = ridgeNS ? s1 - s0 : x1 - x0;
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }), ctx.mats[id]);
+  if (ridgeNS) m.position.set(0, 0, s0);
+  else { m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0, 0, 1), V(0, 1, 0), V(-1, 0, 0))); m.position.set(x1, 0, 0); }
+  return put(id, m);
+}
+// Corbelled room: vertical walls, then courses that each step inward (insetX / insetS per side)
+function corbelRoom(id, x0, x1, y0, s0, s1, totalH, wallH, steps, insetX, insetS) {
+  room(id, x0, x1, y0, y0 + wallH, s0, s1);
+  const h = (totalH - wallH) / steps;
+  for (let i = 1; i <= steps; i++) {
+    const y = y0 + wallH + (i - 1) * h;
+    room(id, x0 + insetX * i, x1 - insetX * i, y, y + h, s0 + insetS * i, s1 - insetS * i);
+  }
+}
+// Thin shaft or tunnel along a polyline, plus a 1px line so it stays visible from afar
+function route(id, pts, w, h) {
+  for (let i = 0; i < pts.length - 1; i++) passage(id, pts[i], pts[i + 1], w, h);
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat(id));
+  line.userData.fid = id;
+  ctx.groups[id].add(line); ctx.pickables.push(line);
+}
+function person(x, y, z, turn = 0) {
+  const g = new THREE.Group();
+  const add = (geo, px, py) => { const m = new THREE.Mesh(geo, humanMat); m.position.set(px, py, 0); g.add(m); };
+  add(new THREE.BoxGeometry(0.13, 0.84, 0.16), -0.09, 0.42);
+  add(new THREE.BoxGeometry(0.13, 0.84, 0.16), 0.09, 0.42);
+  add(new THREE.BoxGeometry(0.42, 0.62, 0.22), 0, 1.15);
+  add(new THREE.BoxGeometry(0.09, 0.62, 0.11), -0.27, 1.13);
+  add(new THREE.BoxGeometry(0.09, 0.62, 0.11), 0.27, 1.13);
+  add(new THREE.SphereGeometry(0.12, 14, 10), 0, 1.62);
+  g.position.set(x, y, z);
+  g.rotation.y = turn;
+  ctx.humans.add(g);
+}
+// Half-width of the pyramid at height y, from its profile rings
+function halfAt(rings, y) {
+  for (let i = 0; i < rings.length - 1; i++) {
+    const [a, ya] = rings[i], [b, yb] = rings[i + 1];
+    if (y <= yb) return a + (b - a) * (y - ya) / (yb - ya);
+  }
+  return 0;
+}
+function buildShell(def) {
+  const rings = def.rings, g = ctx.groups.pyramid;
+  const pos = [], corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (let i = 0; i < rings.length - 1; i++) {
+    const [a, ya] = rings[i], [b, yb] = rings[i + 1];
+    for (let k = 0; k < 4; k++) {
+      const c0 = corners[k], c1 = corners[(k + 1) % 4];
+      const p0 = [c0[0] * a, ya, c0[1] * a], p1 = [c1[0] * a, ya, c1[1] * a], p2 = [c1[0] * b, yb, c1[1] * b], p3 = [c0[0] * b, yb, c0[1] * b];
+      pos.push(...p0, ...p1, ...p2, ...p0, ...p2, ...p3);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const shell = new THREE.Mesh(geo, shellMat);
+  shell.renderOrder = 10;
+  g.add(shell);
+  const square = (r, y) => [V(-r, y, -r), V(r, y, -r), V(r, y, r), V(-r, y, r), V(-r, y, -r)];
+  const edgeMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.9 });
+  const courseMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.22 });
+  for (const c of corners) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rings.map(([r, y]) => V(c[0] * r, y, c[1] * r))), edgeMat));
+  for (const [r, y] of rings) if (r > 0) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(r, y)), edgeMat));
+  const top = rings[rings.length - 1][1];
+  for (let y = 10; y < top; y += 10) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(halfAt(rings, y), y)), courseMat));
+  if (def.today) {
+    const t = new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(halfAt(rings, def.today), def.today)), new THREE.LineDashedMaterial({ color: COL.edge, dashSize: 1, gapSize: 1 }));
+    t.computeLineDistances();
+    g.add(t);
+  }
+  // bedrock outline below ground
+  const depth = Math.max(20, -def.lowest + 12);
+  const bed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(rings[0][0] * 2 + 60, depth, rings[0][0] * 2 + 60)), new THREE.LineBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.35 }));
+  bed.position.y = -depth / 2;
+  g.add(bed);
+}
+
+// ======================================================================
+// Pyramid records
+// ======================================================================
+
+// ---------- Khufu ----------
+const KHUFU = (() => {
+  const B = 230.33 / 2, K = Math.tan(51.844 * D), H = B * K;
+  const AX = 7.29; // passage system lies 7.29 m east of the N–S centre line (Petrie)
+  const descA = 26.52 * D, ascA = 26.04 * D;
+  const descDir = V(0, -Math.sin(descA), Math.cos(descA));
+  const ascDir = V(0, Math.sin(ascA), Math.cos(ascA));
+  // Descending passage anchored so the Queen's Chamber sits on the E–W axis
+  const entrance = V(AX, 16.09, -102.53);
+  const descEnd = entrance.clone().addScaledVector(descDir, (16.09 + 29) / Math.sin(descA));
+  const ascStart = V(AX, 4.35, -76.31);
+  const galStart = V(AX, 21.6, -41.0);
+  const galEnd = galStart.clone().addScaledVector(ascDir, 46.7);
+  const KC = { x0: AX + 0.52 - 10.47, x1: AX + 0.52, y0: 43.0, y1: 43.0 + 5.82, s0: 9.36, s1: 9.36 + 5.23 };
+  const QC = { x0: AX - 2.88, x1: AX + 2.88, y0: 21.1, s0: -2.615, s1: 2.615 };
+  const hitFace = (p, d) => d.z < 0 ? (K * (B + p.z) - p.y) / (d.y - K * d.z) : (K * (B - p.z) - p.y) / (d.y + K * d.z);
+
+  return {
+    id: 'khufu', king: 'Khufu', reign: [2589, 2566], year: 2570, lat: 29.97917, lon: 31.13417,
+    short: 'Khufu', site: 'Giza', date: 'c. 2570 BC', title: 'The Great Pyramid of Khufu',
+    rings: [[B, 0], [0, H]], today: 138.5, lowest: -30, start: 'king',
+    stats: [['Original height', '146.6 m'], ['Base', '230.3 m per side']],
+    sources: 'W. M. F. Petrie, <i>The Pyramids and Temples of Gizeh</i> (1883); V. Maragioglio &amp; C. Rinaldi, <i>L’Architettura delle Piramidi Menfite</i> IV (1965); M. Lehner, <i>The Complete Pyramids</i> (1997); G. Dormion, <i>La chambre de Chéops</i> (2004); Morishima et al., <i>Nature</i> 552 (2017); Procureur et al., <i>Nature Communications</i> 14 (2023).',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'It was the tallest building on Earth for about 3,800 years, and it is the only one of the Seven Wonders of the Ancient World still standing.',
+        photos: () => [ph('khufu-exterior.jpg', 'The Great Pyramid seen from close to its base', 'The Great Pyramid from close to its base.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:The_Great_Pyramid_of_Giza_(14794652632).jpg', V(70, 1.7, -B - 55), V(-10, 45, 0))],
+        text: 'The largest of the Giza pyramids, built for King Khufu of the 4th Dynasty. Its sides face the cardinal directions to within a few arcminutes. The smooth white limestone casing that once covered it was mostly stripped in the Middle Ages.',
+        facts: [['Base side', '230.3 m · 440 cubits'], ['Original height', 'c. 146.6 m · 280 cubits'], ['Height today', 'c. 138.5 m'], ['Face slope', '51° 50′ 40″'], ['Volume', 'c. 2.6 million m³']] },
+      { id: 'entrance', group: 'Exterior', name: 'Original entrance', color: 'lime', conf: 'surveyed', major: true,
+        why: 'Placing it high on the north face points the passage at the northern sky, where Egyptians placed the never-setting stars they linked to the king\u2019s afterlife.',
+        photos: () => [ph('khufu-entrance.jpg', '19th-century photograph of the pyramid entrance', 'A 19th-century photograph of the original entrance and the chevron blocks above it.', 'Boston Public Library, Tupper Scrapbooks', 'Public domain', 'https://commons.wikimedia.org/wiki/File:The_Entrance_to_Great_Pyramid_by_Boston_Public_Library.jpg', V(AX, 8, -B - 18), V(AX, 18, entrance.z))],
+        text: 'The real entrance, on the north face. Like every main passage, it sits a little over 7 m east of the centre line. Visitors today go in through the robbers’ tunnel lower down.',
+        facts: [['Height above base', 'c. 17 m'], ['East of centre', '7.3 m (Petrie) · 7.9 m (M&R)'], ['Opening', '1.05 × 1.20 m']] },
+      { id: 'chevrons', group: 'Exterior', name: 'Chevron blocks', color: 'lime', conf: 'approx',
+        why: 'An early example of builders steering weight around an opening, the same idea used on a much larger scale above the King\u2019s Chamber.',
+        text: 'Two pairs of huge limestone blocks leaning against each other above the entrance. They carry the weight of the masonry away from the passage roof. Shown here in simplified form.',
+        facts: [['Layout', '2 gabled pairs'], ['Material', 'Limestone']] },
+      { id: 'robbers', group: 'Exterior', name: 'Robbers’ tunnel', color: 'shaft', conf: 'approx',
+        why: 'It reached the hidden ascending passage, whose entrance had been sealed and disguised. Without it, the upper chambers might have stayed unknown much longer.',
+        text: 'A rough tunnel forced through the core masonry, traditionally credited to Caliph al-Ma’mun around AD 820. It meets the ascending passage beside the granite plugs, which the diggers went around. It is the tourist entrance today.',
+        facts: [['Starts at', 'c. 7 m above base'], ['Length', 'c. 30 m'], ['Route', 'Simplified']] },
+      { id: 'descending', group: 'Below ground', name: 'Descending passage', color: 'rock', conf: 'surveyed', major: true,
+        why: 'Its straight line and steady angle over about 100 m show how precisely the builders could set out a slope.',
+        text: 'A long, straight, narrow corridor sloping down from the entrance. The upper part runs through built masonry and the rest is cut into the bedrock below the pyramid. You cannot stand upright in it.',
+        facts: [['Slope', '26° 31′ (Petrie) · 26° 27′ (Dormion)'], ['Length', 'c. 100 m'], ['Cross-section', 'c. 1.05 × 1.20 m'], ['Then level passage', '8.84 m']] },
+      { id: 'subterranean', group: 'Below ground', name: 'Subterranean chamber', color: 'rock', conf: 'approx', major: true,
+        why: 'Probably the first planned burial chamber. Leaving it unfinished suggests the design changed during construction.',
+        photos: () => [ph('khufu-subterranean.jpg', 'Old photograph of a rough rock-cut chamber', 'The unfinished Subterranean Chamber, photographed in the early 1900s by John and Edgar Morton.', 'John and Edgar Morton', 'Public domain', 'https://commons.wikimedia.org/wiki/File:27_edgar.jpg', V(7.0, -28.2, 4.4), V(-1, -28.6, 0))],
+        text: 'An unfinished room cut deep in the bedrock. The floor was never levelled and much of the western half is still solid rock. A small dead-end passage leads south from it.',
+        facts: [['Size', '14.1 E–W × 8.4 m N–S'], ['Height', 'c. 4 m (uneven)'], ['Depth', 'c. 27–30 m below base'], ['South passage', 'c. 16 m, dead end']] },
+      { id: 'well', group: 'Below ground', name: 'Well shaft', color: 'rock', conf: 'approx',
+        why: 'It explains how the workers who sealed the upper passages could get out afterwards.',
+        text: 'An irregular, almost vertical shaft linking the bottom of the Grand Gallery to the lower descending passage. It passes a natural cavity called the Grotto, where the bedrock rises about 5.7 m above the base. It was probably the workers’ way out after the passage was plugged.',
+        facts: [['Length', 'c. 50 m'], ['Grotto', 'c. 5.7 m above base'], ['Route', 'Irregular, simplified']] },
+      { id: 'ascending', group: 'Ascending system', name: 'Ascending passage', color: 'lime', conf: 'surveyed',
+        why: 'It let the burial chambers sit high in the masonry instead of underground, a major change from earlier pyramids.',
+        text: 'Branches up from the roof of the descending passage and climbs to the Grand Gallery. Its entrance was hidden behind a ceiling block and only discovered when the robbers’ tunnel broke through.',
+        facts: [['Slope', 'c. 26° (26° 2′–26° 6′)'], ['Length', '39.3 m · 75 cubits'], ['Cross-section', 'c. 1.05 × 1.20 m']] },
+      { id: 'plugs', group: 'Ascending system', name: 'Granite plugs', color: 'granite', conf: 'surveyed',
+        why: 'They were the main security system. Later diggers tunnelled around them because the granite was too hard to cut.',
+        text: 'Three granite blocks still jammed in the lower end of the ascending passage. They were slid down from above to seal the upper chambers.',
+        facts: [['Number', '3'], ['Lengths', '1.57, 1.67, 1.0 m'], ['Material', 'Granite']] },
+      { id: 'gallery', group: 'Ascending system', name: 'Grand Gallery', color: 'lime', conf: 'surveyed', major: true,
+        why: 'One of the most impressive spaces of the Old Kingdom. Its stepped roof carries the weight above without any arch.',
+        photos: () => [ph('khufu-gallery-2.jpg', 'Looking up the Grand Gallery with its modern walkway', 'Looking up the Grand Gallery from near its foot.', 'Mike McBey', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Looking_upwards,_along_the_Grand_Gallery,_inside_the_Great_Pyramid_1984_(50535456558).jpg', galStart.clone().addScaledVector(ascDir, 4).add(V(0, 1.7, 0)), galStart.clone().addScaledVector(ascDir, 40).add(V(0, 3, 0))), ph('khufu-gallery-1.jpg', 'The tall, narrow Grand Gallery in low light', 'The corbelled walls rising on both sides of the Grand Gallery.', 'Keith Adler', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Great_Pyramid_of_Giza_Grand_Gallery.jpg', galStart.clone().addScaledVector(ascDir, 10).add(V(0, 1.7, 0)), galStart.clone().addScaledVector(ascDir, 45).add(V(0, 5, 0)))],
+        text: 'A tall, steep hall with a corbelled roof: each of the seven upper courses of stone steps inward. A narrow channel runs up the middle between two side ramps.',
+        facts: [['Length', '46.7 m'], ['Height', '8.6 m'], ['Width at floor', '2.06 m'], ['Width at roof', 'c. 1.04 m'], ['Corbel courses', '7, from 2.29 m up']] },
+      { id: 'queenPassage', group: 'Ascending system', name: 'Queen’s Chamber passage', color: 'lime', conf: 'surveyed',
+        why: 'It leads to the middle chamber, a sign of the builders\u2019 second-stage plan.',
+        text: 'A level corridor running south from the foot of the Grand Gallery. The floor drops by about half a metre shortly before the chamber.',
+        facts: [['Cross-section', '1.05 × 1.17 m'], ['Height after step', '1.68 m'], ['Floor step', 'c. 0.5 m']] },
+      { id: 'queen', group: 'Ascending system', name: 'Queen’s Chamber', color: 'lime', conf: 'surveyed', major: true,
+        why: 'Probably a second planned burial chamber or a room for a statue of the king, left unfinished when the design moved higher.',
+        text: 'A limestone room with a pointed roof, lying exactly on the pyramid’s east–west axis. The name came from early Arab travellers; no queen was buried here. A tall corbelled niche is set into the east wall.',
+        facts: [['Size', '5.76 E–W × 5.23 m N–S'], ['Height at ridge', '6.23 m'], ['Floor above base', 'c. 21 m'], ['East niche', '4.67 m high']] },
+      { id: 'queenShafts', group: 'Ascending system', name: 'Queen’s Chamber shafts', color: 'shaft', conf: 'approx', shaft: true,
+        why: 'Their sealed stone \u201cdoors\u201d are among the pyramid\u2019s last unexplained features.',
+        text: 'Two tiny shafts that never reach the outside. In 1993 Rudolf Gantenbrink’s robot Upuaut-2 found the south shaft closed about 65 m in by a small stone slab with two copper pins. A 2002 probe drilled through and found another stone behind it.',
+        facts: [['Cross-section', 'c. 20 × 20 cm'], ['Rise', 'c. 39°'], ['Blocked at', 'c. 65 m']] },
+      { id: 'antechamber', group: 'King’s level', name: 'Antechamber', color: 'granite', conf: 'surveyed',
+        why: 'Its portcullis slabs were the last barrier before the burial.',
+        text: 'A small granite-lined room in front of the King’s Chamber. Grooves in its walls once held three sliding stone portcullis slabs.',
+        facts: [['Length', '2.97 m'], ['Width', '1.17 m'], ['Height', 'c. 3.8 m'], ['Portcullis slots', '3']] },
+      { id: 'king', group: 'King’s level', name: 'King’s Chamber', color: 'granite', conf: 'surveyed', major: true,
+        why: 'The intended resting place of Khufu. No one had built a granite chamber this high inside a pyramid before.',
+        photos: () => [ph('khufu-king-1.jpg', 'The granite sarcophagus in the King\'s Chamber', 'The sarcophagus at the west end of the King\'s Chamber.', 'Andrew Currie', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Khufu_Pyramid_-_King%27s_Chamber.jpg', V(4.5, 44.6, 12.0), V(-1.0, 43.6, 11.9)), ph('khufu-king-2.jpg', 'Visitors standing in the King\'s Chamber', 'Visitors in the King\'s Chamber, for a sense of its size.', 'Mike McBey', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:At_the_centre_of_the_Great_Pyramid_(47315820161).jpg', V(6.9, 44.5, 10.0), V(0, 44.2, 13.2))],
+        text: 'The burial chamber, built entirely of red granite brought from Aswan, about 800 km up the Nile. The flat roof is spanned by nine granite beams.',
+        facts: [['Size', '10.47 × 5.23 m'], ['In cubits', '20 × 10'], ['Height', '5.82 m'], ['Floor above base', 'c. 43 m'], ['Roof beams', '9, est. 25–80 t']] },
+      { id: 'sarcophagus', group: 'King’s level', name: 'Sarcophagus', color: 'granite', conf: 'surveyed',
+        why: 'It is the only object left in the burial chamber; no body or grave goods were ever found.',
+        text: 'A plain, lidless granite box at the west end of the King’s Chamber. It was probably put in place before the chamber was roofed.',
+        facts: [['Outside', 'c. 2.28 × 0.98 × 1.05 m'], ['Lid', 'Missing']] },
+      { id: 'relieving', group: 'King’s level', name: 'Relieving chambers', color: 'granite', conf: 'approx',
+        why: 'They spread the weight above the chamber, and the painted builders\u2019 marks inside are the strongest evidence that the pyramid was built for Khufu.',
+        text: 'Five low compartments stacked above the King’s Chamber, topped by a pointed roof of limestone blocks. The lowest was found by Nathaniel Davison in the 1760s, the rest by Howard Vyse and John Perring in 1837. Painted builders’ marks inside name Khufu’s work gangs.',
+        facts: [['Compartments', '5'], ['Top above ceiling', 'c. 17 m'], ['Heights shown', 'Approximate']] },
+      { id: 'kingShafts', group: 'King’s level', name: 'King’s Chamber shafts', color: 'shaft', conf: 'approx', shaft: true,
+        why: 'Some researchers think they pointed toward important stars of the time, linked to beliefs about the king\u2019s journey after death.',
+        photos: () => [ph('khufu-shaft.jpg', 'Square opening of a shaft in a granite wall', 'The opening of the north shaft in the King\'s Chamber wall.', 'Vincent Brown', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Great_Pyramid_Air_Shaft_(39752498153).jpg', V(KC.x1 - 2.5, 44.0, KC.s0 + 1.6), V(KC.x1 - 2.5, 44.0, KC.s0))],
+        text: 'Two narrow shafts that run from the chamber walls all the way to the outer faces. Their purpose is debated: ventilation, or a symbolic route for the king’s soul to the stars.',
+        facts: [['North slope', 'c. 32½°, varies'], ['South slope', '45°'], ['Cross-section', 'c. 20 × 14 cm'], ['Above floor', '0.91 m']] },
+      { id: 'bigVoid', group: 'Scan discoveries', name: 'The Big Void', color: 'scan', conf: 'uncertain', scan: true, major: true,
+        why: 'The first major structure found inside the Great Pyramid since the 1800s, and it was found with particle physics.',
+        text: 'Detected in 2017 by the ScanPyramids team using cosmic-ray muons. It is at least 30 m long with a cross-section similar to the Grand Gallery, somewhere above it. Nobody has entered it, and whether it is level or sloping is unknown. The box marks the general zone only.',
+        facts: [['Found', '2017, muon imaging'], ['Length', '≥ 30 m'], ['Position', 'Uncertain']] },
+      { id: 'nfc', group: 'Scan discoveries', name: 'North Face Corridor', color: 'scan', conf: 'approx', scan: true,
+        why: 'It proved that muon scanning can find real hidden spaces, and it may help explain how the north face was built.',
+        text: 'A hidden corridor behind the chevron blocks, first detected by scans in 2016 and seen directly with an endoscope in 2023. It has a pointed roof and ends after about 9 m. Its purpose is unknown.',
+        facts: [['Confirmed', '2023, endoscope'], ['Length', 'c. 9 m'], ['Cross-section', 'c. 2 × 2 m'], ['Height', 'c. 17–23 m above ground']] },
+      { id: 'quarryMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V((KC.x0 + KC.x1) / 2, 61.8, (KC.s0 + KC.s1) / 2), major: true, name: 'Builders\u2019 marks naming Khufu',
+        text: 'Red-painted marks left by the work gangs on blocks in the relieving chambers, found by Vyse and Perring in 1837. They include Khufu\u2019s name inside cartouches and gang names such as \u201cFriends of Khufu\u201d. They were painted during quarrying or building and were never meant to be seen.',
+        why: 'They are the main physical evidence tying the pyramid to Khufu.',
+        facts: [['Found', '1837'], ['Paint', 'Red ochre'], ['Names', 'Khufu, work gangs']] },
+      { id: 'lepsius', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V(AX, 25, -(B - 25 / K) - 0.6), name: 'Lepsius inscription',
+        text: 'A hieroglyphic text carved above the entrance in 1842 by the Prussian expedition led by Karl Richard Lepsius, in honour of King Friedrich Wilhelm IV. It is modern, written in the ancient script.',
+        why: 'It is the most visible hieroglyphic text on the pyramid, and a record of the birth of scientific Egyptology.',
+        facts: [['Carved', '1842'], ['Script', 'Hieroglyphs (modern)']] },
+      { id: 'djediMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(AX, 62.9, 53.6), name: 'Marks behind the shaft door',
+        text: 'In 2011 the Djedi robot pushed a small camera past the stone door in the Queen\u2019s Chamber south shaft and filmed red-painted marks on the floor behind it. They may be builders\u2019 numbers.',
+        why: 'They are the only marks ever seen in the shafts, and could help explain how the shafts were laid out.',
+        facts: [['Filmed', '2011, Djedi robot'], ['Paint', 'Red']] },
+    ],
+    build() {
+      const M = ctx.mats;
+      // Descending passage, level passage, subterranean chamber, dead-end south passage
+      passage('descending', entrance, descEnd, 1.05, 1.2);
+      passage('descending', descEnd, V(AX, -29, -3.28), 0.85, 0.92);
+      room('subterranean', -6.0, 8.1, -30, -26, -3.28, 5.12);
+      passage('subterranean', V(0.5, -29.6, 5.12), V(0.5, -29.6, 21.5), 0.75, 0.75);
+
+      // Entrance marker and chevrons
+      room('entrance', AX - 0.8, AX + 0.8, entrance.y - 0.2, entrance.y + 1.6, entrance.z - 0.5, entrance.z + 1.2);
+      [[0, 19.2], [1, 21.4]].forEach(([i, ry]) => {
+        const s = -(B - ry / K) + 1.5 + i * 1.0;
+        for (const side of [-1, 1]) {
+          const slab = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 2.4), M.chevrons);
+          slab.position.set(AX + side * 1.25, ry - 1.1, s);
+          slab.rotation.z = -side * 40 * D;
+          put('chevrons', slab);
+        }
+      });
+
+      // Ascending passage with granite plugs
+      passage('ascending', ascStart, galStart, 1.05, 1.2);
+      let t = 0.4;
+      for (const len of [1.57, 1.67, 1.0]) {
+        const a = ascStart.clone().addScaledVector(ascDir, t);
+        passage('plugs', a, a.clone().addScaledVector(ascDir, len - 0.04), 1.07, 1.22);
+        t += len;
+      }
+
+      // Robbers' tunnel
+      route('robbers', [V(AX - 3, 7, -(B - 7 / K)), V(AX - 3, 7, -82), V(AX - 1.4, 6.8, -75.5), ascStart.clone().addScaledVector(ascDir, 5.4).setX(AX - 0.5)], 1.6, 1.8);
+
+      // Grand Gallery: corbelled profile extruded along its slope
+      {
+        const f = frame(galStart, galEnd);
+        const sh = new THREE.Shape();
+        const wall = 2.29, step = (8.6 - wall) / 7, inset = 0.076;
+        sh.moveTo(-1.03, 0); sh.lineTo(1.03, 0);
+        let hw = 1.03, y = wall;
+        sh.lineTo(hw, y);
+        for (let i = 0; i < 7; i++) { hw -= inset; sh.lineTo(hw, y); y += step; sh.lineTo(hw, y); }
+        sh.lineTo(-hw, y);
+        for (let i = 0; i < 7; i++) { y -= step; sh.lineTo(-hw, y); hw += inset; sh.lineTo(-hw, y); }
+        sh.closePath();
+        const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: f.len, bevelEnabled: false }), M.gallery);
+        m.quaternion.copy(f.q);
+        m.position.copy(galStart);
+        put('gallery', m);
+        const rampMat = new THREE.MeshStandardMaterial({ color: COL.lime.clone().multiplyScalar(0.7), roughness: 0.9 });
+        for (const side of [-1, 1]) {
+          const r = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.61, f.len), rampMat);
+          r.quaternion.copy(f.q);
+          r.position.copy(galStart).addScaledVector(f.x, side * 0.785).addScaledVector(f.dir, f.len / 2).addScaledVector(f.n, 0.31);
+          r.userData.fid = 'gallery'; ctx.groups.gallery.add(r); ctx.pickables.push(r);
+        }
+      }
+
+      // Queen's Chamber passage, chamber, niche
+      passage('queenPassage', galStart, V(AX, 21.6, -8.4), 1.05, 1.17);
+      passage('queenPassage', V(AX, 21.1, -8.4), V(AX, 21.1, QC.s0), 1.05, 1.67);
+      gabledRoom('queen', QC.x0, QC.x1, QC.y0, 4.69, 6.23, QC.s0, QC.s1);
+      room('queen', QC.x1, QC.x1 + 1.0, QC.y0, QC.y0 + 4.67, -0.79, 0.79);
+
+      // Queen's Chamber shafts (north one jogs west around the Grand Gallery)
+      {
+        const sA = 39.6 * D, nA = 37.5 * D;
+        const s0 = V(AX, 22.2, QC.s1), s1 = V(AX, 22.2, QC.s1 + 2);
+        const s2 = s1.clone().add(V(0, Math.sin(sA), Math.cos(sA)).multiplyScalar(63));
+        route('queenShafts', [s0, s1, s2], 0.2, 0.2);
+        const n0 = V(AX, 22.2, QC.s0), n1 = V(AX, 22.2, QC.s0 - 2);
+        const nd = V(0, Math.sin(nA), -Math.cos(nA));
+        const n2 = n1.clone().addScaledVector(nd, 14);
+        const n3 = n2.clone().addScaledVector(nd, 3).setX(AX - 3);
+        const n4 = n3.clone().addScaledVector(nd, 14);
+        const n5 = n4.clone().addScaledVector(nd, 3).setX(AX);
+        const n6 = n5.clone().addScaledVector(nd, 25);
+        route('queenShafts', [n0, n1, n2, n3, n4, n5, n6], 0.2, 0.2);
+        for (const p of [s2, n6]) {
+          const door = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), M.queenShafts);
+          door.position.copy(p); put('queenShafts', door);
+        }
+      }
+
+      // Well shaft and Grotto
+      route('well', [V(AX - 1.03, 21.6, -40.4), V(AX - 1.03, 13.6, -40.4), V(AX - 1.9, 5.7, -37.5), V(AX - 1.5, -7, -25.5), V(AX - 0.6, -24, -22.2)], 0.9, 0.9);
+      {
+        const grotto = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 10), M.well);
+        grotto.position.set(AX - 1.9, 5.7, -37.5); put('well', grotto, false);
+      }
+
+      // King's level: great step, low passages, antechamber, chamber, sarcophagus
+      room('king', AX - 1.03, AX + 1.03, galEnd.y, KC.y0, galEnd.z, galEnd.z + 1.6);
+      passage('antechamber', V(AX, KC.y0, galEnd.z + 1.6), V(AX, KC.y0, galEnd.z + 2.9), 1.05, 1.11);
+      room('antechamber', AX - 0.585, AX + 0.585, KC.y0, KC.y0 + 3.8, galEnd.z + 2.9, galEnd.z + 5.87);
+      passage('antechamber', V(AX, KC.y0, galEnd.z + 5.87), V(AX, KC.y0, KC.s0), 1.05, 1.11);
+      room('king', KC.x0, KC.x1, KC.y0, KC.y1, KC.s0, KC.s1);
+      M.sarcophagus.color.multiplyScalar(0.75);
+      room('sarcophagus', KC.x0 + 1.2, KC.x0 + 2.18, KC.y0, KC.y0 + 1.05, KC.s0 + 1.47, KC.s0 + 3.75);
+
+      // Relieving chambers: five compartments, the top one gabled
+      const floors = [49.9, 52.7, 55.5, 58.3, 61.1];
+      floors.slice(0, 4).forEach(y => room('relieving', KC.x0, KC.x1, y, y + 0.95, KC.s0 - 0.2, KC.s1 + 0.2));
+      gabledRoom('relieving', KC.x0, KC.x1, floors[4], 1.0, 4.7, KC.s0 - 0.4, KC.s1 + 0.4);
+
+      // King's Chamber shafts, run to the outer faces
+      {
+        const nA = 32.5 * D, sA = 45 * D;
+        const n0 = V(KC.x1 - 2.5, KC.y0 + 0.91, KC.s0), n1 = n0.clone().add(V(0, 0, -2.4));
+        const nd = V(0, Math.sin(nA), -Math.cos(nA));
+        route('kingShafts', [n0, n1, n1.clone().addScaledVector(nd, hitFace(n1, nd))], 0.2, 0.14);
+        const s0 = V(KC.x1 - 2.5, KC.y0 + 0.91, KC.s1), s1 = s0.clone().add(V(0, 0, 2.4));
+        const sd = V(0, Math.sin(sA), Math.cos(sA));
+        route('kingShafts', [s0, s1, s1.clone().addScaledVector(sd, hitFace(s1, sd))], 0.2, 0.14);
+      }
+
+      // Scan discoveries
+      {
+        const a = galStart.clone().addScaledVector(ascDir, 8).add(V(0, 15, 0));
+        passage('bigVoid', a, a.clone().addScaledVector(ascDir, 30), 2.1, 8);
+        const faceS = -(B - 20.5 / K);
+        const sh = new THREE.Shape();
+        sh.moveTo(-1.0, 0); sh.lineTo(1.0, 0); sh.lineTo(1.0, 1.45); sh.lineTo(0, 2.0); sh.lineTo(-1.0, 1.45); sh.closePath();
+        const n = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 9, bevelEnabled: false }), M.nfc);
+        n.position.set(AX, 20.5, faceS + 1.5);
+        put('nfc', n);
+      }
+
+      person(KC.x0 + 3.6, KC.y0, KC.s0 + 2.6, -0.6);
+      person(AX + 2.5, KC.y0, KC.s0 + 3.4, 0.9);
+      { const p = galStart.clone().addScaledVector(ascDir, 22); person(AX, p.y, p.z, Math.PI); }
+      person(AX - 0.8, QC.y0, 0.4, 0.4);
+      person(AX, KC.y0, galEnd.z + 4.4, Math.PI);
+      person(1.5, -30, 1.2, 0.3);
+      person(AX + 4, 0, -B - 6, Math.PI);
+      person(AX + 6, 0, -B - 9, 2.6);
+    },
+  };
+})();
+
+// ---------- Khafre ----------
+const KHAFRE = (() => {
+  const B = 215.25 / 2, K = Math.tan(53.167 * D), H = B * K;
+  const AX = 12; // both passage systems c. 12 m east of the centre line
+  const upA = 25.9 * D, lowA = 21.7 * D;
+  const upEntrance = V(AX, 11.54, -(B - 11.54 / K));
+  const upEnd = upEntrance.clone().add(V(0, -11.54, 11.54 / Math.tan(upA)));
+  const BC = { x0: AX + 0.55 - 14.15, x1: AX + 0.55, y0: 0, s0: -2.5, s1: 2.5 };
+  const lowEntrance = V(AX, 0, -B - 0.5);
+  const lowBottom = lowEntrance.clone().add(V(0, -9, 9 / Math.tan(lowA)));
+  const ascFoot = V(AX, -9, lowBottom.z + 20);
+  const ascTop = V(AX, 0, ascFoot.z + 9 / Math.tan(22 * D));
+
+  return {
+    id: 'khafre', king: 'Khafre', reign: [2558, 2532], year: 2540, lat: 29.97611, lon: 31.13083,
+    short: 'Khafre', site: 'Giza', date: 'c. 2540 BC', title: 'The Pyramid of Khafre',
+    rings: [[B, 0], [0, H]], today: 136.4, lowest: -11, start: 'burial',
+    stats: [['Original height', '143.5 m'], ['Base', '215.25 m per side']],
+    sources: 'M. Verner, <i>The Pyramids</i> (2001); M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); W. M. F. Petrie (1883); G. Belzoni’s 1818 account. Overall size is surveyed. The published interior plans give few passage figures online, so passage angles and lengths here are approximate.',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'It is linked by its causeway to the Great Sphinx, which most scholars attribute to Khafre.',
+        photos: () => [ph('khafre-exterior.jpg', 'Khafre\'s pyramid with casing still at the top', 'Khafre\'s pyramid, with original casing still near the top.', 'MusikAnimal', 'CC BY-SA 3.0', 'https://commons.wikimedia.org/wiki/File:Pyramid_of_Khafre_Giza_Egypt_in_2015_2.jpg', V(40, 1.7, B + 150), V(0, 50, 0))],
+        text: 'Built for Khafre, Khufu’s son. It is slightly smaller than the Great Pyramid but stands on bedrock about 10 m higher and has a steeper slope, so it often looks taller. The top of the pyramid still keeps part of its original limestone casing.',
+        facts: [['Base side', '215.25 m · 411 cubits'], ['Original height', '143.5 m · 274 cubits'], ['Height today', '136.4 m'], ['Face slope', '53° 10′']] },
+      { id: 'upper', group: 'Upper system', name: 'Upper entrance and passage', color: 'granite', conf: 'approx', major: true,
+        why: 'It shows a simpler design than Khufu\u2019s, with everything kept near or below ground level.',
+        text: 'The entrance used today, 11.54 m up the north face. A granite-lined passage slopes down to bedrock level, where a granite portcullis once closed it, then levels out. Like the lower system, it lies about 12 m east of the centre line.',
+        facts: [['Entrance height', '11.54 m'], ['East of centre', 'c. 12 m'], ['Lining', 'Granite'], ['Slope', 'c. 26°']] },
+      { id: 'horizontal', group: 'Upper system', name: 'Horizontal passage', color: 'rock', conf: 'approx',
+        why: 'Running the route at bedrock level made the chamber easier to cut and to seal.',
+        text: 'A long level corridor cut in the bedrock, running south to the burial chamber. The ramp from the lower system joins it partway along.',
+        facts: [['Length', 'c. 70 m (approx.)'], ['Level', 'c. base level']] },
+      { id: 'burial', group: 'Upper system', name: 'Burial chamber', color: 'rock', conf: 'surveyed', major: true,
+        why: 'Its roof is partly built above ground and its floor cut into rock, a mix of two older ways of making royal tombs.',
+        photos: () => [ph('khafre-burial.jpg', 'Burial chamber with the sarcophagus sunk into the floor', 'The burial chamber, looking west toward the sarcophagus.', 'Leon Petrosyan', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:The_Pyramide_of_Khofru_3.jpg', V(8.5, 1.6, 0), V(0, 0.4, 0))],
+        text: 'A long room cut into a pit in the bedrock, with a pointed roof of huge limestone beams built above ground level. Giovanni Belzoni entered it on 2 March 1818 and painted his name on the wall, which can still be seen.',
+        facts: [['Size', '14.15 E–W × 5 m N–S'], ['Height', 'nearly 7 m (approx.)'], ['Roof', 'Gabled limestone beams'], ['First entered', '1818, Belzoni']] },
+      { id: 'sarcophagus', group: 'Upper system', name: 'Sarcophagus', color: 'granite', conf: 'approx',
+        why: 'Sinking it into the floor made it hard to move or break into.',
+        photos: () => [ph('khafre-sarcophagus.jpg', 'Granite sarcophagus set into the floor', 'Khafre\'s granite sarcophagus, partly sunk into the floor.', 'Kelisi', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:KhafresSarcophagus.jpg', V(2.8, 1.9, 1.6), V(0.3, 0.1, 0))],
+        text: 'Carved from one block of granite and set partly into the floor near the west wall. A pit nearby probably held the canopic chest. Size shown is approximate.',
+        facts: [['Material', 'Granite'], ['Set', 'Partly sunk in floor']] },
+      { id: 'lower', group: 'Lower system', name: 'Lower entrance and passage', color: 'rock', conf: 'approx', major: true,
+        why: 'It may belong to an earlier plan, when the pyramid was meant to stand further north.',
+        text: 'A second entrance at the foot of the north face, cut entirely in the bedrock. Its passage descends, runs level past a portcullis, then climbs a ramp to join the horizontal passage of the upper system.',
+        facts: [['Entrance', 'At ground level'], ['Material', 'Cut in bedrock'], ['Route', 'Approximate']] },
+      { id: 'side', group: 'Lower system', name: 'Subsidiary chamber', color: 'rock', conf: 'approx', major: true,
+        why: 'Its purpose is still debated, so it remains one of the open questions about this pyramid.',
+        text: 'A side room opening west off the lower passage, about as long as Khufu’s King’s Chamber (Petrie). Its purpose is unclear; it may have stored burial goods, or it may be left over from an earlier plan.',
+        facts: [['Length', 'c. 10.4 m'], ['Roof', 'Gabled'], ['Purpose', 'Unknown']] },
+      { id: 'belzoni', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(5, 3.6, BC.s1 - 0.3), major: true, name: 'Belzoni\u2019s name',
+        text: 'Giovanni Belzoni wrote his name and the date in large letters on a wall of the burial chamber when he entered in 1818. It is modern graffiti. No ancient inscriptions have been found inside this pyramid.',
+        why: 'It records the first modern entry into the burial chamber.',
+        photos: () => [ph('khafre-belzoni.jpg', 'Painted letters reading Belzoni, 2 March 1818', 'Belzoni\'s name and the date, 2 March 1818, on the chamber wall.', 'Inkapigen', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Inscription_in_the_pyramid.jpg', V(5, 3.3, -1.0), V(5, 3.6, BC.s1))],
+        facts: [['Written', '2 March 1818'], ['Ancient texts inside', 'None found']] },
+    ],
+    build() {
+      // Upper system
+      room('upper', AX - 0.8, AX + 0.8, upEntrance.y - 0.2, upEntrance.y + 1.6, upEntrance.z - 0.5, upEntrance.z + 1.2);
+      passage('upper', upEntrance, upEnd, 1.05, 1.2);
+      room('upper', AX - 0.75, AX + 0.75, 0, 1.6, upEnd.z + 0.6, upEnd.z + 1.0, new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 }));
+      passage('horizontal', upEnd, V(AX, 0, BC.s0), 1.05, 1.75);
+      gabledRoom('burial', BC.x0, BC.x1, BC.y0, 5.0, 6.83, BC.s0, BC.s1);
+      ctx.mats.sarcophagus.color.multiplyScalar(0.75);
+      room('sarcophagus', BC.x0 + 1.4, BC.x0 + 2.45, -0.4, 0.55, -1.3, 1.3);
+      // Lower system
+      passage('lower', lowEntrance, lowBottom, 1.05, 1.2);
+      passage('lower', lowBottom, ascFoot, 1.05, 1.2);
+      passage('lower', ascFoot, ascTop, 1.05, 1.2);
+      room('lower', AX - 0.75, AX + 0.75, -9, -7.2, lowBottom.z + 3, lowBottom.z + 3.4, new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 }));
+      const sideS = lowBottom.z + 8;
+      passage('side', V(AX, -9, sideS), V(9.6, -9, sideS), 1.0, 1.4);
+      gabledRoom('side', 9.6 - 10.41, 9.6, -9, 1.8, 2.61, sideS - 1.56, sideS + 1.56);
+
+      person(BC.x0 + 4, 0, 0.6, -0.5);
+      person(AX - 3, 0, -0.8, 0.4);
+      person(4, -9, sideS, 1.2);
+      person(AX + 4, 0, -B - 6, Math.PI);
+    },
+  };
+})();
+
+// ---------- Menkaure ----------
+const MENKAURE = (() => {
+  const K = Math.tan(51.34 * D), H = 65, B = H / K;
+  const dA = 26 * D;
+  const entrance = V(0, 4.2, -(B - 4.2 / K));
+  const dEnd = entrance.clone().add(V(0, -32 * Math.sin(dA), 32 * Math.cos(dA)));
+  const fl = dEnd.y; // level of the panelled chamber and antechamber
+  const AC = { x0: -7, x1: 7, s0: -1.9, s1: 1.9 };
+  const BCy = fl - 4.3;
+
+  return {
+    id: 'menkaure', king: 'Menkaure', reign: [2532, 2503], year: 2510, lat: 29.97250, lon: 31.12806,
+    short: 'Menkaure', site: 'Giza', date: 'c. 2510 BC', title: 'The Pyramid of Menkaure',
+    rings: [[B, 0], [0, H]], today: 61, lowest: BCy - 1, start: 'burial',
+    stats: [['Original height', 'c. 65 m'], ['Base', '102.2 × 104.6 m']],
+    sources: 'V. Maragioglio &amp; C. Rinaldi, <i>L’Architettura delle Piramidi Menfite</i> VI (1967); M. Lehner, <i>The Complete Pyramids</i> (2008); R. Howard Vyse (1840). Overall size is surveyed. Interior room sizes come from secondary summaries of these surveys and are approximate.',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'The last of the three great Giza pyramids. Its smaller size may reflect changing priorities or resources late in the 4th Dynasty.',
+        photos: () => [ph('menkaure-exterior.jpg', 'Menkaure\'s pyramid behind smaller queens\' pyramids', 'Menkaure\'s pyramid from the south, behind its queens\' pyramids.', 'Vincent Brown', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Pyramid_of_Menkaure_(29197729700).jpg', V(15, 1.7, B + 170), V(0, 25, 0))],
+        text: 'The smallest of the three main Giza pyramids, built for Menkaure. Its lowest 16 courses were cased in red granite from Aswan, some of it never smoothed. It was probably finished in a hurry after the king died.',
+        facts: [['Base', '102.2 × 104.6 m'], ['Original height', 'c. 65 m · 125 cubits'], ['Height today', 'c. 61 m'], ['Face slope', '51° 20′ 25″'], ['Granite casing', '16 courses']] },
+      { id: 'descending', group: 'Main passage', name: 'Entrance and descending passage', color: 'granite', conf: 'approx', major: true,
+        why: 'Its granite lining shows the care taken even in a smaller pyramid.',
+        photos: () => [ph('menkaure-descending.jpg', 'Looking up the sloping entrance passage', 'Looking back up the descending passage toward the entrance.', 'CT Snow', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Menkaure-pyramid_descending_passage.jpg', entrance.clone().lerp(dEnd, 0.85).add(V(0, 0.9, 0)), entrance.clone().add(V(0, 0.6, 0)))],
+        text: 'The entrance is about 4.2 m above the base in the north face. The passage is lined with granite through the masonry, then cut in rock as it slopes down. It was not found until 1837.',
+        facts: [['Entrance height', 'c. 4.2 m (M&R)'], ['Length', 'c. 32 m'], ['Slope', 'c. 26° (approx.)']] },
+      { id: 'panelled', group: 'Main passage', name: 'Panelled chamber', color: 'rock', conf: 'approx', major: true,
+        why: 'The palace-front panelling presents the tomb as the king\u2019s house, an idea that goes back to the earliest royal tombs.',
+        photos: () => [ph('menkaure-panelled.jpg', 'Room with carved panelling on its walls', 'The panelled chamber, with niches carved into the walls.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:11_menkaure_Panelled_Chamber.jpg', V(0, fl + 1.5, dEnd.z + 0.4), V(0, fl + 1.0, dEnd.z + 3.6))],
+        text: 'A small room whose walls are carved with panelling copying the front of a royal palace, eleven niches on each long wall. It is the only decorated room in the three Giza pyramids.',
+        facts: [['Niches', '11 per long wall'], ['Size shown', 'Approximate']] },
+      { id: 'portcullis', group: 'Main passage', name: 'Portcullis passage', color: 'granite', conf: 'approx',
+        why: 'It reuses the security ideas of Khufu\u2019s pyramid in a simpler form.',
+        photos: () => [ph('menkaure-portcullis.jpg', 'Rock wall with a socket for a portcullis beam', 'A socket above one of the portcullis slots.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:13_menkaure_portcullis_room.jpg', V(0, fl + 1.2, dEnd.z + 5), V(0.6, fl + 1.8, dEnd.z + 6))],
+        text: 'A level corridor with three granite portcullis slabs that once slid down to seal the way to the burial rooms.',
+        facts: [['Portcullises', '3, granite (M&R)']] },
+      { id: 'antechamber', group: 'Burial rooms', name: 'Rectangular chamber', color: 'rock', conf: 'approx', major: true,
+        why: 'It is evidence that the plan was enlarged during construction.',
+        text: 'A large room cut in the bedrock and aligned east–west, opening at its west end onto a broad niche. It may have been the original burial chamber before the plan was enlarged.',
+        facts: [['Size', 'c. 14 × 3.8 m'], ['Height', 'c. 4.8 m']] },
+      { id: 'upperPassage', group: 'Burial rooms', name: 'Upper passage', color: 'shaft', conf: 'approx',
+        why: 'A clue that the pyramid was first planned smaller, then enlarged.',
+        text: 'A blind corridor above the main passage. It runs almost level, then rises and stops in the masonry, plugged with limestone. It seems to be left over from an earlier, smaller design of the pyramid.',
+        facts: [['Ends', 'In the masonry'], ['Route', 'Simplified']] },
+      { id: 'burial', group: 'Burial rooms', name: 'Burial chamber', color: 'granite', conf: 'approx', major: true,
+        why: 'Its imitation vault is an early experiment in making a stone roof look curved.',
+        photos: () => [ph('menkaure-burial.jpg', 'Granite chamber with a curved ceiling', 'The granite burial chamber and its curved ceiling.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:17_menkaure_burial_chamber.jpg', V(-6.5, BCy + 1.6, 0), V(-12.8, BCy + 1.8, 0))],
+        text: 'A granite-lined room set lower and to the west. Its roof is made of granite beams in pairs, cut underneath into a curve so it looks like a vault. The basalt sarcophagus found here was lost at sea in 1838 when the ship Beatrice sank on its way to England.',
+        facts: [['Size', 'c. 6.6 × 2.6 m'], ['Height', 'c. 3.4 m'], ['Sarcophagus', 'Lost at sea, 1838']] },
+      { id: 'cellar', group: 'Burial rooms', name: 'Six-niche room', color: 'rock', conf: 'approx',
+        why: 'Storerooms like these became a standard part of later royal tombs.',
+        photos: () => [ph('menkaure-niches.jpg', 'Rock-cut room with niches', 'The niche room.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:15_menkaure_chamber_with_five_niches.jpg', V(-5.2, BCy + 0.6, -2.6), V(-3.0, BCy - 0.4, -4.6))],
+        text: 'Reached by a short flight of steps from the corridor to the burial chamber. Six small rock-cut storerooms open off it, four on the east and two on the north.',
+        facts: [['Storerooms', '6'], ['Access', 'Seven steps'], ['Size shown', 'Approximate']] },
+      { id: 'coffinLid', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(4, fl + 1.2, 0), major: true, name: 'Inscribed coffin lid',
+        text: 'Howard Vyse found pieces of a wooden coffin lid inscribed with Menkaure\u2019s name here in 1837. It was made about 1,900 years after his death, when priests restored old royal burials, and is now in the British Museum. The chambers themselves carry no inscriptions.',
+        why: 'It shows that later Egyptians still honoured and repaired the burials of the pyramid builders.',
+        facts: [['Found', '1837'], ['Made', 'c. 600 BC'], ['Now', 'British Museum']] },
+    ],
+    build() {
+      passage('descending', entrance, dEnd, 1.05, 1.2);
+      room('panelled', -1.6, 1.6, fl, fl + 2.1, dEnd.z, dEnd.z + 3.6);
+      const pS = dEnd.z + 3.6;
+      passage('portcullis', V(0, fl, pS), V(0, fl, AC.s0), 1.05, 1.2);
+      for (const ds of [1.5, 3.0, 4.5]) room('portcullis', -0.75, 0.75, fl, fl + 1.6, pS + ds, pS + ds + 0.4);
+      room('antechamber', AC.x0, AC.x1, fl, fl + 4.8, AC.s0, AC.s1);
+      route('upperPassage', [V(0, fl + 3.6, AC.s0), V(0, fl + 3.6, AC.s0 - 12), V(0, 0.5, -B + 22)], 1.05, 1.2);
+      // corridor down to the burial chamber, then the chamber
+      route('burial', [V(2.0, fl, 0), V(-4.5, BCy, 0), V(-6.2, BCy, 0)], 1.05, 1.2);
+      room('burial', -12.8, -6.2, BCy, BCy + 3.4, -1.3, 1.3);
+      // six-niche room off the corridor's north side
+      route('cellar', [V(-4.9, BCy, -0.5), V(-4.9, BCy - 0.9, -2.4)], 1.0, 1.6);
+      room('cellar', -6.4, -3.4, BCy - 0.9, BCy + 1.3, -5.2, -2.4);
+      for (const s of [-4.9, -4.2, -3.5, -2.8]) room('cellar', -3.4, -2.4, BCy - 0.9, BCy + 0.6, s, s + 0.5);
+      for (const x of [-5.8, -4.6]) room('cellar', x, x + 0.8, BCy - 0.9, BCy + 0.6, -6.2, -5.2);
+
+      person(-9.5, BCy, 0.2, 0.6);
+      person(3, fl, 0.3, -0.4);
+      person(0, fl, dEnd.z + 1.6, Math.PI);
+      person(4, 0, -B - 5, Math.PI);
+    },
+  };
+})();
+
+// ---------- Red Pyramid ----------
+const RED = (() => {
+  const B = 110, K = Math.tan(43.367 * D), H = B * K;
+  const dA = 27 * D;
+  const entrance = V(0, 28, -(B - 28 / K));
+  const dEnd = entrance.clone().add(V(0, -28, 28 / Math.tan(dA)));
+  const W = 3.65 / 2;
+  const c1 = [-16.5, -8.14], c2 = [-4.18, 4.18], c3 = [7.3, 11.48];
+
+  return {
+    id: 'red', king: 'Sneferu', reign: [2613, 2589], year: 2590, lat: 29.80889, lon: 31.20611,
+    short: 'Red', site: 'Dahshur', date: 'c. 2590 BC', title: 'The Red Pyramid of Sneferu',
+    rings: [[B, 0], [0, H]], lowest: -2, start: 'chamber3',
+    stats: [['Height', '105 m'], ['Base', '220 m per side']],
+    sources: 'M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); R. Stadelmann’s Dahshur work; site guides for chamber plan sizes. Overall size, passage slope and chamber heights are published figures. Chamber floor plans and the third chamber’s level are approximate.',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'Sneferu\u2019s builders learned from the Bent Pyramid and used a safer, shallower slope from the start. Its success led directly to the Great Pyramid.',
+        photos: () => [ph('red-exterior.jpg', 'The Red Pyramid seen across the desert', 'The Red Pyramid and its shallow 43° slope.', 'Darer101', 'CC BY 4.0', 'https://commons.wikimedia.org/wiki/File:Red_Pyramid_at_Dahshur.jpg', V(B + 170, 1.7, 30), V(0, 30, 0))],
+        text: 'Built for Sneferu, Khufu’s father, after the problems with the Bent Pyramid. It is the first successful smooth-sided pyramid, with a shallow slope of about 43°. Its name comes from the reddish limestone of its core.',
+        facts: [['Base side', '220 m · 420 cubits'], ['Height', '105 m · 200 cubits'], ['Face slope', '43° 22′']] },
+      { id: 'descending', group: 'Passage', name: 'Entrance and descending passage', color: 'lime', conf: 'approx', major: true,
+        why: 'The high entrance keeps the passage aimed at the northern sky, a feature later pyramids kept.',
+        photos: () => [ph('red-passage.jpg', 'Looking down a long sloping passage', 'Looking down the 61 m passage toward the chambers.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Inside_the_Red_Pyramid_-_The_61m._long_passage_leading_to_the_master_chamber_(14795442922).jpg', entrance.clone().lerp(dEnd, 0.08).add(V(0, 0.7, 0)), dEnd), ph('red-entrance.jpg', 'Stairs leading up the north face to the entrance', 'The modern stairs up to the entrance on the north face.', 'Sturm58', 'CC BY-SA 3.0', 'https://commons.wikimedia.org/wiki/File:Red-pyramid_-_entry.jpg', V(0, 1.7, -B - 70), V(0, 22, entrance.z))],
+        text: 'The entrance is high on the north face. A long low passage slopes down to ground level, then a short level passage leads to the first chamber.',
+        facts: [['Entrance height', 'c. 28 m'], ['Slope', '27°'], ['Length', 'c. 61–63 m'], ['Cross-section', 'c. 1.2 wide × 0.91 m high']] },
+      { id: 'chamber1', group: 'Chambers', name: 'First chamber', color: 'lime', conf: 'approx', major: true,
+        why: 'Its stepped roof has carried the weight of the pyramid above for about 4,500 years without failing.',
+        photos: () => [ph('red-corbel-1.jpg', 'Looking up at a stepped stone ceiling', 'The stepped (corbelled) ceiling of one of the first two chambers.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:11_red_corbel_1.jpg', V(0, 1.6, (c1[0] + c1[1]) / 2 - 2), V(0, 12, (c1[0] + c1[1]) / 2 - 1))],
+        text: 'A tall room with a corbelled roof rising in eleven steps. Its long axis runs north–south. Drawn here with a simplified corbel.',
+        facts: [['Roof height', 'c. 12.3 m'], ['Corbel steps', '11'], ['Floor plan', 'c. 8.4 × 3.6 m']] },
+      { id: 'chamber2', group: 'Chambers', name: 'Second chamber', color: 'lime', conf: 'approx', major: true,
+        why: 'Lying under the apex, it shows how carefully the builders laid out the centre of the pyramid.',
+        photos: () => [ph('red-corbel-2.jpg', 'Tall chamber with a wooden stair', 'The second chamber, with the modern stair up to the third chamber.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:12_red_corbel_2.jpg', V(0, 1.6, c2[0] + 0.5), V(0, 7.8, c2[1]))],
+        text: 'Almost identical to the first and lying directly under the apex. The short passage between them is offset to the west, possibly to confuse robbers.',
+        facts: [['Roof height', 'c. 12.3 m'], ['Position', 'Under the apex']] },
+      { id: 'chamber3', group: 'Chambers', name: 'Third (burial) chamber', color: 'lime', conf: 'approx', major: true,
+        why: 'Raising the burial chamber above the passages looks ahead to the high chambers of Khufu\u2019s pyramid.',
+        photos: () => [ph('red-chamber.jpg', 'Chamber floor covered in broken stone', 'The rough, broken floor of the third chamber.', 'Roland Unger', 'CC BY-SA 3.0', 'https://commons.wikimedia.org/wiki/File:DahshurRedPyrChamber.jpg', V(0, 9.4, c3[0] + 0.3), V(0, 7.0, c3[1] - 1)), ph('red-burial.jpg', 'Looking down from the stair in the burial chamber', 'The burial chamber from the modern stair, under its stepped ceiling.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Massive_corbel-vaulted_ceiling_of_the_main_burial_chamber_-_Red_Pyramid_(14772801236).jpg', V(-2.5, 13, (c3[0] + c3[1]) / 2), V(0.5, 7.2, (c3[0] + c3[1]) / 2))],
+        text: 'Entered through an opening about 8 m up the south wall of the second chamber. It runs east–west, unlike the other two, and its rough floor lies below the level of the passage. Human remains, possibly Sneferu’s, were found here in the 1950s.',
+        facts: [['Roof height', 'c. 15 m'], ['Floor plan', 'c. 8.4 × 4.2 m'], ['Opening', 'c. 8 m up']] },
+      { id: 'casingMarks', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(B - 10, 1.5, -B + 10), major: true, name: 'Dated builders\u2019 marks',
+        text: 'Red-painted gang names and dates found on casing and backing blocks during excavations around the pyramid. Some give the year of Sneferu\u2019s reign in which the block was placed. The marker shows the general area, not an exact block.',
+        why: 'The dates help work out how quickly the pyramid was built.',
+        facts: [['Paint', 'Red'], ['Content', 'Gang names, dates']] },
+    ],
+    build() {
+      passage('descending', entrance, dEnd, 1.2, 0.91);
+      passage('descending', dEnd, V(0, 0, c1[0]), 1.2, 1.1);
+      corbelRoom('chamber1', -W, W, 0, c1[0], c1[1], 12.3, 2.6, 11, 0.12, 0.12);
+      passage('chamber2', V(-1.0, 0, c1[1]), V(-1.0, 0, c2[0]), 1.0, 1.1);
+      corbelRoom('chamber2', -W, W, 0, c2[0], c2[1], 12.3, 2.6, 11, 0.12, 0.12);
+      passage('chamber3', V(0, 7.8, c2[1]), V(0, 7.8, c3[0]), 1.0, 1.1);
+      corbelRoom('chamber3', -4.18, 4.18, 7.0, c3[0], c3[1], 15, 3.0, 14, 0.12, 0.12);
+
+      person(0.3, 0, (c1[0] + c1[1]) / 2, 0.5);
+      person(-0.4, 0, 0, -0.3);
+      person(1.5, 7.0, 9.4, 0.8);
+      person(4, 0, -B - 5, Math.PI);
+    },
+  };
+})();
+
+// ---------- Bent Pyramid ----------
+const BENT = (() => {
+  const B = 189.43 / 2, bendY = 47.04, bendB = 123.58 / 2, H = 104.71;
+  const rings = [[B, 0], [bendB, bendY], [0, H]];
+  const nA = 25 * D;
+  const nEntrance = V(0, 11.8, -halfAt(rings, 11.8));
+  const nEnd = nEntrance.clone().add(V(0, -74 * Math.sin(nA), 74 * Math.cos(nA)));
+  const ante = [nEnd.z, nEnd.z + 5.4];
+  const lowY = nEnd.y + 6.5;
+  const LC = { x0: -2.15, x1: 2.15, s0: ante[1], s1: ante[1] + 4.96 };
+  const wY = 33.32, wS = 3;
+  const wEntrance = V(-halfAt(rings, wY), wY, wS);
+  const wEnd = V(-12, 0.9, wS);
+  const UC = { x0: -4, x1: 3.97, y0: 0.9, s0: wS - 2.63, s1: wS + 2.63 };
+
+  return {
+    id: 'bent', king: 'Sneferu', reign: [2613, 2589], year: 2600, lat: 29.79028, lon: 31.20944,
+    short: 'Bent', site: 'Dahshur', date: 'c. 2600 BC', title: 'The Bent Pyramid of Sneferu',
+    rings, lowest: nEnd.y, start: 'lowerChamber',
+    stats: [['Height', '104.71 m'], ['Base', '189.43 m per side']],
+    sources: 'A. Fakhry, <i>The Monuments of Sneferu at Dahshur</i> (1959–61); M. Verner, <i>The Pyramids</i> (2001); M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); R. Stadelmann (1997). The west passage angle, the upper chamber’s exact position and the robbers’ tunnel route are approximate.',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'A turning point in pyramid building. The change of slope shows the builders adjusting the design as problems appeared.',
+        photos: () => [ph('bent-exterior.jpg', 'The Bent Pyramid with its change of slope', 'The Bent Pyramid, much of its smooth casing still in place.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Bent_Pyramid_featuring_the_original_polished_limestone_outer_casing_that_the_pyramids_used_to_have_(14616487960).jpg', V(130, 1.7, -B - 160), V(0, 40, 0)), ph('bent-bend.jpg', 'Close view of the change in slope', 'Close-up of the change of slope on one face.', 'Darer101', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:11-degree_angle_change_of_the_Bent_Pyramid_at_Dahshur.jpg', V(35, 1.7, -B - 10), V(20, 47, -bendB))],
+        text: 'Sneferu’s second pyramid. Partway up, the builders reduced the slope sharply, probably because the structure showed signs of instability, which gives it its bent outline. Much of its smooth limestone casing survives.',
+        facts: [['Base side', '189.43 m · 362 cubits'], ['Height', '104.71 m · 200 cubits'], ['Lower slope', '54° 27′ 44″'], ['Slope changes at', '47.04 m'], ['Upper slope', '43° 22′']] },
+      { id: 'north', group: 'Lower system', name: 'North entrance and passage', color: 'lime', conf: 'surveyed', major: true,
+        why: 'It continues the tradition of passages aimed at the northern stars.',
+        text: 'The north entrance leads into a long, low passage that slopes down into the bedrock.',
+        facts: [['Entrance height', '11.80 m'], ['Slope', '25°'], ['Length', '74 m'], ['Cross-section', '1.10 wide × 1.05 m high']] },
+      { id: 'lowerAnte', group: 'Lower system', name: 'Lower antechamber', color: 'lime', conf: 'surveyed',
+        why: 'Its tall, narrow stepped roof is an early test of the technique later used in the Grand Gallery.',
+        text: 'A tall, narrow corbelled space at the bottom of the passage. The lower chamber opens 6.5 m above its floor.',
+        facts: [['Height', '12.60 m'], ['Length', '5.40 m']] },
+      { id: 'lowerChamber', group: 'Lower system', name: 'Lower chamber', color: 'lime', conf: 'surveyed', major: true,
+        why: 'One of the earliest large corbelled burial chambers, a model for the Red Pyramid and Khufu\u2019s pyramid.',
+        text: 'A tall room with a corbelled roof that steps inward on all four sides. A short corridor from it leads to a vertical shaft on the pyramid’s axis.',
+        facts: [['Floor plan', '4.96 × 4.30 m'], ['Roof height', '17.20 m'], ['Floor', '6.50 m above antechamber']] },
+      { id: 'chimney', group: 'Lower system', name: 'Shaft on the axis', color: 'shaft', conf: 'approx', shaft: true,
+        why: 'Its purpose is unknown, so it remains one of the Bent Pyramid\u2019s unsolved features.',
+        text: 'A short corridor and a vertical shaft directly under the apex. Its purpose is unknown. Route simplified.',
+        facts: [['Position', 'On the vertical axis']] },
+      { id: 'west', group: 'Upper system', name: 'West entrance and passage', color: 'lime', conf: 'approx', major: true,
+        why: 'It is the only Egyptian pyramid with a second entrance on the west side.',
+        text: 'A second entrance high on the west face, the only Egyptian pyramid with one on that side. Its passage slopes down to a level section, where two portcullis slabs slid down 45° ramps to block it.',
+        facts: [['Entrance height', '33.32 m'], ['Length', '67.66 m'], ['Portcullises', '2'], ['Slope', 'c. 29° (approx.)']] },
+      { id: 'upperChamber', group: 'Upper system', name: 'Upper chamber', color: 'lime', conf: 'surveyed', major: true,
+        why: 'The cedar beams, imported from Lebanon, show the walls were already shifting while the pyramid was being built.',
+        photos: () => [ph('bent-chamber.jpg', 'Looking up at old wooden beams across a stone chamber', 'The original cedar beams in the upper chamber.', 'Panegyrics of Granovetter', 'CC BY-SA 2.0', 'https://commons.wikimedia.org/wiki/File:26722-_burial_chamber_in_Sneferu%27s_Bent_pyramid.jpg', V(-0.5, UC.y0 + 1.6, wS), V(0, UC.y0 + 7, wS + 0.8))],
+        text: 'A corbelled room roofed on all four sides. It still contains a framework of original cedar beams, probably added to brace the walls as the masonry shifted.',
+        facts: [['Floor plan', '7.97 × 5.26 m'], ['Roof height', '16.50 m'], ['Cedar', 'Original beams']] },
+      { id: 'tunnel', group: 'Upper system', name: 'Connecting tunnel', color: 'shaft', conf: 'approx',
+        why: 'Joining two separate chamber systems is unusual and shows the design changing during construction.',
+        text: 'A rough tunnel joining the two systems. It starts at a hole high in the lower chamber, reached today by a 15 m ladder, and comes out in the west passage between the two portcullises.',
+        facts: [['Ladder', '15 m'], ['Route', 'Approximate']] },
+    ],
+    build() {
+      passage('north', nEntrance, nEnd, 1.1, 1.05);
+      corbelRoom('lowerAnte', -0.9, 0.9, nEnd.y, ante[0], ante[1], 12.6, 3, 8, 0.05, 0.1);
+      corbelRoom('lowerChamber', LC.x0, LC.x1, lowY, LC.s0, LC.s1, 17.2, 3.5, 14, 0.12, 0.13);
+      route('chimney', [V(0, lowY, LC.s1), V(0, lowY, 0), V(0, lowY + 14, 0)], 0.9, 1.1);
+      passage('west', wEntrance, wEnd, 1.1, 1.1);
+      passage('west', wEnd, V(UC.x0, UC.y0, wS), 1.1, 1.3);
+      for (const x of [-10.5, -6.6]) room('west', x, x + 0.5, UC.y0, UC.y0 + 2.2, wS - 0.75, wS + 0.75, new THREE.MeshStandardMaterial({ color: COL.lime.clone().multiplyScalar(0.7), roughness: 0.9 }));
+      corbelRoom('upperChamber', UC.x0, UC.x1, UC.y0, UC.s0, UC.s1, 16.5, 3.5, 14, 0.14, 0.09);
+      const cedar = new THREE.MeshStandardMaterial({ color: COL.cedar, roughness: 0.9 });
+      for (let i = 0; i < 5; i++) room('upperChamber', UC.x0 + 0.6 + i * 1.6, UC.x0 + 0.85 + i * 1.6, UC.y0 + 3.2, UC.y0 + 3.45, UC.s0, UC.s1, cedar);
+      route('tunnel', [V(-1.0, lowY + 12, LC.s0 + 0.6), V(-3.5, lowY + 12.5, LC.s0 + 0.6), V(-6.5, -0.5, -1), V(-8.6, UC.y0, wS)], 1.0, 1.4);
+
+      person(0.6, lowY, (LC.s0 + LC.s1) / 2, -0.4);
+      person(0, nEnd.y, ante[0] + 2.7, Math.PI);
+      person(-1.2, UC.y0, wS, 0.7);
+      person(4, 0, -B - 5, Math.PI);
+    },
+  };
+})();
+
+const PYRAMIDS = [BENT, RED, KHUFU, KHAFRE, MENKAURE];
+
+// ======================================================================
+// Loading a pyramid into the scene
+// ======================================================================
+const info = document.getElementById('info');
+const detail = document.getElementById('detail');
+const list = document.getElementById('features');
+const confText = { surveyed: 'Surveyed', approx: 'Approximate', uncertain: 'Uncertain · scan data' };
+const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false };
+
+function load(def, fly) {
+  if (ctx) {
+    for (const o of ctx.labels) o.element.remove();
+    scene.remove(ctx.root);
+    ctx.root.traverse(o => { o.geometry?.dispose(); });
+  }
+  const root = new THREE.Group();
+  scene.add(root);
+  for (const f of def.features) if (typeof f.photos === 'function') f.photos = f.photos();
+  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(),
+    byId: Object.fromEntries(def.features.map(f => [f.id, f])), selected: null };
+  root.add(ctx.humans);
+  for (const f of def.features) {
+    const g = new THREE.Group();
+    root.add(g);
+    ctx.groups[f.id] = g;
+    ctx.mats[f.id] = new THREE.MeshStandardMaterial({ color: COL[f.color], emissive: COL[f.color], emissiveIntensity: 0.12, roughness: 0.8, transparent: true, opacity: f.scan ? 0.45 : f.mark ? 0.95 : 0.62, depthWrite: false, side: THREE.DoubleSide });
+  }
+  buildShell(def);
+  def.build();
+  buildSurroundings(def);
+  for (const f of def.features) if (f.at) {
+    const m = new THREE.Mesh(new THREE.OctahedronGeometry(1.1), ctx.mats[f.id]);
+    m.position.copy(f.at); m.scale.y = 1.4;
+    put(f.id, m);
+  }
+
+  // Labels
+  for (const f of def.features) {
+    if (f.id === 'pyramid') continue;
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'tag';
+    el.textContent = f.name;
+    el.addEventListener('pointerdown', e => e.stopPropagation());
+    el.addEventListener('click', e => { e.stopPropagation(); select(f.id, true); });
+    const o = new CSS2DObject(el);
+    o.position.copy(anchorOf(f.id).top);
+    o.userData = { id: f.id, major: !!f.major };
+    root.add(o); ctx.labels.push(o);
+  }
+  const b = def.rings[0][0] + 22;
+  for (const [txt, p] of [['North', V(0, 0.2, -b)], ['South', V(0, 0.2, b)], ['East', V(b, 0.2, 0)], ['West', V(-b, 0.2, 0)]]) {
+    const el = document.createElement('div'); el.className = 'tag quiet'; el.textContent = txt;
+    el.style.pointerEvents = 'none';
+    const o = new CSS2DObject(el); o.position.copy(p); o.userData = { quiet: true }; root.add(o); ctx.labels.push(o);
+  }
+
+  // Panel
+  document.getElementById('eyebrow').textContent = `${def.site}, Egypt · ${def.date}`;
+  document.getElementById('title').textContent = def.title;
+  document.getElementById('stats').innerHTML = [['King', def.king], ['Reign', fmtReign(def)], ...def.stats, ['Human figures', '1.75 m']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  document.getElementById('lede').textContent = def.features[0].text.split('. ')[0] + '.';
+  document.getElementById('sources').innerHTML = `<b>Measurements from</b> ${def.sources} Each feature is tagged with how sure the published figures are. Where surveys disagree, both values are given. Passages and chambers are drawn at true scale; routes marked approximate are simplified.`;
+  const groupsOrder = [...new Set(def.features.map(f => f.group))];
+  list.innerHTML = groupsOrder.map(g => `<div><p class="group-title">${g}</p><div class="feat-list">
+    ${def.features.filter(f => f.group === g).map(f => `<button type="button" class="feat" data-id="${f.id}"><i class="sw" style="background:var(--${f.color})"></i>${f.name}${f.photos?.length ? '<svg class="i cam" viewBox="0 0 24 24" aria-label="Has photos"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>' : ''}</button>`).join('')}
+    </div></div>`).join('');
+  for (const btn of document.querySelectorAll('.pyr')) btn.setAttribute('aria-pressed', btn.dataset.id === def.id);
+  document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
+  document.getElementById('tg-scan').hidden = !def.features.some(f => f.scan);
+  document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark);
+
+  applyToggles();
+  clearSelection();
+  if (fly) overview(); else { const v = overviewPose(); camera.position.copy(v.p); controls.target.copy(v.t); }
+}
+
+function anchorOf(id) {
+  const box = new THREE.Box3().setFromObject(ctx.groups[id]);
+  const c = box.getCenter(new THREE.Vector3());
+  return { box, c, top: V(c.x, box.max.y, c.z) };
+}
+
+function select(id, fly, photo = 0) {
+  ctx.selected = id;
+  const f = ctx.byId[id];
+  const ph = f.photos?.[photo];
+  document.getElementById('detail-titles').innerHTML = `<span class="conf ${f.conf}">${confText[f.conf]}</span><h2>${f.name}</h2>`;
+  detail.hidden = false;
+  if (!helpEl.hidden) setHelp(false);
+  info.scrollTop = 0;
+  info.innerHTML = `
+    ${ph ? `<figure class="photo">
+      <img src="${ph.src}" alt="${ph.alt}">
+      <figcaption>${ph.caption}<span class="credit">Photo: ${ph.credit} · <a href="${ph.url}" target="_blank" rel="noopener">${ph.license}</a></span></figcaption>
+      ${f.photos.length > 1 ? `<div class="thumbs">${f.photos.map((p, i) => `<button type="button" data-photo="${i}" aria-label="Photo ${i + 1}: ${p.alt}" aria-pressed="${i === photo}"><img src="${p.src}" alt=""></button>`).join('')}</div>` : ''}
+      <div class="view-row"><button type="button" class="text-btn view-from" data-photo="${photo}"><svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>View from where this was taken</button><span>Viewpoint estimated from the photo</span></div>
+    </figure>` : ''}
+    <p>${f.text}</p>
+    ${f.why ? `<div class="why"><b>Why it matters</b><p>${f.why}</p></div>` : ''}
+    <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', b.dataset.id === id);
+  for (const [k, m] of Object.entries(ctx.mats)) m.emissiveIntensity = k === id ? 0.55 : 0.12;
+  for (const o of ctx.labels) o.element.classList.toggle('on', o.userData.id === id);
+  refreshLabels();
+  showPhotoMarker(ph);
+  if (fly) ph ? flyTo(V(...ph.look), V(...ph.cam)) : flyToFeature(id);
+}
+info.addEventListener('click', e => {
+  const t = e.target.closest('[data-photo]');
+  if (!t) return;
+  const i = +t.dataset.photo, ph = ctx.byId[ctx.selected].photos[i];
+  if (t.classList.contains('view-from')) flyTo(V(...ph.look), V(...ph.cam));
+  else select(ctx.selected, true, i);
+});
+
+// A small camera marker showing where the selected photo was taken (estimated from the photo)
+const markerMat = new THREE.MeshBasicMaterial({ color: COL.mark });
+let photoMarker = null;
+function showPhotoMarker(ph) {
+  if (photoMarker) { scene.remove(photoMarker); photoMarker = null; }
+  if (!ph) return;
+  const g = new THREE.Group();
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.8, 4, 1, true), markerMat);
+  cone.rotation.x = Math.PI / 2;
+  g.add(cone);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), markerMat));
+  g.position.set(...ph.cam);
+  g.lookAt(V(...ph.look));
+  // keep it just behind the viewpoint so it is visible after orbiting away, not in the photo view itself
+  g.position.addScaledVector(V(...ph.look).sub(V(...ph.cam)).normalize(), -0.6);
+  scene.add(g);
+  photoMarker = g;
+}
+list.addEventListener('click', e => {
+  const b = e.target.closest('.feat');
+  if (!b) return;
+  select(b.dataset.id, true);
+  if (matchMedia('(max-width: 860px)').matches) setContents(false);
+});
+function clearSelection() {
+  if (!ctx) return;
+  ctx.selected = null;
+  detail.hidden = true;
+  for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', false);
+  for (const m of Object.values(ctx.mats)) m.emissiveIntensity = 0.12;
+  for (const o of ctx.labels) o.element.classList.remove('on');
+  showPhotoMarker(null);
+  refreshLabels();
+}
+document.getElementById('btn-close').addEventListener('click', clearSelection);
+addEventListener('keydown', e => { if (e.key === 'Escape') clearSelection(); });
+
+// Contents panel and navigation help
+const contentsEl = document.getElementById('contents'), contentsBtn = document.getElementById('btn-contents');
+function setContents(open) { contentsEl.hidden = !open; contentsBtn.setAttribute('aria-expanded', open); }
+contentsBtn.addEventListener('click', () => setContents(contentsEl.hidden));
+setContents(!matchMedia('(max-width: 860px)').matches);
+const helpEl = document.getElementById('navhelp'), helpBtn = document.getElementById('btn-help');
+let helpSeen = false;
+try { helpSeen = localStorage.getItem('pyramids-help-seen') === '1'; } catch (e) {}
+function setHelp(open, force) {
+  helpEl.hidden = !open; helpEl.classList.toggle('force', !!force && open); helpBtn.setAttribute('aria-expanded', open);
+  if (!open) try { localStorage.setItem('pyramids-help-seen', '1'); } catch (e) {}
+}
+helpBtn.addEventListener('click', () => setHelp(helpEl.hidden, true));
+document.getElementById('btn-help-close').addEventListener('click', () => setHelp(false));
+setHelp(!helpSeen, false);
+
+// Camera moves
+let anim = null;
+function flyTo(target, pos) {
+  anim = { t0: performance.now(), dur: reduceMotion ? 1 : 1100, ft: controls.target.clone(), fp: camera.position.clone(), tt: target, tp: pos };
+}
+function overviewPose() {
+  const k = ctx.def.rings[0][0] / 115;
+  const h = ctx.def.rings[ctx.def.rings.length - 1][1];
+  return { t: V(0, h * 0.24, 0), p: V(285 * k, 150 * k, 250 * k) };
+}
+function overview() { const v = overviewPose(); flyTo(v.t, v.p); }
+function interiorBox() {
+  const box = new THREE.Box3();
+  for (const [id, g] of Object.entries(ctx.groups)) if (id !== 'pyramid') box.expandByObject(g);
+  return box;
+}
+function sideView() {
+  const box = interiorBox(), c = box.getCenter(new THREE.Vector3());
+  const span = Math.max(box.max.z - box.min.z, box.max.y - box.min.y);
+  flyTo(c, c.clone().add(V(span * 1.6 + 20, 4, 0)));
+}
+function flyToFeature(id) {
+  if (id === 'pyramid') return overview();
+  const { box, c } = anchorOf(id);
+  const size = box.getSize(new THREE.Vector3()).length();
+  const dist = Math.max(size * 1.5, 10);
+  flyTo(c, c.clone().add(V(1, 0.45, 0.55).normalize().multiplyScalar(dist)));
+}
+
+// Toggles
+function refreshLabels() {
+  for (const o of ctx.labels) {
+    const f = o.userData.id && ctx.byId[o.userData.id];
+    const groupVisible = !f || ctx.groups[f.id].visible;
+    o.visible = toggles.labels && groupVisible && (o.userData.surround ? toggles.surround : (o.userData.quiet || o.userData.major || o.userData.id === ctx.selected));
+  }
+}
+function applyToggles() {
+  ctx.humans.visible = toggles.humans;
+  if (ctx.surround) ctx.surround.visible = toggles.surround;
+  for (const f of ctx.def.features) {
+    if (f.shaft) ctx.groups[f.id].visible = toggles.shafts;
+    if (f.scan) ctx.groups[f.id].visible = toggles.scan;
+    if (f.mark) ctx.groups[f.id].visible = toggles.marks;
+  }
+  ctx.groups.pyramid.traverse(o => { if (o.material) o.material.clippingPlanes = toggles.cut ? [clip] : []; });
+  refreshLabels();
+}
+function toggle(btn, key) {
+  btn.addEventListener('click', () => { toggles[key] = !toggles[key]; btn.setAttribute('aria-pressed', toggles[key]); applyToggles(); });
+}
+document.getElementById('btn-overview').addEventListener('click', overview);
+document.getElementById('btn-side').addEventListener('click', sideView);
+toggle(document.getElementById('btn-cut'), 'cut');
+toggle(document.getElementById('tg-humans'), 'humans');
+toggle(document.getElementById('tg-shafts'), 'shafts');
+toggle(document.getElementById('tg-scan'), 'scan');
+toggle(document.getElementById('tg-marks'), 'marks');
+toggle(document.getElementById('tg-surround'), 'surround');
+toggle(document.getElementById('tg-labels'), 'labels');
+const op = document.getElementById('opacity');
+op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
+
+// Pyramid switcher, with a tiny profile drawn from each pyramid's own outline
+const switcher = document.getElementById('switcher');
+for (const def of PYRAMIDS) {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'pyr'; btn.dataset.id = def.id;
+  const w = def.rings[0][0], top = def.rings[def.rings.length - 1][1], s = 12 / 115;
+  const pts = [...def.rings.map(([r, y]) => [13 - r * s, 15 - y * s]), ...def.rings.slice(0, -1).reverse().map(([r, y]) => [13 + r * s, 15 - y * s])];
+  btn.innerHTML = `${profileSVG(def)}${def.short}<small>${def.date.replace('c. ', '')}</small>`;
+  btn.setAttribute('aria-label', `${def.title}, ${def.site}`);
+  btn.addEventListener('click', () => switchTo(def));
+  switcher.appendChild(btn);
+}
+
+// Picking
+const ray = new THREE.Raycaster();
+ray.params.Line.threshold = 0.6;
+const visible = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+function pointerRay(x, y) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1), camera);
+  return ray;
+}
+function hitAt(x, y, withShell = false) {
+  const objs = ctx.pickables.filter(visible);
+  if (withShell) ctx.groups.pyramid.traverse(o => { if (o.isMesh) objs.push(o); });
+  return pointerRay(x, y).intersectObjects(objs, false)[0];
+}
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; anim = null; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const hit = hitAt(e.clientX, e.clientY);
+  if (hit) select(hit.object.userData.fid, false);
+});
+
+// Double-click: focus on the spot under the pointer, keeping the current viewing direction
+renderer.domElement.addEventListener('dblclick', e => {
+  const hit = hitAt(e.clientX, e.clientY, true);
+  if (!hit) return;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = Math.min(camera.position.distanceTo(controls.target) * 0.5, 40);
+  flyTo(hit.point.clone(), hit.point.clone().addScaledVector(dir, Math.max(dist, 6)));
+});
+
+// Wheel and trackpad. Pinch or mouse wheel zooms toward the pointer; a two-finger swipe turns the model;
+// Shift + swipe moves sideways. Handled here, before OrbitControls sees the event.
+const spherical = new THREE.Spherical();
+function orbitBy(dx, dy) {
+  const off = camera.position.clone().sub(controls.target);
+  spherical.setFromVector3(off);
+  spherical.theta -= dx * 0.004;
+  spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.004, 0.02, Math.PI - 0.02);
+  camera.position.copy(controls.target).add(off.setFromSpherical(spherical));
+}
+function panBy(dx, dy) {
+  const dist = camera.position.distanceTo(controls.target);
+  const k = 2 * dist * Math.tan(camera.fov * D / 2) / renderer.domElement.clientHeight;
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+  const move = right.multiplyScalar(dx * k).add(up.multiplyScalar(-dy * k));
+  camera.position.add(move); controls.target.add(move);
+}
+function zoomAt(x, y, amount) {
+  const f = Math.exp(amount);
+  const dist = camera.position.distanceTo(controls.target);
+  // aim at what is inside first; the see-through casing only when nothing inside is under the pointer
+  const hit = hitAt(x, y) ?? hitAt(x, y, true);
+  const r = pointerRay(x, y).ray;
+  const p = hit ? hit.point : r.at(dist, new THREE.Vector3());
+  if (f < 1 && camera.position.distanceTo(p) * f < 0.8) {
+    // Too close to zoom further: step forward instead, so you can move through walls into rooms
+    const step = r.direction.clone().multiplyScalar(Math.max(0.4, -amount * 6));
+    camera.position.add(step); controls.target.add(step);
+    return;
+  }
+  if (f > 1 && camera.position.length() * f > 2600) return;
+  camera.position.sub(p).multiplyScalar(f).add(p);
+  controls.target.sub(p).multiplyScalar(f).add(p);
+}
+host.addEventListener('wheel', e => {
+  e.preventDefault(); e.stopPropagation();
+  anim = null;
+  const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+  const dx = e.deltaX * px, dy = e.deltaY * px;
+  // A pinch arrives as a wheel event with ctrlKey. A mouse wheel moves in large steps with no sideways part.
+  const mouseWheel = e.deltaMode !== 0 || (dx === 0 && Math.abs(dy) >= 50 && Number.isInteger(dy));
+  if (e.ctrlKey) zoomAt(e.clientX, e.clientY, dy * 0.008);
+  else if (mouseWheel && !e.shiftKey) zoomAt(e.clientX, e.clientY, Math.sign(dy) * Math.min(Math.abs(dy), 120) * 0.0018);
+  else if (e.shiftKey) panBy(dx || (mouseWheel ? 0 : 0), dy);
+  else orbitBy(dx, dy);
+}, { passive: false, capture: true });
+
+
+// ======================================================================
+// Surroundings: neighbouring pyramids and the Sphinx, placed from their real coordinates
+// ======================================================================
+const SPHINX = { name: 'Great Sphinx', lat: 29.97528, lon: 31.13750 };
+const M_LAT = 110850, mLon = lat => 111320 * Math.cos(lat * D);
+const localPos = (def, lat, lon) => V((lon - def.lon) * mLon(def.lat), 0, -(lat - def.lat) * M_LAT);
+const surroundMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.6, fog: false });
+function outlinePyramid(rings, at) {
+  const g = new THREE.Group();
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (const c of corners) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rings.map(([r, y]) => V(c[0] * r, y, c[1] * r))), surroundMat));
+  for (const [r, y] of rings) if (r > 0) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...corners, corners[0]].map(c => V(c[0] * r, y, c[1] * r))), surroundMat));
+  g.position.copy(at);
+  return g;
+}
+function surroundLabel(text, pos, onClick) {
+  const el = document.createElement(onClick ? 'button' : 'div');
+  el.className = 'tag nb'; el.textContent = text;
+  if (onClick) { el.type = 'button'; el.addEventListener('pointerdown', e => e.stopPropagation()); el.addEventListener('click', e => { e.stopPropagation(); onClick(); }); }
+  else el.style.pointerEvents = 'none';
+  const o = new CSS2DObject(el); o.position.copy(pos); o.userData = { surround: true };
+  ctx.surround.add(o); ctx.labels.push(o);
+}
+function buildSurroundings(def) {
+  ctx.surround = new THREE.Group();
+  ctx.root.add(ctx.surround);
+  for (const p of PYRAMIDS) {
+    if (p === def) continue;
+    const at = localPos(def, p.lat, p.lon);
+    if (at.length() > 3500) continue;
+    ctx.surround.add(outlinePyramid(p.rings, at));
+    surroundLabel(`${p.short} →`, at.clone().setY(p.rings[p.rings.length - 1][1] + 6), () => switchTo(p));
+  }
+  const s = localPos(def, SPHINX.lat, SPHINX.lon);
+  if (s.length() < 3500) {
+    // body about 73 m long, 19 m wide, 20 m high, facing east
+    const box = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(73, 20, 19)), surroundMat);
+    box.position.copy(s).setY(10);
+    ctx.surround.add(box);
+    surroundLabel('Great Sphinx', s.clone().setY(26));
+  }
+}
+
+// ======================================================================
+// Views: 3D model, timeline, map
+// ======================================================================
+function switchTo(def) {
+  setMode('model');
+  if (ctx.def !== def) { load(def, true); history.replaceState(null, '', '#' + def.id); }
+}
+const modeButtons = [...document.querySelectorAll('.mode')];
+function setMode(m) {
+  document.body.dataset.mode = m;
+  for (const b of modeButtons) b.setAttribute('aria-pressed', b.dataset.mode === m);
+  document.getElementById('timeline-view').hidden = m !== 'timeline';
+  document.getElementById('map-view').hidden = m !== 'map';
+}
+for (const b of modeButtons) b.addEventListener('click', () => setMode(b.dataset.mode));
+
+function profileSVG(def, w = 26, h = 16) {
+  const s = (h - 2) / 146.6, cx = w / 2;
+  const pts = [...def.rings.map(([r, y]) => [cx - r * s, h - 1 - y * s]), ...def.rings.slice(0, -1).reverse().map(([r, y]) => [cx + r * s, h - 1 - y * s])];
+  return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true"><polygon points="${pts.map(p => p.map(n => n.toFixed(2)).join(',')).join(' ')}" fill="currentColor"/></svg>`;
+}
+function fmtReign(d) { return `c. ${d.reign[0]}–${d.reign[1]} BC`; }
+
+// Chronology: I. Shaw (ed.), The Oxford History of Ancient Egypt (2000). Other chronologies shift these by a few decades.
+const DYNASTIES = [['3rd Dynasty', 2686, 2613], ['4th Dynasty', 2613, 2494], ['5th Dynasty', 2494, 2345], ['6th Dynasty', 2345, 2181]];
+const KINGS = [['Djoser', 2667, 2648], ['Sneferu', 2613, 2589], ['Khufu', 2589, 2566], ['Djedefre', 2566, 2558], ['Khafre', 2558, 2532], ['Menkaure', 2532, 2503], ['Unas', 2375, 2345]];
+const CONTEXT = [
+  { name: 'Step Pyramid of Djoser', short: 'Djoser', place: 'Saqqara', year: 2650, lat: 29.87111, lon: 31.21639, note: 'The first pyramid: six stone steps, designed by the architect Imhotep.' },
+  { name: 'Meidum pyramid', short: 'Meidum', place: 'Meidum', year: 2610, lat: 29.38806, lon: 31.15694, note: 'Probably begun for Huni and finished by Sneferu; its outer layers later collapsed.' },
+  { name: 'Pyramid of Unas', short: 'Unas', place: 'Saqqara', year: 2350, lat: 29.86750, lon: 31.21444, note: 'The first pyramid with Pyramid Texts carved on its chamber walls.' },
+];
+
+function renderTimeline() {
+  const W = 1000, x = yr => 40 + (2700 - yr) * (920 / 400);
+  const band = DYNASTIES.map(([n, a, b], i) => {
+    const x0 = x(Math.min(a, 2700)), x1 = x(Math.max(b, 2300));
+    return `<rect x="${x0}" y="8" width="${x1 - x0}" height="26" class="${i % 2 ? 'dyn b' : 'dyn'}"/><text x="${(x0 + x1) / 2}" y="25" class="dyn-t">${n}</text>`;
+  }).join('');
+  const kings = KINGS.map(([n, a, b]) => `<rect x="${x(a)}" y="66" width="${x(b) - x(a)}" height="18" rx="3" class="reign${PYRAMIDS.some(p => p.king === n) ? ' ours' : ''}"/><text x="${(x(a) + x(b)) / 2}" y="${x(b) - x(a) < 40 ? 60 : 100}" class="king-t">${n}</text>`).join('');
+  const items = [...CONTEXT.map(c => ({ ...c, ctx: true })), ...PYRAMIDS.map(p => ({ name: p.short, year: p.year, def: p }))].sort((a, b) => b.year - a.year);
+  const marks = items.map((it, i) => {
+    const cx = x(it.year), ly = i % 2 ? 196 : 176;
+    const icon = it.def ? `<g transform="translate(${cx - 13},${132})" class="pm ours">${profileSVG(it.def).replace('<svg', '<svg width="26" height="16"')}</g>`
+      : `<path d="M${cx - 9} 148 L${cx} 134 L${cx + 9} 148 Z" class="pm"/>`;
+    const label = `<line x1="${cx}" y1="150" x2="${cx}" y2="${ly - 11}" class="tick"/><text x="${cx}" y="${ly}" class="${it.def ? 'mk-t ours' : 'mk-t'}">${it.def ? it.def.short : it.short}</text>`;
+    return it.def ? `<g class="tl-hit" tabindex="0" role="button" data-id="${it.def.id}" aria-label="Open ${it.def.title}">${icon}${label}</g>` : `<g><title>${it.name}: ${it.note}</title>${icon}${label}</g>`;
+  }).join('');
+  let axis = '';
+  for (let yr = 2700; yr >= 2300; yr -= 50) axis += `<line x1="${x(yr)}" y1="226" x2="${x(yr)}" y2="232" class="tick"/><text x="${x(yr)}" y="248" class="ax-t">${yr} BC</text>`;
+  const svg = `<svg class="timeline" viewBox="0 0 ${W} 262" role="img" aria-label="Timeline of Old Kingdom pyramids, 2700 to 2300 BC">
+    ${band}${kings}<line x1="40" y1="226" x2="960" y2="226" class="axis"/>${axis}${marks}</svg>`;
+  const cards = PYRAMIDS.map(p => `<button type="button" class="pcard" data-id="${p.id}">
+      <span class="pcard-icon">${profileSVG(p, 44, 26)}</span>
+      <span class="pcard-date">${p.date}</span><b>${p.short}</b>
+      <span>${p.site} · King ${p.king}</span><span class="muted">Reign ${fmtReign(p)}</span></button>`).join('');
+  const el = document.getElementById('timeline-view');
+  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom · 4th Dynasty</div><h2>When they were built</h2>
+      <p>All five pyramids in this viewer were built in under a century, by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson. That was roughly 4,500 years ago.</p></div></header>
+    <div class="scroll-x">${svg}</div>
+    <div class="pcards">${cards}</div>
+    <div class="ctx-list">${CONTEXT.map(c => `<div><b>${c.name}</b> · ${c.place}, c. ${c.year} BC<br><span class="muted">${c.note}</span></div>`).join('')}</div>
+    <p class="fine">Dates follow I. Shaw (ed.), <i>The Oxford History of Ancient Egypt</i> (2000). Other chronologies move them by a few decades. Each pyramid was built during its king’s reign; the year shown is approximate.</p>`;
+}
+
+function renderMap() {
+  // Region: plain equirectangular projection, 10 px per km
+  const lon0 = 31.00, lat1 = 30.10, k = 10 / 1000;
+  const P = (lat, lon) => [((lon - lon0) * mLon(29.7) * k).toFixed(1), ((lat1 - lat) * M_LAT * k).toFixed(1)];
+  const nile = [[30.10, 31.232], [30.044, 31.229], [30.00, 31.226], [29.95, 31.252], [29.90, 31.263], [29.85, 31.280], [29.80, 31.286], [29.75, 31.286], [29.70, 31.281], [29.60, 31.270], [29.50, 31.250], [29.40, 31.226], [29.33, 31.215]];
+  const path = 'M' + nile.map(([a, b]) => P(a, b).join(' ')).join(' L');
+  const site = (lat, lon, label, cls, id, dx = 8) => {
+    const [px, py] = P(lat, lon);
+    const tri = `<path d="M${px - 6} ${+py + 5} L${px} ${py - 6} L${+px + 6} ${+py + 5} Z" class="${cls}"/>`;
+    const t = `<text x="${+px - dx}" y="${+py + 4}" class="map-t ${cls}" text-anchor="end">${label}</text>`;
+    return id ? `<g class="tl-hit" tabindex="0" role="button" data-id="${id}" aria-label="Open ${label}">${tri}${t}</g>` : `<g>${tri}${t}</g>`;
+  };
+  const city = (lat, lon, label) => { const [px, py] = P(lat, lon); return `<circle cx="${px}" cy="${py}" r="3.5" class="city"/><text x="${+px + 8}" y="${+py + 4}" class="map-t city-t">${label}</text>`; };
+  const box = (la0, lo0, la1, lo1, label) => { const [x0, y0] = P(la0, lo0), [x1, y1] = P(la1, lo1); return `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" class="inset-box"/><text x="${x0}" y="${y0 - 5}" class="map-t small">${label}</text>`; };
+  const [w, h] = P(29.33, 31.42).map(Number);
+  const region = `<svg viewBox="-10 -10 ${w + 20} ${h + 20}" class="map" role="img" aria-label="Map of the pyramid sites along the Nile">
+    <rect x="-10" y="-10" width="${w + 20}" height="${h + 20}" class="desert"/>
+    <path d="${path}" class="farmland"/><path d="${path}" class="river"/>
+    ${box(30.00, 31.10, 29.95, 31.16, 'Giza')}${box(29.83, 31.18, 29.77, 31.24, 'Dahshur')}
+    ${city(30.0444, 31.2357, 'Cairo (modern)')}${city(29.8467, 31.2550, 'Memphis, the Old Kingdom capital')}
+    ${CONTEXT.filter(c => c.short !== 'Unas').map(c => site(c.lat, c.lon, c.short, 'other')).join('')}
+    ${PYRAMIDS.filter(p => p.id === 'khufu' || p.id === 'red' || p.id === 'bent').map(p => site(p.lat, p.lon, p.id === 'khufu' ? 'Giza pyramids' : p.short, 'ours', p.id)).join('')}
+    <text x="${P(29.6, 31.29)[0]}" y="${P(29.6, 31.29)[1]}" class="map-t river-t" transform="rotate(-80 ${P(29.6, 31.29).join(' ')})">Nile</text>
+    <g transform="translate(${w - 40},20)"><path d="M0 18 L6 0 L12 18 L6 13 Z" class="north"/><text x="6" y="32" class="map-t small" text-anchor="middle">N</text></g>
+    <g transform="translate(10,${h - 20})"><line x1="0" y1="0" x2="100" y2="0" class="scale"/><text x="0" y="-6" class="map-t small">10 km</text></g>
+  </svg>`;
+
+  // Site plans at true scale: each pyramid drawn as its base square, aligned north
+  const plan = (sites, extras, cLat, cLon, spanM, label, scaleM) => {
+    const s = 600 / spanM;
+    const Q = (lat, lon) => [300 + (lon - cLon) * mLon(cLat) * s, 300 - (lat - cLat) * M_LAT * s];
+    const sq = sites.map(p => {
+      const [px, py] = Q(p.lat, p.lon), r = p.rings[0][0] * s;
+      return `<g class="tl-hit" tabindex="0" role="button" data-id="${p.id}" aria-label="Open ${p.title}">
+        <rect x="${px - r}" y="${py - r}" width="${2 * r}" height="${2 * r}" class="foot"/>
+        <path d="M${px - r} ${py - r} L${px + r} ${py + r} M${px + r} ${py - r} L${px - r} ${py + r}" class="foot-x"/>
+        <text x="${px}" y="${py + r + 16}" class="map-t ours" text-anchor="middle">${p.short}</text></g>`;
+    }).join('');
+    const ex = extras.map(e => { const [px, py] = Q(e.lat, e.lon); return `<rect x="${px - 36.5 * s}" y="${py - 9.5 * s}" width="${73 * s}" height="${19 * s}" class="sphinx"/><text x="${px}" y="${py + 9.5 * s + 14}" class="map-t small" text-anchor="middle">${e.name}</text>`; }).join('');
+    return `<svg viewBox="0 0 600 600" class="map" role="img" aria-label="${label}">
+      <rect width="600" height="600" class="desert"/>${sq}${ex}
+      <g transform="translate(560,20)"><path d="M0 18 L6 0 L12 18 L6 13 Z" class="north"/><text x="6" y="32" class="map-t small" text-anchor="middle">N</text></g>
+      <g transform="translate(20,575)"><line x1="0" y1="0" x2="${scaleM * s}" y2="0" class="scale"/><text x="0" y="-6" class="map-t small">${scaleM} m</text></g>
+    </svg>`;
+  };
+  const giza = PYRAMIDS.filter(p => p.site === 'Giza'), dah = PYRAMIDS.filter(p => p.site === 'Dahshur');
+  const avg = (a, k) => a.reduce((t, p) => t + p[k], 0) / a.length;
+  const el = document.getElementById('map-view');
+  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Lower Egypt</div><h2>Where they stand</h2>
+      <p>All five pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart. Click a pyramid to open it in 3D.</p></div></header>
+    <div class="maps">
+      <figure>${region}<figcaption>The region. River course simplified.</figcaption></figure>
+      <figure>${plan(giza, [SPHINX], avg(giza, 'lat') - 0.0005, avg(giza, 'lon') + 0.0015, 1500, 'Plan of the Giza plateau', 200)}<figcaption>Giza plateau, to scale.</figcaption></figure>
+      <figure>${plan(dah, [], avg(dah, 'lat'), avg(dah, 'lon'), 2600, 'Plan of the Dahshur pyramids', 500)}<figcaption>Dahshur, to scale.</figcaption></figure>
+    </div>
+    <p class="fine">Positions from published site coordinates. Pyramid bases drawn at their true size and orientation.</p>`;
+}
+for (const id of ['timeline-view', 'map-view']) {
+  const el = document.getElementById(id);
+  const go = e => { const t = e.target.closest('[data-id]'); if (t) switchTo(PYRAMIDS.find(p => p.id === t.dataset.id)); };
+  el.addEventListener('click', go);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
+}
+renderTimeline();
+renderMap();
+
+// Resize and loop
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h); labelRenderer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+setMode('model');
+load(PYRAMIDS.find(p => '#' + p.id === location.hash) ?? KHUFU, false);
+
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+renderer.setAnimationLoop(now => {
+  if (anim) {
+    const t = Math.min(1, (now - anim.t0) / anim.dur), k = ease(t);
+    controls.target.lerpVectors(anim.ft, anim.tt, k);
+    camera.position.lerpVectors(anim.fp, anim.tp, k);
+    if (t === 1) anim = null;
+  }
+  if (ctx.mats.bigVoid && ctx.groups.bigVoid.visible) ctx.mats.bigVoid.opacity = 0.32 + 0.14 * Math.sin(now / 600);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+</script>
+
+</body>
+</html>

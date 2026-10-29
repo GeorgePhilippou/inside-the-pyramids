@@ -1,0 +1,53 @@
+# Inside the Pyramids
+
+See-through 3D models of five Egyptian pyramids (the Bent and Red pyramids at Dahshur, and Khufu, Khafre and Menkaure at Giza), with every known passage and chamber drawn to published survey figures.
+
+- Click any passage or chamber to see a photo, fly the camera to where it was taken, and read why it matters.
+- **Timeline** view: when each pyramid was built, by dynasty and reign.
+- **Map** view: where the pyramids stand along the Nile, with to-scale plans of Giza and Dahshur.
+- Human figures (1.75 m) for scale, inscriptions and builders' marks, and neighbouring monuments in 3D.
+
+Each feature is tagged *Surveyed*, *Approximate* or *Uncertain* according to how sure the published figures are. Photo viewpoints are estimated from the photos.
+
+## Running it
+
+It is a single static page. Open `index.html` through any web server, or visit the GitHub Pages site. It loads [three.js](https://threejs.org) 0.160.0 from jsDelivr and fonts from Google Fonts.
+
+## Sources
+
+Measurements: W. M. F. Petrie, *The Pyramids and Temples of Gizeh* (1883); V. Maragioglio & C. Rinaldi, *L'Architettura delle Piramidi Menfite* (1965–67); M. Lehner, *The Complete Pyramids* (1997, 2008); G. Dormion, *La chambre de Chéops* (2004); A. Fakhry, *The Monuments of Sneferu at Dahshur* (1959–61); M. Verner, *The Pyramids* (2001); Morishima et al., *Nature* 552 (2017); Procureur et al., *Nature Communications* 14 (2023). Dates follow I. Shaw (ed.), *The Oxford History of Ancient Egypt* (2000).
+
+## Photo credits
+
+All photos are from Wikimedia Commons, resized for the web. Their original licences apply; follow the links for full terms.
+
+| File | Photographer | Licence | Source |
+|---|---|---|---|
+| `photos/khufu-exterior.jpg` | Jorge Láscar | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:The_Great_Pyramid_of_Giza_(14794652632).jpg) |
+| `photos/khufu-entrance.jpg` | Boston Public Library, Tupper Scrapbooks | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:The_Entrance_to_Great_Pyramid_by_Boston_Public_Library.jpg) |
+| `photos/khufu-subterranean.jpg` | John and Edgar Morton | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:27_edgar.jpg) |
+| `photos/khufu-gallery-2.jpg` | Mike McBey | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Looking_upwards,_along_the_Grand_Gallery,_inside_the_Great_Pyramid_1984_(50535456558).jpg) |
+| `photos/khufu-gallery-1.jpg` | Keith Adler | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Great_Pyramid_of_Giza_Grand_Gallery.jpg) |
+| `photos/khufu-king-1.jpg` | Andrew Currie | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Khufu_Pyramid_-_King%27s_Chamber.jpg) |
+| `photos/khufu-king-2.jpg` | Mike McBey | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:At_the_centre_of_the_Great_Pyramid_(47315820161).jpg) |
+| `photos/khufu-shaft.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Great_Pyramid_Air_Shaft_(39752498153).jpg) |
+| `photos/khafre-exterior.jpg` | MusikAnimal | CC BY-SA 3.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_of_Khafre_Giza_Egypt_in_2015_2.jpg) |
+| `photos/khafre-burial.jpg` | Leon Petrosyan | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:The_Pyramide_of_Khofru_3.jpg) |
+| `photos/khafre-sarcophagus.jpg` | Kelisi | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KhafresSarcophagus.jpg) |
+| `photos/khafre-belzoni.jpg` | Inkapigen | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Inscription_in_the_pyramid.jpg) |
+| `photos/menkaure-exterior.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_of_Menkaure_(29197729700).jpg) |
+| `photos/menkaure-descending.jpg` | CT Snow | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Menkaure-pyramid_descending_passage.jpg) |
+| `photos/menkaure-panelled.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:11_menkaure_Panelled_Chamber.jpg) |
+| `photos/menkaure-portcullis.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:13_menkaure_portcullis_room.jpg) |
+| `photos/menkaure-burial.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:17_menkaure_burial_chamber.jpg) |
+| `photos/menkaure-niches.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:15_menkaure_chamber_with_five_niches.jpg) |
+| `photos/red-exterior.jpg` | Darer101 | CC BY 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Red_Pyramid_at_Dahshur.jpg) |
+| `photos/red-passage.jpg` | Jorge Láscar | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Inside_the_Red_Pyramid_-_The_61m._long_passage_leading_to_the_master_chamber_(14795442922).jpg) |
+| `photos/red-entrance.jpg` | Sturm58 | CC BY-SA 3.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Red-pyramid_-_entry.jpg) |
+| `photos/red-corbel-1.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:11_red_corbel_1.jpg) |
+| `photos/red-corbel-2.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:12_red_corbel_2.jpg) |
+| `photos/red-chamber.jpg` | Roland Unger | CC BY-SA 3.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:DahshurRedPyrChamber.jpg) |
+| `photos/red-burial.jpg` | Jorge Láscar | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Massive_corbel-vaulted_ceiling_of_the_main_burial_chamber_-_Red_Pyramid_(14772801236).jpg) |
+| `photos/bent-exterior.jpg` | Jorge Láscar | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Bent_Pyramid_featuring_the_original_polished_limestone_outer_casing_that_the_pyramids_used_to_have_(14616487960).jpg) |
+| `photos/bent-bend.jpg` | Darer101 | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:11-degree_angle_change_of_the_Bent_Pyramid_at_Dahshur.jpg) |
+| `photos/bent-chamber.jpg` | Panegyrics of Granovetter | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:26722-_burial_chamber_in_Sneferu%27s_Bent_pyramid.jpg) |
