@@ -286,7 +286,7 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
 @media (pointer: coarse) { .walk-pad { display: flex; } }
 body.walking .navhelp { display: none !important; }
 body.walking #scene canvas { cursor: crosshair; }
-.toolbar input:disabled { opacity: .4; }
+.toolbar input:disabled, .toolbar .icon-btn:disabled { opacity: .35; cursor: default; }
 
 /* Satellite map */
 .map-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
@@ -400,6 +400,9 @@ body.walking #scene canvas { cursor: crosshair; }
   <button class="icon-btn" id="btn-walk" type="button" data-tip="Walk at eye level" aria-label="Walk at eye level" aria-pressed="false">
     <svg class="i" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2.2-6.5L10 12l1.5-4.5 3.5 3 3 1M9.5 12.5 8 9l-2.5 2.5M12.2 14.5 15 21"/></svg>
   </button>
+  <button class="icon-btn" id="tg-today" data-toggle="today" type="button" data-tip="As it looks today (off: as built)" aria-label="Show as it looks today" aria-pressed="true" disabled>
+    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18M5 20l3-5h2l2-4h2l2-4 3 13"/></svg>
+  </button>
   <button class="icon-btn" id="tg-stone" data-toggle="stone" type="button" data-tip="Stone look" aria-label="Stone look" aria-pressed="false">
     <svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg>
   </button>
@@ -507,10 +510,16 @@ const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
 sun.position.set(200, 300, 120);
-scene.add(sun);
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.6;
+scene.add(sun, sun.target);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const groundXray = new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), groundXray);
 ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
 scene.add(ground);
 const grid = new THREE.GridHelper(6000, 300, COL.grid1, COL.grid2);
 grid.material.transparent = true; grid.material.opacity = 0.9;
@@ -543,7 +552,7 @@ function stoneTexture({ size = 512, tile, base, spread = 0.08, course = [0.7, 1.
   const img = g.getImageData(0, 0, size, size), d = img.data;
   for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * grain; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
   g.putImageData(img, 0, 0);
-  for (let i = 0; i < speckle; i++) { g.fillStyle = speckleCols[(r() * speckleCols.length) | 0]; const s = 1 + r() * 2.5; g.fillRect(r() * size, r() * size, s, s); }
+  for (let i = 0; i < speckle; i++) { g.fillStyle = speckleCols[(r() * speckleCols.length) | 0]; const s = 0.6 + r() * 1.4; g.fillRect(r() * size, r() * size, s, s); }
   g.strokeStyle = 'rgba(50,35,20,.3)'; g.lineWidth = 1;
   for (let i = 0; i < cracks; i++) {
     let x = r() * size, y = r() * size; g.beginPath(); g.moveTo(x, y);
@@ -559,7 +568,7 @@ function stoneTexture({ size = 512, tile, base, spread = 0.08, course = [0.7, 1.
 const TEX = {
   casing: stoneTexture({ tile: 14, base: '#c4ad86', course: [0.55, 1.05], blockW: [1.0, 2.4], spread: 0.12, seed: 3 }),
   lime: stoneTexture({ tile: 6, base: '#d7c7a3', course: [0.5, 1.0], blockW: [0.8, 2.0], spread: 0.06, seed: 5 }),
-  granite: stoneTexture({ tile: 6, base: '#8e5249', course: [1.0, 1.3], blockW: [1.4, 3.0], spread: 0.06, speckle: 9000, speckleCols: ['#2b1f1d', '#c79a8f', '#5d3a35', '#e1c4b9'], joint: 'rgba(30,15,12,.5)', seed: 7 }),
+  granite: stoneTexture({ tile: 6, base: '#7d5a54', course: [1.0, 1.3], blockW: [1.4, 3.0], spread: 0.05, speckle: 14000, speckleCols: ['rgba(40,28,26,.55)', 'rgba(170,135,125,.45)', 'rgba(95,62,56,.5)'], joint: 'rgba(30,15,12,.45)', grain: 18, seed: 7 }),
   rock: stoneTexture({ tile: 8, base: '#a78a62', course: null, cracks: 40, grain: 34, seed: 9 }),
   sand: stoneTexture({ tile: 30, base: '#d8c39a', course: null, grain: 22, seed: 11 }),
 };
@@ -635,23 +644,107 @@ function applyLook() {
   for (const [id, m] of Object.entries(ctx.mats)) {
     const f = ctx.byId[id], key = stone && !f.scan && !f.mark ? TEX_FOR[f.color] : null;
     m.map = key ? TEX[key] : null;
-    m.color.copy(key ? WHITE : m.userData.col);
+    m.color.copy(key ? (id === 'sarcophagus' ? new THREE.Color(0x6a6a6a) : WHITE) : m.userData.col);
     m.transparent = !key; m.opacity = key ? 1 : m.userData.op; m.depthWrite = !!key;
     m.needsUpdate = true;
   }
   for (const lm of Object.values(ctx.lineMats)) lm.visible = !stone;
   ctx.groups.pyramid.traverse(o => { if (o.isLine || o.isLineSegments) o.visible = !stone; });
-  ctx.shell.material = stone ? shellStone : shellMat;
+  ctx.shell.material = shellMat;
+  ctx.shell.visible = !stone;
+  for (const grp of [ctx.ext.built, ctx.ext.today]) if (grp) grp.visible = solidVisible(grp.userData.solid, stone, grp.userData.hasToday);
+  for (const m of ctx.extra) { m.map = stone ? TEX[m.userData.key] : null; m.color.copy(stone ? new THREE.Color(0xdedede) : m.userData.col); m.needsUpdate = true; }
+  sun.castShadow = stone;
+  document.getElementById('tg-today').disabled = !stone || !ctx.ext.today;
   ground.material = stone ? groundStone : groundXray;
   grid.visible = !stone;
   hemi.intensity = stone ? 0.9 : 1.1; sun.intensity = stone ? 2.4 : 1.4;
-  sun.position.set(stone ? -220 : 200, 260, stone ? 180 : 120);   // low western sun gives each face its own shade
+  sun.position.set(stone ? -220 : 200, 260, stone ? 180 : 120).normalize().multiplyScalar(900);   // low western sun gives each face its own shade
   scene.background = stone ? SKY : PAPER;
   scene.fog.color.copy(stone ? HORIZON : PAPER);
-  ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = o.userData.solid === stone; });
+  ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, o.userData.hasToday); });
   document.getElementById('opacity').disabled = stone;
   setEmissive();
 }
+
+// ---------- Exteriors: smooth white casing as built, or the weathered stepped core seen today ----------
+TEX.tura = stoneTexture({ tile: 14, base: '#e9e2d0', course: [1.0, 1.5], blockW: [1.5, 3.0], spread: 0.03, joint: 'rgba(90,80,60,.16)', grain: 12, seed: 13 });
+TEX.core = stoneTexture({ tile: 9, base: '#bea47b', course: [3, 3], blockW: [0.7, 2.0], spread: 0.16, joint: 'rgba(70,52,30,.5)', grain: 30, cracks: 25, seed: 15 });
+function exteriorMats() {
+  const m = {
+    tura: new THREE.MeshStandardMaterial({ map: TEX.tura, roughness: 0.7, side: THREE.DoubleSide }),
+    core: new THREE.MeshStandardMaterial({ map: TEX.core, roughness: 1, side: THREE.DoubleSide }),
+    redCore: new THREE.MeshStandardMaterial({ map: TEX.core, color: '#e6ad8f', roughness: 1, side: THREE.DoubleSide }),
+    granite: new THREE.MeshStandardMaterial({ map: TEX.granite, roughness: 0.85, side: THREE.DoubleSide }),
+    weathered: new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide }),
+    oldCasing: new THREE.MeshStandardMaterial({ map: TEX.tura, color: '#d6c39d', roughness: 0.85, side: THREE.DoubleSide }),
+  };
+  for (const x of Object.values(m)) x.clipShadows = true;
+  return m;
+}
+const MAIN_MATS = exteriorMats(), NEIGHBOUR_MATS = exteriorMats();   // neighbours are never cut away
+// How each pyramid looks today. Heights are published; the stepped core is drawn with typical course heights.
+const TODAY = {
+  khufu: { top: 138.5, courses: [1.45, 0.55] },
+  khafre: { top: 136.4, courses: [1.25, 0.6], capFrom: 100 },              // casing survives on the top third
+  menkaure: { top: 61, courses: [1.0, 0.6], baseTo: 8, baseMat: 'granite' }, // 7 of the granite courses survive
+  red: { top: 104, courses: [0.9, 0.55], core: 'redCore' },
+  bent: { smooth: true },                                                   // most of its casing is still in place
+};
+function frustumGeo(rings, y0, y1, inset = 0) {
+  const rs = [[halfAt(rings, y0) - inset, y0], ...rings.filter(([, y]) => y > y0 && y < y1).map(([r, y]) => [r - inset, y]), [Math.max(0, halfAt(rings, y1) - inset), y1]];
+  return makeShellGeo(rs);
+}
+function capGeo(r, y) { const g = new THREE.PlaneGeometry(2 * r, 2 * r); g.rotateX(-Math.PI / 2); g.translate(0, y, 0); worldUV(g); return g; }
+// Hollow stepped surface: a vertical riser and a flat tread for every course, set back from the casing line
+function stepGeo(rings, y0, y1, courses, inset = 1.0, seed = 5) {
+  const pos = [], uv = [], r = rng(seed), C = [[-1, -1], [1, -1], [1, 1], [-1, 1]], top = rings[rings.length - 1][1];
+  const quad = (a, b, c, d, ua, ub, uc, ud) => { pos.push(...a, ...b, ...c, ...a, ...c, ...d); uv.push(...ua, ...ub, ...uc, ...ua, ...uc, ...ud); };
+  let y = y0, R = Math.max(0.5, halfAt(rings, y0) - inset);
+  while (y < y1 - 0.01) {
+    let h = (courses[0] + (courses[1] - courses[0]) * (y / top)) * (0.85 + r() * 0.3);
+    if (y + h > y1 - 0.2) h = y1 - y;
+    const Rn = Math.max(0.5, halfAt(rings, y + h) - inset);
+    for (let k = 0; k < 4; k++) {
+      const a = C[k], b = C[(k + 1) % 4];
+      const P = (c, rr, yy) => [c[0] * rr, yy, c[1] * rr], U = (c, rr, yy) => [k % 2 ? c[1] * rr : c[0] * rr, yy];
+      quad(P(a, R, y), P(b, R, y), P(b, R, y + h), P(a, R, y + h), U(a, R, y), U(b, R, y), U(b, R, y + h), U(a, R, y + h));
+      const T = (c, rr) => [c[0] * rr, y + h, c[1] * rr], TU = (c, rr) => [c[0] * rr, c[1] * rr];
+      quad(T(a, R), T(b, R), T(b, Rn), T(a, Rn), TU(a, R), TU(b, R), TU(b, Rn), TU(a, Rn));
+    }
+    y += h; R = Rn;
+  }
+  quad([-R, y, -R], [R, y, -R], [R, y, R], [-R, y, R], [-R, -R], [R, -R], [R, R], [-R, R]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+function exteriorGroups(def, neighbour = false) {
+  const M = neighbour ? NEIGHBOUR_MATS : MAIN_MATS, built = new THREE.Group(), today = new THREE.Group();
+  const add = (grp, geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; grp.add(m); };
+  const top = def.rings[def.rings.length - 1][1];
+  if (def.id === 'menkaure') { add(built, frustumGeo(def.rings, 0, 20), M.granite); add(built, frustumGeo(def.rings, 20, top), M.tura); }   // lowest 16 courses were granite
+  else add(built, makeShellGeo(def.rings), M.tura);
+  const t = TODAY[def.id];
+  if (t?.smooth) add(today, makeShellGeo(def.rings), M.weathered);
+  else if (t) {
+    if (t.baseTo) add(today, frustumGeo(def.rings, 0, t.baseTo), M[t.baseMat]);
+    add(today, stepGeo(def.rings, t.baseTo ?? 0, t.capFrom ?? t.top, t.courses), M[t.core ?? 'core']);
+    if (t.capFrom) { add(today, frustumGeo(def.rings, t.capFrom, t.top), M.oldCasing); add(today, capGeo(halfAt(def.rings, t.top), t.top), M.oldCasing); }
+  }
+  built.userData.solid = 'built'; built.userData.hasToday = !!t;
+  today.userData.solid = 'today';
+  return { built, today: t ? today : null };
+}
+function extraMat(color, key) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
+  m.userData = { col: m.color.clone(), key };
+  ctx.extra.push(m);
+  return m;
+}
+const solidVisible = (s, stone, hasToday) => s === false ? !stone : s === 'today' ? stone && toggles.today : s === 'built' ? stone && !(toggles.today && hasToday) : stone;
 
 // ---------- Building helpers (act on the pyramid being built) ----------
 let ctx = null;
@@ -660,6 +753,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function put(id, mesh, edges = true) {
   mesh.userData.fid = id;
   if (mesh.isMesh && !mesh.geometry.userData.uv) { worldUV(mesh.geometry); mesh.geometry.userData.uv = true; }
+  mesh.castShadow = mesh.receiveShadow = true;
   ctx.groups[id].add(mesh);
   ctx.pickables.push(mesh);
   if (edges) {
@@ -723,7 +817,7 @@ function route(id, pts, w, h) {
 }
 function person(x, y, z, turn = 0) {
   const g = new THREE.Group();
-  const add = (geo, px, py) => { const m = new THREE.Mesh(geo, humanMat); m.position.set(px, py, 0); g.add(m); };
+  const add = (geo, px, py) => { const m = new THREE.Mesh(geo, humanMat); m.position.set(px, py, 0); m.castShadow = true; g.add(m); };
   add(new THREE.BoxGeometry(0.13, 0.84, 0.16), -0.09, 0.42);
   add(new THREE.BoxGeometry(0.13, 0.84, 0.16), 0.09, 0.42);
   add(new THREE.BoxGeometry(0.42, 0.62, 0.22), 0, 1.15);
@@ -750,6 +844,9 @@ function buildShell(def) {
   ctx.shell = shell;
   shell.renderOrder = 10;
   g.add(shell);
+  ctx.ext = exteriorGroups(def);
+  g.add(ctx.ext.built);
+  if (ctx.ext.today) g.add(ctx.ext.today);
   const square = (r, y) => [V(-r, y, -r), V(r, y, -r), V(r, y, r), V(-r, y, r), V(-r, y, -r)];
   const edgeMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.9 });
   const courseMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.22 });
@@ -780,14 +877,14 @@ const KHUFU = (() => {
   const descA = 26.52 * D, ascA = 26.04 * D;
   const descDir = V(0, -Math.sin(descA), Math.cos(descA));
   const ascDir = V(0, Math.sin(ascA), Math.cos(ascA));
-  // Descending passage anchored so the Queen's Chamber sits on the E–W axis
-  const entrance = V(AX, 16.09, -102.53);
-  const descEnd = entrance.clone().addScaledVector(descDir, (16.09 + 29) / Math.sin(descA));
-  const ascStart = V(AX, 4.35, -76.31);
-  const galStart = V(AX, 21.6, -41.0);
-  const galEnd = galStart.clone().addScaledVector(ascDir, 46.7);
-  const KC = { x0: AX + 0.52 - 10.47, x1: AX + 0.52, y0: 43.0, y1: 43.0 + 5.82, s0: 9.36, s1: 9.36 + 5.23 };
-  const QC = { x0: AX - 2.88, x1: AX + 2.88, y0: 21.1, s0: -2.615, s1: 2.615 };
+  // Positions from Petrie (1883), measured from the centre of the base (+s = south of centre)
+  const entrance = V(AX, 16.97, -115.17 + 13.31);                 // doorway 668.2 in up, 524.1 in in from the north edge
+  const descEnd = entrance.clone().addScaledVector(descDir, (16.97 + 30.0) / Math.sin(descA));   // floor ends 1181 in below the pavement
+  const ascStart = V(AX, 4.39, -41.32 - 35.29);                   // ascending floor starts 172.9 in up, 1389.5 in north of the Gallery
+  const galStart = V(AX, 21.66, -41.32);                          // Gallery begins 1626.8 in north of centre
+  const galEnd = V(AX, 21.66 + 41.33 * Math.tan(26.2 * D), 0.01); // Great Step face, 0.4 in south of centre
+  const KC = { x0: -2.74, x1: 7.75, y0: 43.0, y1: 48.83, s0: 8.40, s1: 13.64 };   // walls 330.6 / 537.0 in S, 305.1 in E, 107.7 in W
+  const QC = { x0: AX - 2.88, x1: AX + 2.88, y0: 21.19, s0: -2.625, s1: 2.605 };  // ridge 0.3 in north of centre
   const hitFace = (p, d) => d.z < 0 ? (K * (B + p.z) - p.y) / (d.y - K * d.z) : (K * (B - p.z) - p.y) / (d.y + K * d.z);
 
   return {
@@ -806,7 +903,7 @@ const KHUFU = (() => {
         why: 'Placing it high on the north face points the passage at the northern sky, where Egyptians placed the never-setting stars they linked to the king\u2019s afterlife.',
         photos: () => [ph('khufu-entrance.jpg', '19th-century photograph of the pyramid entrance', 'A 19th-century photograph of the original entrance and the chevron blocks above it.', 'Boston Public Library, Tupper Scrapbooks', 'Public domain', 'https://commons.wikimedia.org/wiki/File:The_Entrance_to_Great_Pyramid_by_Boston_Public_Library.jpg', V(AX, 8, -B - 18), V(AX, 18, entrance.z))],
         text: 'The real entrance, on the north face. Like every main passage, it sits a little over 7 m east of the centre line. Visitors today go in through the robbers’ tunnel lower down.',
-        facts: [['Height above base', 'c. 17 m'], ['East of centre', '7.3 m (Petrie) · 7.9 m (M&R)'], ['Opening', '1.05 × 1.20 m']] },
+        facts: [['Height above base', '16.97 m (Petrie)'], ['East of centre', '7.3 m (Petrie) · 7.9 m (M&R)'], ['Opening', '1.05 × 1.20 m']] },
       { id: 'chevrons', group: 'Exterior', name: 'Chevron blocks', color: 'lime', conf: 'approx',
         why: 'An early example of builders steering weight around an opening, the same idea used on a much larger scale above the King\u2019s Chamber.',
         text: 'Two pairs of huge limestone blocks leaning against each other above the entrance. They carry the weight of the masonry away from the passage roof. Shown here in simplified form.',
@@ -818,12 +915,12 @@ const KHUFU = (() => {
       { id: 'descending', group: 'Below ground', name: 'Descending passage', color: 'rock', conf: 'surveyed', major: true,
         why: 'Its straight line and steady angle over about 100 m show how precisely the builders could set out a slope.',
         text: 'A long, straight, narrow corridor sloping down from the entrance. The upper part runs through built masonry and the rest is cut into the bedrock below the pyramid. You cannot stand upright in it.',
-        facts: [['Slope', '26° 31′ (Petrie) · 26° 27′ (Dormion)'], ['Length', 'c. 100 m'], ['Cross-section', 'c. 1.05 × 1.20 m'], ['Then level passage', '8.84 m']] },
+        facts: [['Slope', '26° 31′ (Petrie) · 26° 27′ (Dormion)'], ['Length', 'c. 100 m'], ['Cross-section', 'c. 1.05 × 1.20 m'], ['Lowest point', '30.0 m below base (Petrie)'], ['Then level passage', '8.84 m']] },
       { id: 'subterranean', group: 'Below ground', name: 'Subterranean chamber', color: 'rock', conf: 'approx', major: true,
         why: 'Probably the first planned burial chamber. Leaving it unfinished suggests the design changed during construction.',
         photos: () => [ph('khufu-subterranean.jpg', 'Old photograph of a rough rock-cut chamber', 'The unfinished Subterranean Chamber, photographed in the early 1900s by John and Edgar Morton.', 'John and Edgar Morton', 'Public domain', 'https://commons.wikimedia.org/wiki/File:27_edgar.jpg', V(7.0, -28.2, 4.4), V(-1, -28.6, 0))],
         text: 'An unfinished room cut deep in the bedrock. The floor was never levelled and much of the western half is still solid rock. A small dead-end passage leads south from it.',
-        facts: [['Size', '14.1 E–W × 8.4 m N–S'], ['Height', 'c. 4 m (uneven)'], ['Depth', 'c. 27–30 m below base'], ['South passage', 'c. 16 m, dead end']] },
+        facts: [['Size', '14.1 E–W × 8.4 m N–S'], ['Height', 'c. 4 m (uneven)'], ['Depth', 'roof 26.8 m, floor c. 30.4 m below base (Petrie)'], ['South passage', 'c. 16 m, dead end']] },
       { id: 'well', group: 'Below ground', name: 'Well shaft', color: 'rock', conf: 'approx',
         why: 'It explains how the workers who sealed the upper passages could get out afterwards.',
         text: 'An irregular, almost vertical shaft linking the bottom of the Grand Gallery to the lower descending passage. It passes a natural cavity called the Grotto, where the bedrock rises about 5.7 m above the base. It was probably the workers’ way out after the passage was plugged.',
@@ -856,7 +953,7 @@ const KHUFU = (() => {
       { id: 'antechamber', group: 'King’s level', name: 'Antechamber', color: 'granite', conf: 'surveyed',
         why: 'Its portcullis slabs were the last barrier before the burial.',
         text: 'A small granite-lined room in front of the King’s Chamber. Grooves in its walls once held three sliding stone portcullis slabs.',
-        facts: [['Length', '2.97 m'], ['Width', '1.17 m'], ['Height', 'c. 3.8 m'], ['Portcullis slots', '3']] },
+        facts: [['Length', '2.95 m'], ['Width', '1.65 m (Petrie)'], ['Height', '3.79 m'], ['Portcullis slots', '3']] },
       { id: 'king', group: 'King’s level', name: 'King’s Chamber', color: 'granite', conf: 'surveyed', major: true,
         why: 'The intended resting place of Khufu. No one had built a granite chamber this high inside a pyramid before.',
         photos: () => [ph('khufu-king-1.jpg', 'The granite sarcophagus in the King\'s Chamber', 'The sarcophagus at the west end of the King\'s Chamber.', 'Andrew Currie', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Khufu_Pyramid_-_King%27s_Chamber.jpg', V(4.5, 44.6, 12.0), V(-1.0, 43.6, 11.9)), ph('khufu-king-2.jpg', 'Visitors standing in the King\'s Chamber', 'Visitors in the King\'s Chamber, for a sense of its size.', 'Mike McBey', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:At_the_centre_of_the_Great_Pyramid_(47315820161).jpg', V(6.9, 44.5, 10.0), V(0, 44.2, 13.2))],
@@ -900,9 +997,10 @@ const KHUFU = (() => {
       const M = ctx.mats;
       // Descending passage, level passage, subterranean chamber, dead-end south passage
       passage('descending', entrance, descEnd, 1.05, 1.2);
-      passage('descending', descEnd, V(AX, -29, -3.28), 0.85, 0.92);
-      room('subterranean', -6.0, 8.1, -30, -26, -3.28, 5.12);
-      passage('subterranean', V(0.5, -29.6, 5.12), V(0.5, -29.6, 21.5), 0.75, 0.75);
+      const SC = { s0: descEnd.z + 8.84, s1: descEnd.z + 8.84 + 8.37 };   // roof 26.82 m and floor c. 30.4 m below the pavement
+      passage('descending', descEnd, V(AX, descEnd.y, SC.s0), 0.85, 0.92);
+      room('subterranean', -6.0, 8.1, -30.38, -26.82, SC.s0, SC.s1);
+      passage('subterranean', V(0.5, -30.0, SC.s1), V(0.5, -30.0, SC.s1 + 16.4), 0.75, 0.75);
 
       // Entrance marker and chevrons
       room('entrance', AX - 0.8, AX + 0.8, entrance.y - 0.2, entrance.y + 1.6, entrance.z - 0.5, entrance.z + 1.2);
@@ -944,7 +1042,7 @@ const KHUFU = (() => {
         m.quaternion.copy(f.q);
         m.position.copy(galStart);
         put('gallery', m);
-        const rampMat = new THREE.MeshStandardMaterial({ color: COL.lime.clone().multiplyScalar(0.7), roughness: 0.9 });
+        const rampMat = extraMat(COL.lime.clone().multiplyScalar(0.7), 'lime');
         for (const side of [-1, 1]) {
           const r = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.61, f.len), rampMat);
           r.quaternion.copy(f.q);
@@ -954,8 +1052,8 @@ const KHUFU = (() => {
       }
 
       // Queen's Chamber passage, chamber, niche
-      passage('queenPassage', galStart, V(AX, 21.6, -8.4), 1.05, 1.17);
-      passage('queenPassage', V(AX, 21.1, -8.4), V(AX, 21.1, QC.s0), 1.05, 1.67);
+      passage('queenPassage', galStart, V(AX, 21.66, -8.4), 1.05, 1.30);
+      passage('queenPassage', V(AX, QC.y0, -8.4), V(AX, QC.y0, QC.s0), 1.05, 1.77);
       gabledRoom('queen', QC.x0, QC.x1, QC.y0, 4.69, 6.23, QC.s0, QC.s1);
       room('queen', QC.x1, QC.x1 + 1.0, QC.y0, QC.y0 + 4.67, -0.79, 0.79);
 
@@ -980,17 +1078,17 @@ const KHUFU = (() => {
       }
 
       // Well shaft and Grotto
-      route('well', [V(AX - 1.03, 21.6, -40.4), V(AX - 1.03, 13.6, -40.4), V(AX - 1.9, 5.7, -37.5), V(AX - 1.5, -7, -25.5), V(AX - 0.6, -24, -22.2)], 0.9, 0.9);
+      route('well', [V(AX - 1.03, 21.6, -40.4), V(AX - 1.03, 13.6, -40.4), V(AX - 1.9, 5.7, -37.5), V(AX - 1.5, -7, -25.5), V(AX - 0.6, -24, -19.8)], 0.9, 0.9);
       {
         const grotto = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 10), M.well);
         grotto.position.set(AX - 1.9, 5.7, -37.5); put('well', grotto, false);
       }
 
       // King's level: great step, low passages, antechamber, chamber, sarcophagus
-      room('king', AX - 1.03, AX + 1.03, galEnd.y, KC.y0, galEnd.z, galEnd.z + 1.6);
-      passage('antechamber', V(AX, KC.y0, galEnd.z + 1.6), V(AX, KC.y0, galEnd.z + 2.9), 1.05, 1.11);
-      room('antechamber', AX - 0.585, AX + 0.585, KC.y0, KC.y0 + 3.8, galEnd.z + 2.9, galEnd.z + 5.87);
-      passage('antechamber', V(AX, KC.y0, galEnd.z + 5.87), V(AX, KC.y0, KC.s0), 1.05, 1.11);
+      room('king', AX - 1.03, AX + 1.03, galEnd.y, 43.01, 0.01, 1.56);   // the Great Step
+      passage('antechamber', V(AX, KC.y0, 1.56), V(AX, KC.y0, 2.89), 1.05, 1.11);
+      room('antechamber', AX - 0.825, AX + 0.825, KC.y0, KC.y0 + 3.79, 2.89, 5.84);   // 65.0 in wide (Petrie)
+      passage('antechamber', V(AX, KC.y0, 5.84), V(AX, KC.y0, KC.s0), 1.05, 1.11);
       room('king', KC.x0, KC.x1, KC.y0, KC.y1, KC.s0, KC.s1);
       M.sarcophagus.color.multiplyScalar(0.75);
       room('sarcophagus', KC.x0 + 1.2, KC.x0 + 2.18, KC.y0, KC.y0 + 1.05, KC.s0 + 1.47, KC.s0 + 3.75);
@@ -1028,7 +1126,7 @@ const KHUFU = (() => {
       { const p = galStart.clone().addScaledVector(ascDir, 22); person(AX, p.y, p.z, Math.PI); }
       person(AX - 0.8, QC.y0, 0.4, 0.4);
       person(AX, KC.y0, galEnd.z + 4.4, Math.PI);
-      person(1.5, -30, 1.2, 0.3);
+      person(1.5, -30.38, (SC.s0 + SC.s1) / 2, 0.3);
       person(AX + 4, 0, -B - 6, Math.PI);
       person(AX + 6, 0, -B - 9, 2.6);
     },
@@ -1096,7 +1194,7 @@ const KHAFRE = (() => {
       // Upper system
       room('upper', AX - 0.8, AX + 0.8, upEntrance.y - 0.2, upEntrance.y + 1.6, upEntrance.z - 0.5, upEntrance.z + 1.2);
       passage('upper', upEntrance, upEnd, 1.05, 1.2);
-      room('upper', AX - 0.75, AX + 0.75, 0, 1.6, upEnd.z + 0.6, upEnd.z + 1.0, new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 }));
+      room('upper', AX - 0.75, AX + 0.75, 0, 1.6, upEnd.z + 0.6, upEnd.z + 1.0, extraMat(COL.granite, 'granite'));
       passage('horizontal', upEnd, V(AX, 0, BC.s0), 1.05, 1.75);
       gabledRoom('burial', BC.x0, BC.x1, BC.y0, 5.0, 6.83, BC.s0, BC.s1);
       ctx.mats.sarcophagus.color.multiplyScalar(0.75);
@@ -1105,7 +1203,7 @@ const KHAFRE = (() => {
       passage('lower', lowEntrance, lowBottom, 1.05, 1.2);
       passage('lower', lowBottom, ascFoot, 1.05, 1.2);
       passage('lower', ascFoot, ascTop, 1.05, 1.2);
-      room('lower', AX - 0.75, AX + 0.75, -9, -7.2, lowBottom.z + 3, lowBottom.z + 3.4, new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 }));
+      room('lower', AX - 0.75, AX + 0.75, -9, -7.2, lowBottom.z + 3, lowBottom.z + 3.4, extraMat(COL.granite, 'granite'));
       const sideS = lowBottom.z + 8;
       passage('side', V(AX, -9, sideS), V(9.6, -9, sideS), 1.0, 1.4);
       gabledRoom('side', 9.6 - 10.41, 9.6, -9, 1.8, 2.61, sideS - 1.56, sideS + 1.56);
@@ -1330,7 +1428,7 @@ const BENT = (() => {
       route('chimney', [V(0, lowY, LC.s1), V(0, lowY, 0), V(0, lowY + 14, 0)], 0.9, 1.1);
       passage('west', wEntrance, wEnd, 1.1, 1.1);
       passage('west', wEnd, V(UC.x0, UC.y0, wS), 1.1, 1.3);
-      for (const x of [-10.5, -6.6]) room('west', x, x + 0.5, UC.y0, UC.y0 + 2.2, wS - 0.75, wS + 0.75, new THREE.MeshStandardMaterial({ color: COL.lime.clone().multiplyScalar(0.7), roughness: 0.9 }));
+      for (const x of [-10.5, -6.6]) room('west', x, x + 0.5, UC.y0, UC.y0 + 2.2, wS - 0.75, wS + 0.75, extraMat(COL.lime.clone().multiplyScalar(0.7), 'lime'));
       corbelRoom('upperChamber', UC.x0, UC.x1, UC.y0, UC.s0, UC.s1, 16.5, 3.5, 14, 0.14, 0.09);
       const cedar = new THREE.MeshStandardMaterial({ color: COL.cedar, roughness: 0.9 });
       for (let i = 0; i < 5; i++) room('upperChamber', UC.x0 + 0.6 + i * 1.6, UC.x0 + 0.85 + i * 1.6, UC.y0 + 3.2, UC.y0 + 3.45, UC.s0, UC.s1, cedar);
@@ -1412,7 +1510,7 @@ const UNAS = (() => {
       passage('descending', entrance, V(0, fl, vS0), 1.05, 1.3);
       room('vestibule', -1.04, 1.04, fl, fl + 2.4, vS0, pS0);
       passage('passage', V(0, fl, pS0), V(0, fl, pS1), 1.05, 1.3);
-      const pc = new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 });
+      const pc = extraMat(COL.granite, 'granite');
       for (const ds of [1.4, 2.3, 3.2]) room('passage', -0.75, 0.75, fl, fl + 1.6, pS0 + ds, pS0 + ds + 0.5, pc);
       gabledRoom('antechamber', AC.x0, AC.x1, fl, wallH, peakH, AC.s0, AC.s1);
       gabledRoom('burial', BC.x0, BC.x1, fl, wallH, peakH, BC.s0, BC.s1);
@@ -1449,7 +1547,7 @@ const info = document.getElementById('info');
 const detail = document.getElementById('detail');
 const list = document.getElementById('features');
 const confText = { surveyed: 'Surveyed', approx: 'Approximate', uncertain: 'Uncertain · scan data' };
-const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false, stone: false };
+const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false, stone: false, today: true };
 
 function load(def, fly) {
   if (ctx && walk.on) stopWalk();
@@ -1461,7 +1559,10 @@ function load(def, fly) {
   const root = new THREE.Group();
   scene.add(root);
   for (const f of def.features) if (typeof f.photos === 'function') f.photos = f.photos();
-  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(),
+  const R = def.rings[0][0] + 160;
+  Object.assign(sun.shadow.camera, { left: -R, right: R, top: R, bottom: -R, near: 10, far: 2200 });
+  sun.shadow.camera.updateProjectionMatrix();
+  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(), extra: [],
     byId: Object.fromEntries(def.features.map(f => [f.id, f])), selected: null };
   root.add(ctx.humans);
   for (const f of def.features) {
@@ -1648,7 +1749,7 @@ function refreshLabels() {
     const f = o.userData.id && ctx.byId[o.userData.id];
     const groupVisible = !f || ctx.groups[f.id].visible;
     const hidden = toggles.stone && !toggles.cut && o.userData.id && o.userData.id !== ctx.selected;   // solid stone hides what is inside
-    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !(walk.on && walk.inside) : (o.userData.quiet || o.userData.major || o.userData.id === ctx.selected));
+    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !(walk.on && walk.inside) : ((o.userData.quiet && !(walk.on && walk.inside)) || o.userData.major || o.userData.id === ctx.selected));
   }
 }
 function applyToggles() {
@@ -1662,6 +1763,7 @@ function applyToggles() {
   applyLook();
   ctx.groups.pyramid.traverse(o => { if (o.material) o.material.clippingPlanes = toggles.cut ? [clip] : []; });
   shellMat.clippingPlanes = shellStone.clippingPlanes = toggles.cut ? [clip] : [];
+  for (const m of Object.values(MAIN_MATS)) m.clippingPlanes = toggles.cut ? [clip] : [];
   refreshLabels();
 }
 function toggle(btn, key) {
@@ -1677,6 +1779,7 @@ toggle(document.getElementById('tg-marks'), 'marks');
 toggle(document.getElementById('tg-surround'), 'surround');
 toggle(document.getElementById('tg-labels'), 'labels');
 toggle(document.getElementById('tg-stone'), 'stone');
+toggle(document.getElementById('tg-today'), 'today');
 const op = document.getElementById('opacity');
 op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 
@@ -1865,8 +1968,8 @@ function buildSurroundings(def) {
     const at = localPos(def, p.lat, p.lon);
     if (at.length() > 3500) continue;
     const outline = outlinePyramid(p.rings, at); outline.userData.solid = false; ctx.surround.add(outline);
-    const solid = new THREE.Mesh(makeShellGeo(p.rings), shellStone);
-    solid.position.copy(at); solid.userData.solid = true; solid.visible = false; ctx.surround.add(solid);
+    const ex = exteriorGroups(p, true);
+    for (const grp of [ex.built, ex.today]) if (grp) { grp.position.copy(at); grp.visible = false; ctx.surround.add(grp); }
     surroundLabel(`${p.short} →`, at.clone().setY(p.rings[p.rings.length - 1][1] + 6), () => switchTo(p));
   }
   // Djoser's Step Pyramid: six tiers, about 121 x 109 m at the base and 62.5 m high (tier sizes approximate)
@@ -2103,6 +2206,8 @@ document.getElementById('map-view').addEventListener('click', e => {
 const EYE = 1.65, WALK_SPEED = 1.4;
 const walk = { on: false, x: 0, z: 0, feet: 0, eye: EYE, yaw: 0, pitch: 0, wheel: 0, drag: null, objs: [], rects: [], saved: null };
 const walkRay = new THREE.Raycaster();
+const torch = new THREE.PointLight(0xffd8a8, 0, 30, 1.5);   // a lamp you carry, lit only indoors
+scene.add(torch);
 const DOWN = V(0, -1, 0), UP = V(0, 1, 0);
 const hud = document.getElementById('walkhud'), walkBtn = document.getElementById('btn-walk'), startSel = document.getElementById('walk-start');
 
@@ -2172,6 +2277,7 @@ function stopWalk() {
   if (!walk.saved.stone) setToggle('stone', false);
   document.body.classList.remove('walking');
   hud.hidden = true; walkBtn.setAttribute('aria-pressed', false);
+  torch.intensity = 0;
 }
 function walkToFeature(id, ph) {
   if (ph) return startWalk(V(...ph.cam), V(...ph.look));
@@ -2242,6 +2348,8 @@ function walkStep(dt) {
   const want = Math.min(EYE, Math.max(0.6, headroom(walk.x, walk.feet, walk.z) - 0.12));
   walk.eye += (want - walk.eye) * Math.min(1, dt * 8);
   placeCamera();
+  torch.position.copy(camera.position);
+  torch.intensity = walk.inside ? 12 : 0;
   drawMinimap();
 }
 
