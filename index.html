@@ -269,6 +269,49 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
   .view-head h2 { font-size: 24px; }
   .maps { grid-template-columns: 1fr; }
 }
+
+/* Walk mode */
+.walkhud {
+  position: fixed; z-index: 6; width: 300px; padding: 12px 14px; display: grid; gap: 10px;
+  left: max(var(--gap), env(safe-area-inset-left, 0px)); bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+}
+.walkhud header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+#minimap { width: 100%; height: 150px; border-radius: 8px; background: #a9c8e6; display: block; }
+.walk-start { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.walk-start select { font: 500 13px var(--f-body); padding: 7px 8px; border-radius: 8px; border: 1px solid var(--rule); background: #fff; color: var(--ink); }
+.walkhud .hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+.walk-pad { display: none; gap: 8px; }
+.walk-pad button { flex: 1; height: 44px; border-radius: 10px; border: 1px solid var(--rule); background: #fff; font-size: 16px; color: var(--ink); touch-action: none; }
+@media (pointer: coarse) { .walk-pad { display: flex; } }
+body.walking .navhelp { display: none !important; }
+body.walking #scene canvas { cursor: crosshair; }
+.toolbar input:disabled { opacity: .4; }
+
+/* Satellite map */
+.map-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.seg { display: flex; gap: 2px; padding: 3px; background: #efece3; border-radius: 10px; }
+.seg button { border: 0; background: none; padding: 7px 12px; border-radius: 7px; font: 500 13px var(--f-body); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,20,19,.12); }
+.sat-wrap { display: grid; gap: 10px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+#sat-map { height: min(64vh, 680px); border-radius: 12px; border: 1px solid var(--rule); background: #2b2b28; }
+.leaflet-container { font-family: var(--f-body); }
+.pin-wrap { background: none; border: 0; }
+.pin {
+  position: absolute; transform: translate(-50%, calc(-100% - 8px)); white-space: nowrap;
+  display: grid; justify-items: center; gap: 1px; padding: 5px 9px; border-radius: 8px;
+  background: rgba(250,249,245,.95); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.35); cursor: pointer;
+}
+.pin::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(250,249,245,.95); }
+.pin b { font: 600 12.5px/1.1 var(--f-body); }
+.pin small { font: 500 10.5px/1 var(--f-body); color: var(--accent); }
+.pin.other { background: rgba(20,20,19,.72); color: #f3efe6; padding: 4px 7px; }
+.pin.other::after { border-top-color: rgba(20,20,19,.72); }
+.pin.other small { color: #f0c3ae; }
+.pop { display: grid; gap: 4px; max-width: 240px; font-family: var(--f-body); }
+.pop b { font-family: var(--f-display); font-size: 16px; }
+.pop p { margin: 0 0 4px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+@media (max-width: 860px) { .walkhud { right: max(var(--gap), env(safe-area-inset-right, 0px)); width: auto; bottom: calc(var(--gap) * 2 + 46px); } #minimap { height: 110px; } }
 @media (max-width: 1180px) { .brand b { display: none; } }
 @media (max-width: 980px) { .pyr small { display: none; } }
 @media (max-width: 1100px) { .navhelp { display: none; } .navhelp.force { display: block; } }
@@ -352,6 +395,13 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
 </aside>
 
 <div class="toolbar card" role="toolbar" aria-label="View">
+  <button class="icon-btn" id="btn-walk" type="button" data-tip="Walk at eye level" aria-label="Walk at eye level" aria-pressed="false">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2.2-6.5L10 12l1.5-4.5 3.5 3 3 1M9.5 12.5 8 9l-2.5 2.5M12.2 14.5 15 21"/></svg>
+  </button>
+  <button class="icon-btn" id="tg-stone" data-toggle="stone" type="button" data-tip="Stone look" aria-label="Stone look" aria-pressed="false">
+    <svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg>
+  </button>
+  <span class="sep"></span>
   <button class="icon-btn" id="btn-overview" type="button" data-tip="Overview" aria-label="Overview">
     <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg>
   </button>
@@ -387,6 +437,14 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
 <section class="view card" id="timeline-view" aria-label="Timeline" hidden></section>
 <section class="view card" id="map-view" aria-label="Map" hidden></section>
 
+<section class="walkhud card" id="walkhud" aria-label="Walking" hidden>
+  <header><b>Walking at eye level</b><button class="text-btn" id="walk-exit" type="button">Exit</button></header>
+  <canvas id="minimap" aria-label="Side view of the pyramid showing where you are"></canvas>
+  <label class="walk-start" for="walk-start">Start at <select id="walk-start"></select></label>
+  <p class="hint">Drag to look around. W A S D or arrows to walk, hold Shift to go faster, scroll to step. Esc to stop.</p>
+  <div class="walk-pad" aria-hidden="true"><button type="button" data-walk="arrowup">&#9650;</button><button type="button" data-walk="arrowdown">&#9660;</button></div>
+</section>
+
 <section class="navhelp card" id="navhelp" aria-label="How to move around">
   <header><b>Moving around</b><button class="icon-btn" id="btn-help-close" type="button" aria-label="Hide"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
   <dl>
@@ -399,6 +457,8 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
   </dl>
 </section>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -441,21 +501,134 @@ controls.screenSpacePanning = true;
 controls.maxDistance = 2600;
 controls.minDistance = 0.05;
 
-scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1));
+const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
 sun.position.set(200, 300, 120);
 scene.add(sun);
-{
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide }));
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-  const grid = new THREE.GridHelper(6000, 300, COL.grid1, COL.grid2);
-  grid.material.transparent = true; grid.material.opacity = 0.9;
-  scene.add(grid);
-}
+const groundXray = new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide });
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), groundXray);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+const grid = new THREE.GridHelper(6000, 300, COL.grid1, COL.grid2);
+grid.material.transparent = true; grid.material.opacity = 0.9;
+scene.add(grid);
 const humanMat = new THREE.MeshStandardMaterial({ color: COL.human, emissive: COL.human, emissiveIntensity: 0.25, roughness: 0.6 });
 const shellMat = new THREE.MeshBasicMaterial({ color: COL.sand, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
 const clip = new THREE.Plane(V(-1, 0, 0), 0);
+
+// ---------- Stone look: textures drawn once on canvases, so there are no image files to load ----------
+function rng(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); }
+function stoneTexture({ size = 512, tile, base, spread = 0.08, course = [0.7, 1.3], blockW = [0.9, 2.6], joint = 'rgba(60,45,30,.45)', grain = 26, speckle = 0, speckleCols = [], cracks = 0, seed = 1 }) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), r = rng(seed), px = size / tile, col = new THREE.Color(base);
+  g.fillStyle = '#' + col.getHexString(); g.fillRect(0, 0, size, size);
+  if (course) {
+    // rows of blocks with slightly different tones and dark joints between them
+    for (let y = 0; y < size;) {
+      let h = (course[0] + r() * (course[1] - course[0])) * px;
+      if (y + h > size - course[0] * px * 0.6) h = size - y;
+      for (let x = -r() * 2 * px; x < size;) {
+        const w = (blockW[0] + r() * (blockW[1] - blockW[0])) * px;
+        g.fillStyle = '#' + col.clone().offsetHSL(0, (r() - 0.5) * spread * 0.4, (r() - 0.5) * spread).getHexString();
+        g.fillRect(x, y, w, h);
+        g.strokeStyle = joint; g.lineWidth = 1.6; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        x += w;
+      }
+      y += h;
+    }
+  }
+  const img = g.getImageData(0, 0, size, size), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * grain; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  g.putImageData(img, 0, 0);
+  for (let i = 0; i < speckle; i++) { g.fillStyle = speckleCols[(r() * speckleCols.length) | 0]; const s = 1 + r() * 2.5; g.fillRect(r() * size, r() * size, s, s); }
+  g.strokeStyle = 'rgba(50,35,20,.3)'; g.lineWidth = 1;
+  for (let i = 0; i < cracks; i++) {
+    let x = r() * size, y = r() * size; g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 6; k++) { x += (r() - 0.5) * 60; y += (r() - 0.5) * 60; g.lineTo(x, y); }
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.repeat.set(1 / tile, 1 / tile);   // geometry UVs are in metres
+  return t;
+}
+const TEX = {
+  casing: stoneTexture({ tile: 14, base: '#c4ad86', course: [0.55, 1.05], blockW: [1.0, 2.4], spread: 0.12, seed: 3 }),
+  lime: stoneTexture({ tile: 6, base: '#d7c7a3', course: [0.5, 1.0], blockW: [0.8, 2.0], spread: 0.06, seed: 5 }),
+  granite: stoneTexture({ tile: 6, base: '#8e5249', course: [1.0, 1.3], blockW: [1.4, 3.0], spread: 0.06, speckle: 9000, speckleCols: ['#2b1f1d', '#c79a8f', '#5d3a35', '#e1c4b9'], joint: 'rgba(30,15,12,.5)', seed: 7 }),
+  rock: stoneTexture({ tile: 8, base: '#a78a62', course: null, cracks: 40, grain: 34, seed: 9 }),
+  sand: stoneTexture({ tile: 30, base: '#d8c39a', course: null, grain: 22, seed: 11 }),
+};
+TEX.sand.repeat.set(200, 200);       // ground plane is 6 km across with 0–1 UVs
+const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime' };
+const WHITE = new THREE.Color(0xffffff);
+const shellStone = new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide });
+const groundStone = new THREE.MeshStandardMaterial({ map: TEX.sand, roughness: 1, side: THREE.DoubleSide });
+const sphinxStone = new THREE.MeshStandardMaterial({ map: TEX.rock, roughness: 1 });
+const SKY = (() => {
+  const c = document.createElement('canvas'); c.width = 2; c.height = 256;
+  const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#5d93cf'); gr.addColorStop(0.62, '#a9c8e6'); gr.addColorStop(1, '#efe4cc');
+  g.fillStyle = gr; g.fillRect(0, 0, 2, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const HORIZON = new THREE.Color('#e9dfc8'), PAPER = scene.background.clone();
+
+// UVs in metres, picked per face from its dominant direction, so textures keep a true scale on every block
+function worldUV(geo) {
+  if (!geo.attributes.normal) geo.computeVertexNormals();
+  const p = geo.attributes.position, n = geo.attributes.normal, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+    const [u, v] = ay >= ax && ay >= az ? [p.getX(i), p.getZ(i)] : ax >= az ? [p.getZ(i), p.getY(i)] : [p.getX(i), p.getY(i)];
+    uv[2 * i] = u; uv[2 * i + 1] = v;
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+function makeShellGeo(rings) {
+  const pos = [], uv = [], corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (let i = 0; i < rings.length - 1; i++) {
+    const [a, ya] = rings[i], [b, yb] = rings[i + 1];
+    for (let k = 0; k < 4; k++) {
+      const c0 = corners[k], c1 = corners[(k + 1) % 4];
+      const vs = [[c0[0] * a, ya, c0[1] * a], [c1[0] * a, ya, c1[1] * a], [c1[0] * b, yb, c1[1] * b], [c0[0] * a, ya, c0[1] * a], [c1[0] * b, yb, c1[1] * b], [c0[0] * b, yb, c0[1] * b]];
+      for (const v of vs) { pos.push(...v); uv.push(k % 2 ? v[2] : v[0], v[1]); }   // courses stay horizontal
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+function setEmissive() {
+  const lo = toggles.stone ? 0 : 0.12, hi = toggles.stone ? 0.3 : 0.55;
+  for (const [k, m] of Object.entries(ctx.mats)) m.emissiveIntensity = k === ctx.selected ? hi : lo;
+}
+function applyLook() {
+  const stone = toggles.stone;
+  for (const [id, m] of Object.entries(ctx.mats)) {
+    const f = ctx.byId[id], key = stone && !f.scan && !f.mark ? TEX_FOR[f.color] : null;
+    m.map = key ? TEX[key] : null;
+    m.color.copy(key ? WHITE : m.userData.col);
+    m.transparent = !key; m.opacity = key ? 1 : m.userData.op; m.depthWrite = !!key;
+    m.needsUpdate = true;
+  }
+  for (const lm of Object.values(ctx.lineMats)) lm.visible = !stone;
+  ctx.groups.pyramid.traverse(o => { if (o.isLine || o.isLineSegments) o.visible = !stone; });
+  ctx.shell.material = stone ? shellStone : shellMat;
+  ground.material = stone ? groundStone : groundXray;
+  grid.visible = !stone;
+  hemi.intensity = stone ? 0.9 : 1.1; sun.intensity = stone ? 2.4 : 1.4;
+  sun.position.set(stone ? -220 : 200, 260, stone ? 180 : 120);   // low western sun gives each face its own shade
+  scene.background = stone ? SKY : PAPER;
+  scene.fog.color.copy(stone ? HORIZON : PAPER);
+  ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = o.userData.solid === stone; });
+  document.getElementById('opacity').disabled = stone;
+  setEmissive();
+}
 
 // ---------- Building helpers (act on the pyramid being built) ----------
 let ctx = null;
@@ -463,6 +636,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function put(id, mesh, edges = true) {
   mesh.userData.fid = id;
+  if (mesh.isMesh && !mesh.geometry.userData.uv) { worldUV(mesh.geometry); mesh.geometry.userData.uv = true; }
   ctx.groups[id].add(mesh);
   ctx.pickables.push(mesh);
   if (edges) {
@@ -547,18 +721,10 @@ function halfAt(rings, y) {
 }
 function buildShell(def) {
   const rings = def.rings, g = ctx.groups.pyramid;
-  const pos = [], corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-  for (let i = 0; i < rings.length - 1; i++) {
-    const [a, ya] = rings[i], [b, yb] = rings[i + 1];
-    for (let k = 0; k < 4; k++) {
-      const c0 = corners[k], c1 = corners[(k + 1) % 4];
-      const p0 = [c0[0] * a, ya, c0[1] * a], p1 = [c1[0] * a, ya, c1[1] * a], p2 = [c1[0] * b, yb, c1[1] * b], p3 = [c0[0] * b, yb, c0[1] * b];
-      pos.push(...p0, ...p1, ...p2, ...p0, ...p2, ...p3);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const geo = makeShellGeo(rings);
   const shell = new THREE.Mesh(geo, shellMat);
+  ctx.shell = shell;
   shell.renderOrder = 10;
   g.add(shell);
   const square = (r, y) => [V(-r, y, -r), V(r, y, -r), V(r, y, r), V(-r, y, r), V(-r, y, -r)];
@@ -1164,9 +1330,10 @@ const info = document.getElementById('info');
 const detail = document.getElementById('detail');
 const list = document.getElementById('features');
 const confText = { surveyed: 'Surveyed', approx: 'Approximate', uncertain: 'Uncertain · scan data' };
-const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false };
+const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false, stone: false };
 
 function load(def, fly) {
+  if (ctx && walk.on) stopWalk();
   if (ctx) {
     for (const o of ctx.labels) o.element.remove();
     scene.remove(ctx.root);
@@ -1187,6 +1354,7 @@ function load(def, fly) {
   buildShell(def);
   def.build();
   buildSurroundings(def);
+  for (const m of Object.values(ctx.mats)) { m.userData.col = m.color.clone(); m.userData.op = m.opacity; }
   for (const f of def.features) if (f.at) {
     const m = new THREE.Mesh(new THREE.OctahedronGeometry(1.1), ctx.mats[f.id]);
     m.position.copy(f.at); m.scale.y = 1.4;
@@ -1259,17 +1427,17 @@ function select(id, fly, photo = 0) {
     ${f.why ? `<div class="why"><b>Why it matters</b><p>${f.why}</p></div>` : ''}
     <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
   for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', b.dataset.id === id);
-  for (const [k, m] of Object.entries(ctx.mats)) m.emissiveIntensity = k === id ? 0.55 : 0.12;
+  setEmissive();
   for (const o of ctx.labels) o.element.classList.toggle('on', o.userData.id === id);
   refreshLabels();
   showPhotoMarker(ph);
-  if (fly) ph ? flyTo(V(...ph.look), V(...ph.cam)) : flyToFeature(id);
+  if (fly) { if (walk.on) walkToFeature(id, ph); else if (ph) flyTo(V(...ph.look), V(...ph.cam)); else flyToFeature(id); }
 }
 info.addEventListener('click', e => {
   const t = e.target.closest('[data-photo]');
   if (!t) return;
   const i = +t.dataset.photo, ph = ctx.byId[ctx.selected].photos[i];
-  if (t.classList.contains('view-from')) flyTo(V(...ph.look), V(...ph.cam));
+  if (t.classList.contains('view-from')) walk.on ? startWalk(V(...ph.cam), V(...ph.look)) : flyTo(V(...ph.look), V(...ph.cam));
   else select(ctx.selected, true, i);
 });
 
@@ -1302,13 +1470,13 @@ function clearSelection() {
   ctx.selected = null;
   detail.hidden = true;
   for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', false);
-  for (const m of Object.values(ctx.mats)) m.emissiveIntensity = 0.12;
+  setEmissive();
   for (const o of ctx.labels) o.element.classList.remove('on');
   showPhotoMarker(null);
   refreshLabels();
 }
 document.getElementById('btn-close').addEventListener('click', clearSelection);
-addEventListener('keydown', e => { if (e.key === 'Escape') clearSelection(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') { if (walk.on) stopWalk(); else clearSelection(); } });
 
 // Contents panel and navigation help
 const contentsEl = document.getElementById('contents'), contentsBtn = document.getElementById('btn-contents');
@@ -1360,7 +1528,8 @@ function refreshLabels() {
   for (const o of ctx.labels) {
     const f = o.userData.id && ctx.byId[o.userData.id];
     const groupVisible = !f || ctx.groups[f.id].visible;
-    o.visible = toggles.labels && groupVisible && (o.userData.surround ? toggles.surround : (o.userData.quiet || o.userData.major || o.userData.id === ctx.selected));
+    const hidden = toggles.stone && !toggles.cut && o.userData.id && o.userData.id !== ctx.selected;   // solid stone hides what is inside
+    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !(walk.on && walk.inside) : (o.userData.quiet || o.userData.major || o.userData.id === ctx.selected));
   }
 }
 function applyToggles() {
@@ -1371,7 +1540,9 @@ function applyToggles() {
     if (f.scan) ctx.groups[f.id].visible = toggles.scan;
     if (f.mark) ctx.groups[f.id].visible = toggles.marks;
   }
+  applyLook();
   ctx.groups.pyramid.traverse(o => { if (o.material) o.material.clippingPlanes = toggles.cut ? [clip] : []; });
+  shellMat.clippingPlanes = shellStone.clippingPlanes = toggles.cut ? [clip] : [];
   refreshLabels();
 }
 function toggle(btn, key) {
@@ -1386,6 +1557,7 @@ toggle(document.getElementById('tg-scan'), 'scan');
 toggle(document.getElementById('tg-marks'), 'marks');
 toggle(document.getElementById('tg-surround'), 'surround');
 toggle(document.getElementById('tg-labels'), 'labels');
+toggle(document.getElementById('tg-stone'), 'stone');
 const op = document.getElementById('opacity');
 op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 
@@ -1436,7 +1608,7 @@ function pivotToPointer(x, y) {
 let down = null;
 renderer.domElement.addEventListener('pointerdown', e => {
   down = [e.clientX, e.clientY]; anim = null;
-  if (e.button === 0 && !e.shiftKey) pivotToPointer(e.clientX, e.clientY);
+  if (e.button === 0 && !e.shiftKey && !walk.on) pivotToPointer(e.clientX, e.clientY);
 });
 renderer.domElement.addEventListener('pointerup', e => {
   if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
@@ -1446,6 +1618,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 
 // Double-click: focus on the spot under the pointer, keeping the current viewing direction
 renderer.domElement.addEventListener('dblclick', e => {
+  if (walk.on) return;
   const hit = hitAt(e.clientX, e.clientY, true);
   if (!hit) return;
   const dir = camera.position.clone().sub(controls.target).normalize();
@@ -1497,6 +1670,10 @@ host.addEventListener('wheel', e => {
   anim = null;
   const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
   const dx = e.deltaX * px, dy = e.deltaY * px;
+  if (walk.on) {
+    if (Math.abs(dx) > Math.abs(dy)) { walk.yaw += dx * 0.004; placeCamera(); } else walk.wheel -= dy * 0.012;
+    return;
+  }
   if (e.shiftKey) { nav.panX += dx; nav.panY += dy; return; }
   if (e.ctrlKey) return queueZoom(e.clientX, e.clientY, dy * 0.012);           // pinch
   if (Math.abs(dx) > Math.abs(dy) * 1.2) { nav.orbit += dx; return; }         // sideways swipe
@@ -1504,7 +1681,7 @@ host.addEventListener('wheel', e => {
 }, { passive: false, capture: true });
 
 // Keyboard walking
-const NAV_KEYS = ['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+const NAV_KEYS = ['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'];
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (!NAV_KEYS.includes(k) || e.metaKey || e.ctrlKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || document.body.dataset.mode !== 'model') return;
@@ -1514,6 +1691,7 @@ addEventListener('keyup', e => nav.keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => nav.keys.clear());
 
 function stepNav(dt) {
+  if (walk.on) return walkStep(dt);
   const k = 1 - Math.pow(2e-8, dt);   // about a quarter of the queued motion per frame at 60 fps
   if (Math.abs(nav.zoom) > 1e-4) { const a = nav.zoom * k; nav.zoom -= a; applyZoom(a); } else nav.zoom = 0;
   if (Math.abs(nav.orbit) > 0.05) { const a = nav.orbit * k; nav.orbit -= a; orbitBy(a, 0); } else nav.orbit = 0;
@@ -1567,15 +1745,21 @@ function buildSurroundings(def) {
     if (p === def) continue;
     const at = localPos(def, p.lat, p.lon);
     if (at.length() > 3500) continue;
-    ctx.surround.add(outlinePyramid(p.rings, at));
+    const outline = outlinePyramid(p.rings, at); outline.userData.solid = false; ctx.surround.add(outline);
+    const solid = new THREE.Mesh(makeShellGeo(p.rings), shellStone);
+    solid.position.copy(at); solid.userData.solid = true; solid.visible = false; ctx.surround.add(solid);
     surroundLabel(`${p.short} →`, at.clone().setY(p.rings[p.rings.length - 1][1] + 6), () => switchTo(p));
   }
   const s = localPos(def, SPHINX.lat, SPHINX.lon);
   if (s.length() < 3500) {
     // body about 73 m long, 19 m wide, 20 m high, facing east
     const box = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(73, 20, 19)), surroundMat);
-    box.position.copy(s).setY(10);
+    box.position.copy(s).setY(10); box.userData.solid = false;
     ctx.surround.add(box);
+    const sgeo = new THREE.BoxGeometry(73, 20, 19); worldUV(sgeo);
+    const body = new THREE.Mesh(sgeo, sphinxStone);
+    body.position.copy(s).setY(10); body.userData.solid = true; body.visible = false;
+    ctx.surround.add(body);
     surroundLabel('Great Sphinx', s.clone().setY(26));
   }
 }
@@ -1589,10 +1773,12 @@ function switchTo(def) {
 }
 const modeButtons = [...document.querySelectorAll('.mode')];
 function setMode(m) {
+  if (m !== 'model' && walk.on) stopWalk();
   document.body.dataset.mode = m;
   for (const b of modeButtons) b.setAttribute('aria-pressed', b.dataset.mode === m);
   document.getElementById('timeline-view').hidden = m !== 'timeline';
   document.getElementById('map-view').hidden = m !== 'map';
+  if (m === 'map' && !document.getElementById('sat-wrap').hidden) initSatMap();
 }
 for (const b of modeButtons) b.addEventListener('click', () => setMode(b.dataset.mode));
 
@@ -1692,14 +1878,26 @@ function renderMap() {
   const giza = PYRAMIDS.filter(p => p.site === 'Giza'), dah = PYRAMIDS.filter(p => p.site === 'Dahshur');
   const avg = (a, k) => a.reduce((t, p) => t + p[k], 0) / a.length;
   const el = document.getElementById('map-view');
-  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Lower Egypt</div><h2>Where they stand</h2>
-      <p>All five pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart. Click a pyramid to open it in 3D.</p></div></header>
-    <div class="maps">
-      <figure>${region}<figcaption>The region. River course simplified.</figcaption></figure>
-      <figure>${plan(giza, [SPHINX], avg(giza, 'lat') - 0.0005, avg(giza, 'lon') + 0.0015, 1500, 'Plan of the Giza plateau', 200)}<figcaption>Giza plateau, to scale.</figcaption></figure>
-      <figure>${plan(dah, [], avg(dah, 'lat'), avg(dah, 'lon'), 2600, 'Plan of the Dahshur pyramids', 500)}<figcaption>Dahshur, to scale.</figcaption></figure>
+  el.innerHTML = `<header class="view-head map-head"><div><div class="eyebrow">Lower Egypt</div><h2>Where they stand</h2>
+      <p>All five pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart. Click a pin for details, then open it in 3D.</p></div>
+      <div class="seg" role="group" aria-label="Map style"><button type="button" data-maptab="sat" aria-pressed="true">Satellite</button><button type="button" data-maptab="diagram" aria-pressed="false">Diagram</button></div></header>
+    <div id="sat-wrap" class="sat-wrap">
+      <div class="row-btns" role="group" aria-label="Jump to a site">
+        <button type="button" class="text-btn" data-site="all">All sites</button><button type="button" class="text-btn" data-site="giza">Giza</button>
+        <button type="button" class="text-btn" data-site="dahshur">Dahshur</button><button type="button" class="text-btn" data-site="saqqara">Saqqara</button>
+        <button type="button" class="text-btn" data-site="meidum">Meidum</button></div>
+      <div id="sat-map" role="region" aria-label="Satellite map"></div>
+      <p class="fine">Satellite imagery and place names from Esri World Imagery. Orange squares show each pyramid\u2019s original base outline, drawn from its published size and coordinates.</p>
     </div>
-    <p class="fine">Positions from published site coordinates. Pyramid bases drawn at their true size and orientation.</p>`;
+    <div id="map-diagram" hidden>
+      <p class="fine" id="map-note"></p>
+      <div class="maps">
+        <figure>${region}<figcaption>The region. River course simplified.</figcaption></figure>
+        <figure>${plan(giza, [SPHINX], avg(giza, 'lat') - 0.0005, avg(giza, 'lon') + 0.0015, 1500, 'Plan of the Giza plateau', 200)}<figcaption>Giza plateau, to scale.</figcaption></figure>
+        <figure>${plan(dah, [], avg(dah, 'lat'), avg(dah, 'lon'), 2600, 'Plan of the Dahshur pyramids', 500)}<figcaption>Dahshur, to scale.</figcaption></figure>
+      </div>
+      <p class="fine">Positions from published site coordinates. Pyramid bases drawn at their true size and orientation.</p>
+    </div>`;
 }
 for (const id of ['timeline-view', 'map-view']) {
   const el = document.getElementById(id);
@@ -1709,6 +1907,243 @@ for (const id of ['timeline-view', 'map-view']) {
 }
 renderTimeline();
 renderMap();
+
+// ======================================================================
+// Satellite map (Leaflet + Esri World Imagery), with the diagram as a fallback
+// ======================================================================
+let satMap = null;
+const SAT_CONTEXT = [
+  ...CONTEXT,
+  { name: 'Great Sphinx', short: 'Sphinx', place: 'Giza', lat: SPHINX.lat, lon: SPHINX.lon, note: 'Carved from the bedrock beside Khafre’s causeway, probably in his reign.' },
+  { name: 'Memphis', short: 'Memphis', place: 'Mit Rahina', lat: 29.8467, lon: 31.2550, note: 'The capital of Egypt in the Old Kingdom.' },
+];
+function showMapTab(tab, note) {
+  for (const b of document.querySelectorAll('[data-maptab]')) b.setAttribute('aria-pressed', b.dataset.maptab === tab);
+  document.getElementById('sat-wrap').hidden = tab !== 'sat';
+  document.getElementById('map-diagram').hidden = tab !== 'diagram';
+  if (note) document.getElementById('map-note').textContent = note;
+  if (tab === 'sat') initSatMap();
+}
+function initSatMap() {
+  if (!window.L) return showMapTab('diagram', 'Satellite imagery could not load here, so the diagram is shown instead.');
+  if (satMap) { setTimeout(() => satMap.invalidateSize(), 0); return; }
+  satMap = L.map('sat-map', { zoomSnap: 0.5, worldCopyJump: false }).setView([29.70, 31.19], 10);
+  const imagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, maxNativeZoom: 18,
+    attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+  }).addTo(satMap);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, opacity: 0.8 }).addTo(satMap);
+  let fails = 0;
+  imagery.on('tileerror', () => { if (++fails === 4) showMapTab('diagram', 'Satellite imagery could not load here, so the diagram is shown instead.'); });
+
+  const pin = (cls, title, sub) => L.divIcon({ className: 'pin-wrap', html: `<span class="pin ${cls}"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>`, iconSize: null, iconAnchor: [0, 0] });
+  for (const p of PYRAMIDS) {
+    const r = p.rings[0][0], dLa = r / M_LAT, dLo = r / mLon(p.lat);
+    L.rectangle([[p.lat - dLa, p.lon - dLo], [p.lat + dLa, p.lon + dLo]], { color: '#c96442', weight: 2, fill: false, interactive: false }).addTo(satMap);
+    L.marker([p.lat + dLa, p.lon], { icon: pin('ours', p.short, p.date), riseOnHover: true }).addTo(satMap)   // pin sits on the north edge so the pyramid stays visible
+      .bindPopup(`<div class="pop"><div class="eyebrow">${p.site} · ${p.date}</div><b>${p.title}</b><p>${p.features[0].text.split('. ')[0]}.</p><button type="button" class="text-btn" data-id="${p.id}">Open in 3D</button></div>`);
+  }
+  for (const c of SAT_CONTEXT) {
+    L.marker([c.lat, c.lon], { icon: pin('other', c.short, c.year ? `c. ${c.year} BC` : '') }).addTo(satMap)
+      .bindPopup(`<div class="pop"><div class="eyebrow">${c.place}${c.year ? ` · c. ${c.year} BC` : ''}</div><b>${c.name}</b><p>${c.note}</p></div>`);
+  }
+  setTimeout(() => satMap.invalidateSize(), 0);
+}
+const SITE_BOUNDS = {
+  all: [[29.36, 31.10], [30.00, 31.30]],
+  giza: [[29.9705, 31.1255], [29.9820, 31.1395]],
+  dahshur: [[29.7855, 31.2010], [29.8135, 31.2140]],
+  saqqara: [[29.8640, 31.2100], [29.8740, 31.2230]],
+  meidum: [[29.3845, 31.1530], [29.3915, 31.1610]],
+};
+document.getElementById('map-view').addEventListener('click', e => {
+  const t = e.target.closest('[data-maptab]');
+  if (t) return showMapTab(t.dataset.maptab);
+  const s = e.target.closest('[data-site]');
+  if (s && satMap) satMap.flyToBounds(SITE_BOUNDS[s.dataset.site], { duration: reduceMotion ? 0 : 1.2, padding: [20, 20] });
+});
+
+// ======================================================================
+// Walk mode: first person at human eye height, following floors and slopes
+// ======================================================================
+const EYE = 1.65, WALK_SPEED = 1.4;
+const walk = { on: false, x: 0, z: 0, feet: 0, eye: EYE, yaw: 0, pitch: 0, wheel: 0, drag: null, objs: [], rects: [], saved: null };
+const walkRay = new THREE.Raycaster();
+const DOWN = V(0, -1, 0), UP = V(0, 1, 0);
+const hud = document.getElementById('walkhud'), walkBtn = document.getElementById('btn-walk'), startSel = document.getElementById('walk-start');
+
+function walkables() {
+  const list = [ground];
+  for (const o of ctx.pickables) {
+    if (!o.isMesh || !visible(o)) continue;
+    const f = ctx.byId[o.userData.fid];
+    if (!f.scan && !f.mark && !f.shaft) list.push(o);
+  }
+  return list;
+}
+function floorAt(x, z, fromY) {
+  walkRay.set(V(x, fromY, z), DOWN); walkRay.far = 400;
+  return walkRay.intersectObjects(walk.objs, false)[0]?.point.y ?? null;
+}
+function headroom(x, feet, z) {
+  walkRay.set(V(x, feet + 0.2, z), UP); walkRay.far = 4;
+  const h = walkRay.intersectObjects(walk.objs, false)[0];
+  return h ? h.distance + 0.2 : Infinity;
+}
+const inFootprint = (x, z) => { const r = halfAt(ctx.def.rings, 0); return Math.abs(x) < r && Math.abs(z) < r; };
+const lookDir = () => V(-Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
+function placeCamera() {
+  camera.position.set(walk.x, walk.feet + walk.eye, walk.z);
+  controls.target.copy(camera.position).addScaledVector(lookDir(), 3);
+  camera.lookAt(controls.target);
+}
+function setToggle(key, on) {
+  toggles[key] = on;
+  document.querySelector(`[data-toggle="${key}"]`)?.setAttribute('aria-pressed', on);
+  applyToggles();
+}
+function outsideStart() {
+  const r = halfAt(ctx.def.rings, 0);
+  return { p: V(0, 0, -r - 60), look: V(0, 22, -r) };
+}
+function startWalk(p, look) {
+  if (!walk.on) {
+    walk.saved = { stone: toggles.stone, fov: camera.fov };
+    walk.on = true; controls.enabled = false; anim = null;
+    nav.zoom = nav.orbit = nav.panX = nav.panY = 0;
+    if (!toggles.stone) setToggle('stone', true);
+    camera.fov = 68; camera.updateProjectionMatrix();
+    document.body.classList.add('walking');
+    setContents(false); setHelp(false);
+    hud.hidden = false; walkBtn.setAttribute('aria-pressed', true);
+    fillStartPoints();
+  }
+  walk.objs = walkables();
+  buildMinimap();
+  walk.x = p.x; walk.z = p.z;
+  walk.feet = floorAt(p.x, p.z, p.y + 1.0) ?? 0;
+  walk.eye = Math.min(EYE, Math.max(0.6, headroom(walk.x, walk.feet, walk.z) - 0.12));
+  walk.inside = Math.abs(walk.feet) > 0.05 || inFootprint(walk.x, walk.z);
+  refreshLabels();
+  const d = look.clone().sub(p);
+  walk.yaw = Math.atan2(-d.x, -d.z);
+  walk.pitch = THREE.MathUtils.clamp(Math.atan2(d.y, Math.hypot(d.x, d.z)), -0.9, 0.9);
+  placeCamera();
+}
+function stopWalk() {
+  if (!walk.on) return;
+  walk.on = false; walk.drag = null; controls.enabled = true;
+  camera.fov = walk.saved.fov; camera.updateProjectionMatrix();
+  controls.target.copy(camera.position).addScaledVector(lookDir(), 10);
+  if (!walk.saved.stone) setToggle('stone', false);
+  document.body.classList.remove('walking');
+  hud.hidden = true; walkBtn.setAttribute('aria-pressed', false);
+}
+function walkToFeature(id, ph) {
+  if (ph) return startWalk(V(...ph.cam), V(...ph.look));
+  const { c } = anchorOf(id);
+  startWalk(c, c.clone().add(V(0, 0, 5)));
+}
+function fillStartPoints() {
+  const opts = [['outside', 'Outside, north side']];
+  for (const f of ctx.def.features) if (f.id !== 'pyramid' && !f.scan && !f.mark && !f.shaft) opts.push([f.id, f.name]);
+  startSel.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+}
+startSel.addEventListener('change', () => {
+  const v = startSel.value;
+  if (v === 'outside') { const s = outsideStart(); startWalk(s.p, s.look); }
+  else walkToFeature(v, ctx.byId[v].photos?.[0]);
+  startSel.blur();
+});
+walkBtn.addEventListener('click', () => {
+  if (walk.on) return stopWalk();
+  setMode('model');
+  const s = outsideStart(); startWalk(s.p, s.look);
+});
+document.getElementById('walk-exit').addEventListener('click', stopWalk);
+
+// Touch: hold the on-screen arrows to walk
+for (const b of document.querySelectorAll('[data-walk]')) {
+  const key = b.dataset.walk;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); nav.keys.add(key); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => nav.keys.delete(key));
+}
+
+// Drag to look around
+renderer.domElement.addEventListener('pointerdown', e => { if (walk.on) { walk.drag = [e.clientX, e.clientY]; renderer.domElement.setPointerCapture(e.pointerId); } });
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!walk.on || !walk.drag) return;
+  walk.yaw += (e.clientX - walk.drag[0]) * 0.0042;
+  walk.pitch = THREE.MathUtils.clamp(walk.pitch + (e.clientY - walk.drag[1]) * 0.0042, -1.35, 1.35);
+  walk.drag = [e.clientX, e.clientY];
+  placeCamera();
+});
+renderer.domElement.addEventListener('pointerup', () => { walk.drag = null; });
+
+function walkStep(dt) {
+  const has = (...ks) => ks.some(x => nav.keys.has(x)) ? 1 : 0;
+  const fwd = has('w', 'arrowup') - has('s', 'arrowdown');
+  const strafe = has('d') - has('a');
+  walk.yaw += (has('arrowleft') - has('arrowright')) * 1.6 * dt;
+  let step = 0;
+  if (Math.abs(walk.wheel) > 0.001) { step = walk.wheel * Math.min(1, dt * 10); walk.wheel -= step; } else walk.wheel = 0;
+  const speed = WALK_SPEED * (nav.keys.has('shift') ? 4 : 1) * dt;
+  const fx = -Math.sin(walk.yaw), fz = -Math.cos(walk.yaw), rx = Math.cos(walk.yaw), rz = -Math.sin(walk.yaw);
+  const mx = fx * (fwd * speed + step) + rx * strafe * speed, mz = fz * (fwd * speed + step) + rz * strafe * speed;
+  if (mx || mz) {
+    // try the full move, then each axis on its own so you slide along walls
+    for (const [dx, dz] of [[mx, mz], [mx, 0], [0, mz]]) {
+      const nx = walk.x + dx, nz = walk.z + dz;
+      const f = floorAt(nx, nz, walk.feet + 1.0);
+      if (f === null || f > walk.feet + 0.95) continue;
+      const onOpenGround = Math.abs(walk.feet) < 0.05 && !inFootprint(walk.x, walk.z);
+      if (onOpenGround ? inFootprint(nx, nz) : f < walk.feet - 1.2) continue;   // solid masonry or a drop: treat as a wall
+      walk.x = nx; walk.z = nz; walk.feet = f;
+      break;
+    }
+  }
+  const inside = Math.abs(walk.feet) > 0.05 || inFootprint(walk.x, walk.z);
+  if (inside !== walk.inside) { walk.inside = inside; refreshLabels(); }
+  // duck under low ceilings, like in the 1.2 m passages
+  const want = Math.min(EYE, Math.max(0.6, headroom(walk.x, walk.feet, walk.z) - 0.12));
+  walk.eye += (want - walk.eye) * Math.min(1, dt * 8);
+  placeCamera();
+  drawMinimap();
+}
+
+// ---------- Minimap: side view of the pyramid with your position ----------
+const mm = document.getElementById('minimap'), mmg = mm.getContext('2d');
+function buildMinimap() {
+  const box = new THREE.Box3();
+  walk.rects = walk.objs.filter(o => o !== ground).map(o => {
+    box.setFromObject(o);
+    return [box.min.z, box.max.z, box.min.y, box.max.y];
+  });
+  const dpr = Math.min(devicePixelRatio, 2);
+  mm.width = mm.clientWidth * dpr; mm.height = mm.clientHeight * dpr;
+}
+function drawMinimap() {
+  const W = mm.width, H = mm.height, rings = ctx.def.rings, r0 = rings[0][0], top = rings[rings.length - 1][1];
+  const low = Math.min(ctx.def.lowest, 0) - 6, span = Math.max(2 * r0 + 60, (top - low) * W / H);
+  const k = W / span, X = z => W / 2 + z * k, Y = y => H - 8 - (y - low) * k * 0.98;
+  mmg.clearRect(0, 0, W, H);
+  mmg.fillStyle = '#e8dcc0'; mmg.fillRect(0, Y(0), W, H - Y(0));
+  mmg.beginPath();
+  rings.forEach(([r, y], i) => (i ? mmg.lineTo : mmg.moveTo).call(mmg, X(-r), Y(y)));
+  [...rings].reverse().forEach(([r, y]) => mmg.lineTo(X(r), Y(y)));
+  mmg.closePath(); mmg.fillStyle = '#d6c39b'; mmg.fill(); mmg.strokeStyle = '#9c8456'; mmg.lineWidth = 1.5; mmg.stroke();
+  mmg.fillStyle = 'rgba(120,80,40,.75)';
+  for (const [z0, z1, y0, y1] of walk.rects) mmg.fillRect(X(z0), Y(y1), Math.max(1.5, (z1 - z0) * k), Math.max(1.5, (y1 - y0) * k));
+  const px = X(walk.z), py = Y(walk.feet + walk.eye), d = lookDir();
+  const len = 18 * (devicePixelRatio > 1 ? 2 : 1), hz = d.z, hy = d.y;
+  const n = Math.hypot(hz, hy) || 1;
+  mmg.fillStyle = 'rgba(201,100,66,.25)';
+  mmg.beginPath(); mmg.moveTo(px, py);
+  mmg.lineTo(px + (hz / n) * len - (hy / n) * len * 0.45, py - (hy / n) * len - (hz / n) * len * 0.45);
+  mmg.lineTo(px + (hz / n) * len + (hy / n) * len * 0.45, py - (hy / n) * len + (hz / n) * len * 0.45);
+  mmg.closePath(); mmg.fill();
+  mmg.fillStyle = '#c96442'; mmg.beginPath(); mmg.arc(px, py, 4 * (devicePixelRatio > 1 ? 2 : 1), 0, Math.PI * 2); mmg.fill();
+}
 
 // Resize and loop
 function resize() {
