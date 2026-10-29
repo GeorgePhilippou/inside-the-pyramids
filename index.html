@@ -184,7 +184,7 @@ details.more > :not(summary) { margin-top: 8px; }
 
 /* Navigation help */
 .navhelp {
-  position: fixed; z-index: 4; width: 260px; padding: 12px 14px;
+  position: fixed; z-index: 4; width: 310px; padding: 12px 14px;
   right: max(var(--gap), env(safe-area-inset-right, 0px));
   bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
   font-size: 12px; color: var(--ink-2);
@@ -390,12 +390,12 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
 <section class="navhelp card" id="navhelp" aria-label="How to move around">
   <header><b>Moving around</b><button class="icon-btn" id="btn-help-close" type="button" aria-label="Hide"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
   <dl>
-    <dt>Drag</dt><dd>Turn the model</dd>
-    <dt>Two-finger swipe</dt><dd>Turn (trackpad)</dd>
-    <dt>Pinch or wheel</dt><dd>Zoom toward the pointer</dd>
-    <dt>Shift + drag/swipe</dt><dd>Move sideways</dd>
-    <dt>Right-drag</dt><dd>Move sideways</dd>
-    <dt>Double-click</dt><dd>Focus on that spot</dd>
+    <dt>Drag</dt><dd>Turn around the point you grab</dd>
+    <dt>Scroll or pinch</dt><dd>Zoom toward the pointer</dd>
+    <dt>Swipe sideways</dt><dd>Turn (trackpad)</dd>
+    <dt>Right-drag, Shift + drag</dt><dd>Move sideways</dd>
+    <dt>W A S D, arrows</dt><dd>Walk and turn; Q / E down and up</dd>
+    <dt>Double-click</dt><dd>Jump to that spot</dd>
   </dl>
 </section>
 
@@ -434,11 +434,12 @@ const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 8000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.12;
-controls.rotateSpeed = 0.75;
+controls.rotateSpeed = 0.6;
+controls.zoomToCursor = true;   // touch pinch
 controls.panSpeed = 1.0;
 controls.screenSpacePanning = true;
 controls.maxDistance = 2600;
-controls.minDistance = 1.5;
+controls.minDistance = 0.05;
 
 scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1));
 const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
@@ -1415,8 +1416,28 @@ function hitAt(x, y, withShell = false) {
   if (withShell) ctx.groups.pyramid.traverse(o => { if (o.isMesh) objs.push(o); });
   return pointerRay(x, y).intersectObjects(objs, false)[0];
 }
+// ---------- Navigation ----------
+// Mouse: drag turns around the point you grab, right-drag or Shift-drag moves, wheel zooms toward the pointer.
+// Trackpad: two-finger scroll up/down zooms toward the pointer, sideways turns; pinch zooms; Shift + scroll moves.
+// Keyboard: W/S or Up/Down walk forward/back, A/D or Left/Right turn, Q/E move down/up.
+// Wheel and key input is queued and eased in over a few frames so movement stays smooth.
+const nav = { zoom: 0, pt: null, dir: null, t: 0, x: 0, y: 0, orbit: 0, panX: 0, panY: 0, keys: new Set() };
+const spherical = new THREE.Spherical();
+
+// Move the orbit pivot to the depth of whatever is under the pointer, without changing the view
+function pivotToPointer(x, y) {
+  const hit = hitAt(x, y) ?? hitAt(x, y, true);
+  if (!hit) return;
+  const dir = controls.target.clone().sub(camera.position).normalize();
+  const depth = hit.point.clone().sub(camera.position).dot(dir);
+  if (depth > 0.3) controls.target.copy(camera.position).addScaledVector(dir, depth);
+}
+
 let down = null;
-renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; anim = null; });
+renderer.domElement.addEventListener('pointerdown', e => {
+  down = [e.clientX, e.clientY]; anim = null;
+  if (e.button === 0 && !e.shiftKey) pivotToPointer(e.clientX, e.clientY);
+});
 renderer.domElement.addEventListener('pointerup', e => {
   if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
   const hit = hitAt(e.clientX, e.clientY);
@@ -1432,14 +1453,11 @@ renderer.domElement.addEventListener('dblclick', e => {
   flyTo(hit.point.clone(), hit.point.clone().addScaledVector(dir, Math.max(dist, 6)));
 });
 
-// Wheel and trackpad. Pinch or mouse wheel zooms toward the pointer; a two-finger swipe turns the model;
-// Shift + swipe moves sideways. Handled here, before OrbitControls sees the event.
-const spherical = new THREE.Spherical();
 function orbitBy(dx, dy) {
   const off = camera.position.clone().sub(controls.target);
   spherical.setFromVector3(off);
-  spherical.theta -= dx * 0.004;
-  spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.004, 0.02, Math.PI - 0.02);
+  spherical.theta -= dx * 0.005;
+  spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.005, 0.02, Math.PI - 0.02);
   camera.position.copy(controls.target).add(off.setFromSpherical(spherical));
 }
 function panBy(dx, dy) {
@@ -1450,20 +1468,27 @@ function panBy(dx, dy) {
   const move = right.multiplyScalar(dx * k).add(up.multiplyScalar(-dy * k));
   camera.position.add(move); controls.target.add(move);
 }
-function zoomAt(x, y, amount) {
-  const f = Math.exp(amount);
-  const dist = camera.position.distanceTo(controls.target);
-  // aim at what is inside first; the see-through casing only when nothing inside is under the pointer
-  const hit = hitAt(x, y) ?? hitAt(x, y, true);
-  const r = pointerRay(x, y).ray;
-  const p = hit ? hit.point : r.at(dist, new THREE.Vector3());
-  if (f < 1 && camera.position.distanceTo(p) * f < 0.8) {
-    // Too close to zoom further: step forward instead, so you can move through walls into rooms
-    const step = r.direction.clone().multiplyScalar(Math.max(0.4, -amount * 6));
-    camera.position.add(step); controls.target.add(step);
+function queueZoom(x, y, amount) {
+  const now = performance.now();
+  // keep one zoom point for the whole gesture so the view does not wobble
+  if (!nav.pt || now - nav.t > 250 || Math.hypot(x - nav.x, y - nav.y) > 24) {
+    const hit = hitAt(x, y) ?? hitAt(x, y, true);
+    const r = pointerRay(x, y).ray;
+    nav.pt = hit ? hit.point.clone() : r.at(camera.position.distanceTo(controls.target), new THREE.Vector3());
+    nav.dir = r.direction.clone(); nav.x = x; nav.y = y;
+  }
+  nav.t = now;
+  nav.zoom += amount;
+}
+function applyZoom(amount) {
+  const f = Math.exp(amount), p = nav.pt;
+  if (f < 1 && camera.position.distanceTo(p) * f < 0.7) {
+    // Right up against something: keep going forward, so you can pass through a wall into the room behind
+    const step = nav.dir.clone().multiplyScalar(-amount * 10);
+    camera.position.add(step); controls.target.add(step); p.add(step);
     return;
   }
-  if (f > 1 && camera.position.length() * f > 2600) return;
+  if (f > 1 && camera.position.length() * f > 2600) { nav.zoom = 0; return; }
   camera.position.sub(p).multiplyScalar(f).add(p);
   controls.target.sub(p).multiplyScalar(f).add(p);
 }
@@ -1472,13 +1497,44 @@ host.addEventListener('wheel', e => {
   anim = null;
   const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
   const dx = e.deltaX * px, dy = e.deltaY * px;
-  // A pinch arrives as a wheel event with ctrlKey. A mouse wheel moves in large steps with no sideways part.
-  const mouseWheel = e.deltaMode !== 0 || (dx === 0 && Math.abs(dy) >= 50 && Number.isInteger(dy));
-  if (e.ctrlKey) zoomAt(e.clientX, e.clientY, dy * 0.008);
-  else if (mouseWheel && !e.shiftKey) zoomAt(e.clientX, e.clientY, Math.sign(dy) * Math.min(Math.abs(dy), 120) * 0.0018);
-  else if (e.shiftKey) panBy(dx || (mouseWheel ? 0 : 0), dy);
-  else orbitBy(dx, dy);
+  if (e.shiftKey) { nav.panX += dx; nav.panY += dy; return; }
+  if (e.ctrlKey) return queueZoom(e.clientX, e.clientY, dy * 0.012);           // pinch
+  if (Math.abs(dx) > Math.abs(dy) * 1.2) { nav.orbit += dx; return; }         // sideways swipe
+  queueZoom(e.clientX, e.clientY, THREE.MathUtils.clamp(dy, -150, 150) * 0.0024);
 }, { passive: false, capture: true });
+
+// Keyboard walking
+const NAV_KEYS = ['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (!NAV_KEYS.includes(k) || e.metaKey || e.ctrlKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || document.body.dataset.mode !== 'model') return;
+  e.preventDefault(); anim = null; nav.keys.add(k);
+});
+addEventListener('keyup', e => nav.keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => nav.keys.clear());
+
+function stepNav(dt) {
+  const k = 1 - Math.pow(2e-8, dt);   // about a quarter of the queued motion per frame at 60 fps
+  if (Math.abs(nav.zoom) > 1e-4) { const a = nav.zoom * k; nav.zoom -= a; applyZoom(a); } else nav.zoom = 0;
+  if (Math.abs(nav.orbit) > 0.05) { const a = nav.orbit * k; nav.orbit -= a; orbitBy(a, 0); } else nav.orbit = 0;
+  if (Math.abs(nav.panX) + Math.abs(nav.panY) > 0.05) { const ax = nav.panX * k, ay = nav.panY * k; nav.panX -= ax; nav.panY -= ay; panBy(ax, ay); } else nav.panX = nav.panY = 0;
+  if (!nav.keys.size) return;
+  const has = (...ks) => ks.some(x => nav.keys.has(x)) ? 1 : 0;
+  const fwd = has('w', 'arrowup') - has('s', 'arrowdown');
+  const turn = has('a', 'arrowleft') - has('d', 'arrowright');
+  const lift = has('e') - has('q');
+  const dist = camera.position.distanceTo(controls.target);
+  const speed = THREE.MathUtils.clamp(dist * 0.8, 2, 120) * dt;
+  const view = controls.target.clone().sub(camera.position).normalize();
+  const move = view.multiplyScalar(fwd * speed).add(V(0, lift * speed, 0));
+  camera.position.add(move); controls.target.add(move);
+  if (turn) {
+    // turn on the spot, like turning your head
+    const off = controls.target.clone().sub(camera.position).applyAxisAngle(V(0, 1, 0), turn * 1.4 * dt);
+    controls.target.copy(camera.position).add(off);
+  }
+}
+
 
 
 // ======================================================================
@@ -1667,7 +1723,10 @@ setMode('model');
 load(PYRAMIDS.find(p => '#' + p.id === location.hash) ?? KHUFU, false);
 
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+let lastFrame = performance.now();
 renderer.setAnimationLoop(now => {
+  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+  stepNav(dt);
   if (anim) {
     const t = Math.min(1, (now - anim.t0) / anim.dur), k = ease(t);
     controls.target.lerpVectors(anim.ft, anim.tt, k);
