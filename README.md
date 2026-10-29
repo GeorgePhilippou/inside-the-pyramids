@@ -8,6 +8,7 @@ See-through 3D models of six Egyptian pyramids (the Bent and Red pyramids at Dah
 - Human figures (1.75 m) for scale, inscriptions and builders' marks, and neighbouring monuments in 3D.
 - **Stone look** with textured stone, and **walk mode** at human eye height with a side-view minimap.
 - **Satellite map** with annotated sites (Esri World Imagery).
+- **Pyramid Texts, wall by wall**: click any inscribed wall in the Pyramid of Unas to read what its spells are about; the antechamber walls show photographs of the real texts.
 
 Each feature is tagged *Surveyed*, *Approximate* or *Uncertain* according to how sure the published figures are. Photo viewpoints are estimated from the photos.
 
@@ -58,3 +59,10 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/unas-ceiling.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unas%E2%80%99_Sarcophagus_Chamber_Ceiling.jpg) |
 | `photos/unas-texts.jpg` | Brooklyn Museum lantern slide | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unas_Pyramidentexte.jpg) |
 | `photos/unas-exterior.jpg` | Darer101 | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_of_Unas_at_Saqqara.jpg) |
+| `photos/pt-247-253.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_253_to_247.png) |
+| `photos/pt-254-260.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_260_to_254.jpg) |
+| `photos/pt-260-272.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_272_to_260.jpg) |
+| `photos/pt-273-276.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_276_to_273.png) |
+| `photos/pt-277-301.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_301_to_277.jpg) |
+| `photos/pt-302-312.jpg` | Thoth (Wikimedia Commons uploader) | Public domain (PD-Egypt) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_text_utterance_302_to_312.jpg) |
+| `photos/unas-texts-colour.jpg` | Aidan McRae Thomson | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_Texts_in_Unas%E2%80%99_Pyramid_2017.jpg) |
