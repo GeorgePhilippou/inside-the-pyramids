@@ -1,11 +1,13 @@
 # Inside the Pyramids
 
-See-through 3D models of five Egyptian pyramids (the Bent and Red pyramids at Dahshur, and Khufu, Khafre and Menkaure at Giza), with every known passage and chamber drawn to published survey figures.
+See-through 3D models of six Egyptian pyramids (the Bent and Red pyramids at Dahshur, Khufu, Khafre and Menkaure at Giza, and Unas at Saqqara, the first with the Pyramid Texts), with every known passage and chamber drawn to published survey figures.
 
 - Click any passage or chamber to see a photo, fly the camera to where it was taken, and read why it matters.
 - **Timeline** view: when each pyramid was built, by dynasty and reign.
 - **Map** view: where the pyramids stand along the Nile, with to-scale plans of Giza and Dahshur.
 - Human figures (1.75 m) for scale, inscriptions and builders' marks, and neighbouring monuments in 3D.
+- **Stone look** with textured stone, and **walk mode** at human eye height with a side-view minimap.
+- **Satellite map** with annotated sites (Esri World Imagery).
 
 Each feature is tagged *Surveyed*, *Approximate* or *Uncertain* according to how sure the published figures are. Photo viewpoints are estimated from the photos.
 
@@ -15,7 +17,7 @@ It is a single static page. Open `index.html` through any web server, or visit t
 
 ## Sources
 
-Measurements: W. M. F. Petrie, *The Pyramids and Temples of Gizeh* (1883); V. Maragioglio & C. Rinaldi, *L'Architettura delle Piramidi Menfite* (1965–67); M. Lehner, *The Complete Pyramids* (1997, 2008); G. Dormion, *La chambre de Chéops* (2004); A. Fakhry, *The Monuments of Sneferu at Dahshur* (1959–61); M. Verner, *The Pyramids* (2001); Morishima et al., *Nature* 552 (2017); Procureur et al., *Nature Communications* 14 (2023). Dates follow I. Shaw (ed.), *The Oxford History of Ancient Egypt* (2000).
+Measurements: W. M. F. Petrie, *The Pyramids and Temples of Gizeh* (1883); V. Maragioglio & C. Rinaldi, *L'Architettura delle Piramidi Menfite* (1965–67); M. Lehner, *The Complete Pyramids* (1997, 2008); G. Dormion, *La chambre de Chéops* (2004); A. Fakhry, *The Monuments of Sneferu at Dahshur* (1959–61); M. Verner, *The Pyramids* (2001); Morishima et al., *Nature* 552 (2017); Procureur et al., *Nature Communications* 14 (2023). Unas: D. Arnold (2003), R. Stadelmann (1985), J. P. Allen, *The Ancient Egyptian Pyramid Texts* (2005). Dates follow I. Shaw (ed.), *The Oxford History of Ancient Egypt* (2000).
 
 ## Photo credits
 
@@ -51,3 +53,8 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/bent-exterior.jpg` | Jorge Láscar | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Bent_Pyramid_featuring_the_original_polished_limestone_outer_casing_that_the_pyramids_used_to_have_(14616487960).jpg) |
 | `photos/bent-bend.jpg` | Darer101 | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:11-degree_angle_change_of_the_Bent_Pyramid_at_Dahshur.jpg) |
 | `photos/bent-chamber.jpg` | Panegyrics of Granovetter | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:26722-_burial_chamber_in_Sneferu%27s_Bent_pyramid.jpg) |
+| `photos/unas-burial.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Burial_chamber_in_Unas%27_pyramid.jpg) |
+| `photos/unas-wall.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Burial_Chamber_Wall_of_Unas%E2%80%99_Pyramid.jpg) |
+| `photos/unas-ceiling.jpg` | Vincent Brown | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unas%E2%80%99_Sarcophagus_Chamber_Ceiling.jpg) |
+| `photos/unas-texts.jpg` | Brooklyn Museum lantern slide | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unas_Pyramidentexte.jpg) |
+| `photos/unas-exterior.jpg` | Darer101 | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pyramid_of_Unas_at_Saqqara.jpg) |

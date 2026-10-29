@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="See-through 3D models of five Egyptian pyramids with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
+<meta name="description" content="See-through 3D models of six Egyptian pyramids with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
 <title>Inside the Pyramids</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,6 +30,7 @@
   --shaft: #5a6a86;
   --cedar: #85582c;
   --mark: #c96442;        /* inscriptions and marks */
+  --texts: #2f6f9f;       /* Pyramid Texts, carved and painted blue */
   --human: #2c5aa8;
   --grid1: #d8d2c4;
   --grid2: #e6e1d6;
@@ -363,7 +364,7 @@ body.walking #scene canvas { cursor: crosshair; }
     <nav id="features" aria-label="Inside this pyramid"></nav>
     <details class="more">
       <summary>What about hieroglyphs?</summary>
-      <p class="note">None of these five pyramids has carved hieroglyphic texts on its inside walls. Inscribed burial chambers, the Pyramid Texts, first appear about 150 years after Menkaure, in the pyramid of King Unas at Saqqara (c. 2350 BC). What survives here are builders’ marks and later inscriptions, shown as clay diamonds on the model.</p>
+      <p class="note">The five 4th-Dynasty pyramids here have no carved hieroglyphic texts on their inside walls; what survives in them are builders’ marks and later inscriptions, shown as clay diamonds. Inscribed burial chambers first appear about 150 years after Menkaure, in the Pyramid of Unas at Saqqara (c. 2350 BC). Open it to see where its Pyramid Texts are, shown in blue.</p>
     </details>
     <details class="more">
       <summary>Colour key</summary>
@@ -375,6 +376,7 @@ body.walking #scene canvas { cursor: crosshair; }
         <span><i class="sw" style="background:var(--shaft)"></i>Shafts and tunnels</span>
         <span><i class="sw" style="background:var(--human)"></i>Person, 1.75 m</span>
         <span><i class="sw" style="background:var(--mark); transform: rotate(45deg) scale(.8)"></i>Inscription or mark</span>
+        <span><i class="sw" style="background:var(--texts)"></i>Pyramid Texts</span>
       </div>
     </details>
     <details class="more">
@@ -477,7 +479,7 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const ph = (src, alt, caption, credit, license, url, cam, look) => ({ src: 'photos/' + src, alt, caption, credit, license, url, cam: cam.toArray(), look: look.toArray() });
 const css = getComputedStyle(document.documentElement);
 const C = n => new THREE.Color(css.getPropertyValue('--' + n).trim());
-const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), cedar: C('cedar'), mark: C('mark'), human: C('human') };
+const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), cedar: C('cedar'), mark: C('mark'), texts: C('texts'), human: C('human') };
 
 // ---------- Scene ----------
 const host = document.getElementById('scene');
@@ -561,8 +563,29 @@ const TEX = {
   rock: stoneTexture({ tile: 8, base: '#a78a62', course: null, cracks: 40, grain: 34, seed: 9 }),
   sand: stoneTexture({ tile: 30, base: '#d8c39a', course: null, grain: 22, seed: 11 }),
 };
+TEX.texts = (() => {
+  // columns of blue signs on limestone: an impression of the Pyramid Texts, not real text
+  const size = 512, tile = 2, c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), r = rng(21), col = 32, w = size / col;
+  g.fillStyle = '#e6dcc4'; g.fillRect(0, 0, size, size);
+  for (let i = 0; i < col; i++) {
+    g.fillStyle = 'rgba(40,90,130,.55)'; g.fillRect(i * w, 0, 1.2, size);
+    for (let y = 4; y < size; y += w * 0.9) {
+      g.fillStyle = r() < 0.15 ? '#2b5d52' : '#2f6f9f';
+      const cx = i * w + w / 2, k = r();
+      if (k < 0.3) g.fillRect(cx - w * 0.3, y, w * 0.6, w * 0.18);
+      else if (k < 0.55) { g.beginPath(); g.arc(cx, y + w * 0.3, w * 0.22, 0, Math.PI * 2); g.fill(); }
+      else if (k < 0.8) g.fillRect(cx - w * 0.1, y, w * 0.2, w * 0.6);
+      else { g.beginPath(); g.moveTo(cx - w * 0.3, y + w * 0.6); g.lineTo(cx + w * 0.05, y); g.lineTo(cx + w * 0.3, y + w * 0.6); g.fill(); }
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.repeat.set(1 / tile, 1 / tile);
+  return t;
+})();
 TEX.sand.repeat.set(200, 200);       // ground plane is 6 km across with 0–1 UVs
-const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime' };
+const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime', texts: 'texts' };
 const WHITE = new THREE.Color(0xffffff);
 const shellStone = new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide });
 const groundStone = new THREE.MeshStandardMaterial({ map: TEX.sand, roughness: 1, side: THREE.DoubleSide });
@@ -1321,7 +1344,103 @@ const BENT = (() => {
   };
 })();
 
-const PYRAMIDS = [BENT, RED, KHUFU, KHAFRE, MENKAURE];
+
+// ---------- Unas (Saqqara) ----------
+const UNAS = (() => {
+  const B = 57.75 / 2, K = Math.tan(56.31 * D), H = B * K;
+  const fl = -14.35 * Math.sin(22 * D);                  // floor level of the burial apartments
+  const AC = { x0: -1.54, x1: 1.54, s0: -1.875, s1: 1.875 };   // antechamber, under the apex
+  const BC = { x0: -1.54 - 7.3, x1: -1.54, s0: -1.54, s1: 1.54 }; // burial chamber, to the west
+  const pS1 = AC.s0, pS0 = pS1 - 14.10;                 // horizontal passage
+  const vS0 = pS0 - 2.47;                                // vestibule
+  const entrance = V(0, 0, vS0 - 14.35 * Math.cos(22 * D));
+  const wallH = 3.0, peakH = 4.4;                         // room heights: approximate
+
+  return {
+    id: 'unas', king: 'Unas', reign: [2375, 2345], year: 2350, lat: 29.86833, lon: 31.21472,
+    short: 'Unas', site: 'Saqqara', date: 'c. 2350 BC', title: 'The Pyramid of Unas',
+    rings: [[B, 0], [0, H]], lowest: fl - 1, start: 'texts',
+    stats: [['Original height', '43 m'], ['Base', '57.75 m per side']],
+    sources: 'D. Arnold (2003); M. Lehner, <i>The Complete Pyramids</i> (2008); M. Verner, <i>The Pyramids</i> (2001); R. Stadelmann (1985); J. P. Allen, <i>The Ancient Egyptian Pyramid Texts</i> (2005). Room plans and passage lengths are published figures; room heights and the sarcophagus size are approximate, and the inscribed panels show where the texts are, not their actual signs.',
+    features: [
+      { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
+        why: 'Unas was the last king of the 5th Dynasty, and his pyramid is the first with texts carved inside. Every later Old Kingdom king followed his example.',
+        photos: () => [ph('unas-exterior.jpg', 'The ruined pyramid of Unas, a low mound of stone', 'The pyramid today: its core has collapsed into a low mound.', 'Darer101', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Pyramid_of_Unas_at_Saqqara.jpg', V(70, 1.7, 75), V(0, 12, 0))],
+        text: 'A small pyramid at Saqqara, built about 150 years after Khufu’s. Its core of rough limestone was built in six steps and cased in fine white Tura limestone. The casing was later stripped and the core has slumped into a mound, but the chambers underneath survive almost intact.',
+        facts: [['Base side', '57.75 m · 110 cubits'], ['Original height', '43 m'], ['Face slope', '56° 18′ 35″'], ['Volume', '47,390 m³']] },
+      { id: 'descending', group: 'Passage', name: 'Entrance and descending corridor', color: 'lime', conf: 'surveyed', major: true,
+        why: 'The entrance under a chapel floor, rather than high on the face, became the standard plan for late Old Kingdom pyramids.',
+        text: 'The entrance opens in the floor of a small chapel against the north face. A corridor slopes down from it into the bedrock.',
+        facts: [['Length', '14.35 m'], ['Slope', '22°'], ['Starts', 'Under the north chapel']] },
+      { id: 'vestibule', group: 'Passage', name: 'Vestibule', color: 'lime', conf: 'surveyed',
+        why: 'It marks the start of the level route to the burial rooms.',
+        text: 'A small room at the bottom of the descending corridor, where the passage levels out.',
+        facts: [['Size', '2.47 × 2.08 m']] },
+      { id: 'passage', group: 'Passage', name: 'Portcullis passage', color: 'granite', conf: 'surveyed',
+        why: 'Its last stretch carries the first Pyramid Texts a visitor meets, so the texts begin before the burial rooms do.',
+        text: 'A level corridor blocked by three granite portcullis slabs. The section nearest the antechamber is inscribed.',
+        facts: [['Length', '14.10 m'], ['Portcullises', '3, granite']] },
+      { id: 'antechamber', group: 'Burial rooms', name: 'Antechamber', color: 'lime', conf: 'surveyed', major: true,
+        why: 'Its texts describe the king’s passage from earth to the sky; it sits right under the apex of the pyramid.',
+        text: 'The central room, directly under the apex. Its walls are covered in Pyramid Texts, and its pointed ceiling is painted with stars.',
+        facts: [['Size', '3.75 × 3.08 m'], ['Position', 'Under the apex'], ['Height', 'Approximate in model']] },
+      { id: 'burial', group: 'Burial rooms', name: 'Burial chamber', color: 'lime', conf: 'surveyed', major: true,
+        why: 'This is the first royal burial chamber in Egypt with its walls covered in writing.',
+        photos: () => [
+          ph('unas-burial.jpg', 'The west end of the burial chamber, with texts on the gable above the dark sarcophagus', 'Looking west over the sarcophagus at the inscribed gable wall.', 'Vincent Brown', 'CC BY 2.0', "https://commons.wikimedia.org/wiki/File:Burial_chamber_in_Unas%27_pyramid.jpg", V(-4.3, fl + 1.7, 0), V(BC.x0, fl + 2.6, 0)),
+          ph('unas-ceiling.jpg', 'A ceiling painted with rows of five-pointed stars', 'The pointed ceiling, painted with stars.', 'Vincent Brown', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Unas%E2%80%99_Sarcophagus_Chamber_Ceiling.jpg', V(-5, fl + 1.6, 0), V(-5.2, fl + 4.4, 0.4)),
+          ph('unas-wall.jpg', 'Painted palace-facade panelling next to columns of hieroglyphs', 'The painted palace-front panelling around the sarcophagus, beside the texts.', 'Vincent Brown', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Burial_Chamber_Wall_of_Unas%E2%80%99_Pyramid.jpg', V(-6.2, fl + 1.6, -0.2), V(-7.6, fl + 1.8, BC.s1))],
+        text: 'A long room with a pointed ceiling painted blue with gold stars. The west end around the sarcophagus is carved and painted with a palace-front pattern; the other walls are covered with Pyramid Texts. Gaston Maspero entered it in 1881.',
+        facts: [['Size', '7.3 × 3.08 m'], ['Ceiling', 'Gabled, painted with stars'], ['Entered', '1881, Maspero']] },
+      { id: 'sarcophagus', group: 'Burial rooms', name: 'Sarcophagus', color: 'shaft', conf: 'approx',
+        why: 'It was robbed in antiquity but survived undamaged, still in its original place.',
+        text: 'A greywacke sarcophagus against the west wall. It was once thought to be basalt. Size shown is approximate.',
+        facts: [['Material', 'Greywacke'], ['Position', 'West end']] },
+      { id: 'serdab', group: 'Burial rooms', name: 'Serdab', color: 'lime', conf: 'surveyed',
+        why: 'Its three niches may have held statues or burial goods; unlike the other rooms, it was left uninscribed.',
+        text: 'A room east of the antechamber with three deep recesses.',
+        facts: [['Size', '6.75 × 2 m'], ['Recesses', '3'], ['Inscribed', 'No']] },
+      { id: 'texts', group: 'Inscriptions and marks', name: 'The Pyramid Texts', color: 'texts', conf: 'surveyed', inscribed: true, major: true,
+        photos: () => [ph('unas-texts.jpg', 'Old photograph of walls covered in columns of hieroglyphs around a doorway', 'Columns of Pyramid Texts around the doorway to the burial chamber, photographed about 1900.', 'Brooklyn Museum lantern slide', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Unas_Pyramidentexte.jpg', V(1.0, fl + 1.6, 0.6), V(BC.x1 - 1, fl + 1.8, 0))],
+        why: 'They are among the oldest religious writings in the world: spells to help the dead king rise to the sky and join the gods.',
+        text: '283 spells carved in columns of hieroglyphs and filled with blue pigment. They cover the walls of the burial chamber, the antechamber and the end of the passage. The blue panels on the model show which walls carry them; their pattern is an impression, not the actual signs.',
+        facts: [['Spells', '283'], ['Colour', 'Carved, painted blue'], ['Where', 'Burial chamber, antechamber, passage end']] },
+    ],
+    build() {
+      const M = ctx.mats;
+      room('descending', -0.8, 0.8, -0.2, 1.4, entrance.z - 0.5, entrance.z + 1.0);
+      passage('descending', entrance, V(0, fl, vS0), 1.05, 1.3);
+      room('vestibule', -1.04, 1.04, fl, fl + 2.4, vS0, pS0);
+      passage('passage', V(0, fl, pS0), V(0, fl, pS1), 1.05, 1.3);
+      const pc = new THREE.MeshStandardMaterial({ color: COL.granite, roughness: 0.8 });
+      for (const ds of [1.4, 2.3, 3.2]) room('passage', -0.75, 0.75, fl, fl + 1.6, pS0 + ds, pS0 + ds + 0.5, pc);
+      gabledRoom('antechamber', AC.x0, AC.x1, fl, wallH, peakH, AC.s0, AC.s1);
+      gabledRoom('burial', BC.x0, BC.x1, fl, wallH, peakH, BC.s0, BC.s1);
+      M.sarcophagus.color.set('#4b4f4a');
+      room('sarcophagus', BC.x0 + 0.25, BC.x0 + 1.3, fl, fl + 1.1, -1.35, 1.35);
+      // serdab: short passage east, then three recesses
+      passage('serdab', V(AC.x1, fl, 0), V(3.0, fl, 0), 1.05, 1.3);
+      for (const [s0, s1] of [[-3.375, -1.275], [-1.05, 1.05], [1.275, 3.375]]) room('serdab', 3.0, 5.0, fl, fl + 2.5, s0, s1);
+      // walls carrying the Pyramid Texts, as thin panels just inside the walls
+      const T = 0.06, top = fl + wallH;
+      for (const [x0, x1, s0, s1] of [
+        [AC.x0, AC.x1, AC.s0, AC.s0 + T], [AC.x0, AC.x1, AC.s1 - T, AC.s1],                 // antechamber north and south
+        [AC.x1 - T, AC.x1, AC.s0, -0.6], [AC.x1 - T, AC.x1, 0.6, AC.s1],                  // antechamber east, beside the serdab doorway
+        [BC.x0 + 1.6, BC.x1, BC.s0, BC.s0 + T], [BC.x0 + 1.6, BC.x1, BC.s1 - T, BC.s1],  // burial chamber long walls, east of the palace panelling
+        [BC.x1 - T, BC.x1, BC.s0, -0.6], [BC.x1 - T, BC.x1, 0.6, BC.s1],                  // burial chamber east wall
+        [-0.56, -0.5, pS1 - 4, pS1], [0.5, 0.56, pS1 - 4, pS1],                           // end of the passage
+      ]) room('texts', x0, x1, fl + 0.05, x1 - x0 < 0.2 && s1 - s0 > 3.5 ? fl + 1.25 : top, s0, s1);
+      // west gable above the sarcophagus
+      gabledRoom('texts', BC.x0, BC.x0 + T, fl + wallH * 0.55, wallH * 0.45, peakH - wallH * 0.55, BC.s0, BC.s1);
+
+      person(-3.4, fl, 0.8, -0.8);
+      person(0.4, fl, -0.6, 0.6);
+      person(6, 0, -B - 8, Math.PI);
+    },
+  };
+})();
+
+const PYRAMIDS = [BENT, RED, KHUFU, KHAFRE, MENKAURE, UNAS];
 
 // ======================================================================
 // Loading a pyramid into the scene
@@ -1395,7 +1514,7 @@ function load(def, fly) {
   for (const btn of document.querySelectorAll('.pyr')) btn.setAttribute('aria-pressed', btn.dataset.id === def.id);
   document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
   document.getElementById('tg-scan').hidden = !def.features.some(f => f.scan);
-  document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark);
+  document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark || f.inscribed);
 
   applyToggles();
   clearSelection();
@@ -1538,7 +1657,7 @@ function applyToggles() {
   for (const f of ctx.def.features) {
     if (f.shaft) ctx.groups[f.id].visible = toggles.shafts;
     if (f.scan) ctx.groups[f.id].visible = toggles.scan;
-    if (f.mark) ctx.groups[f.id].visible = toggles.marks;
+    if (f.mark || f.inscribed) ctx.groups[f.id].visible = toggles.marks;
   }
   applyLook();
   ctx.groups.pyramid.traverse(o => { if (o.material) o.material.clippingPlanes = toggles.cut ? [clip] : []; });
@@ -1750,6 +1869,22 @@ function buildSurroundings(def) {
     solid.position.copy(at); solid.userData.solid = true; solid.visible = false; ctx.surround.add(solid);
     surroundLabel(`${p.short} →`, at.clone().setY(p.rings[p.rings.length - 1][1] + 6), () => switchTo(p));
   }
+  // Djoser's Step Pyramid: six tiers, about 121 x 109 m at the base and 62.5 m high (tier sizes approximate)
+  const dj = CONTEXT.find(c => c.short === 'Djoser'), dpos = localPos(def, dj.lat, dj.lon);
+  if (dpos.length() < 3500) {
+    const outline = new THREE.Group(), solid = new THREE.Group(), th = 62.5 / 6;
+    for (let i = 0; i < 6; i++) {
+      const w = 121 - i * 15, d = 109 - i * 13.5;
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, th, d)), surroundMat);
+      e.position.set(0, th * (i + 0.5), 0); outline.add(e);
+      const g = new THREE.BoxGeometry(w, th, d); worldUV(g);
+      const m = new THREE.Mesh(g, shellStone); m.position.copy(e.position); solid.add(m);
+    }
+    outline.position.copy(dpos); solid.position.copy(dpos);
+    outline.userData.solid = false; solid.userData.solid = true; solid.visible = false;
+    ctx.surround.add(outline, solid);
+    surroundLabel('Step Pyramid of Djoser', dpos.clone().setY(70));
+  }
   const s = localPos(def, SPHINX.lat, SPHINX.lon);
   if (s.length() < 3500) {
     // body about 73 m long, 19 m wide, 20 m high, facing east
@@ -1795,7 +1930,6 @@ const KINGS = [['Djoser', 2667, 2648], ['Sneferu', 2613, 2589], ['Khufu', 2589, 
 const CONTEXT = [
   { name: 'Step Pyramid of Djoser', short: 'Djoser', place: 'Saqqara', year: 2650, lat: 29.87111, lon: 31.21639, note: 'The first pyramid: six stone steps, designed by the architect Imhotep.' },
   { name: 'Meidum pyramid', short: 'Meidum', place: 'Meidum', year: 2610, lat: 29.38806, lon: 31.15694, note: 'Probably begun for Huni and finished by Sneferu; its outer layers later collapsed.' },
-  { name: 'Pyramid of Unas', short: 'Unas', place: 'Saqqara', year: 2350, lat: 29.86750, lon: 31.21444, note: 'The first pyramid with Pyramid Texts carved on its chamber walls.' },
 ];
 
 function renderTimeline() {
@@ -1822,8 +1956,8 @@ function renderTimeline() {
       <span class="pcard-date">${p.date}</span><b>${p.short}</b>
       <span>${p.site} · King ${p.king}</span><span class="muted">Reign ${fmtReign(p)}</span></button>`).join('');
   const el = document.getElementById('timeline-view');
-  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom · 4th Dynasty</div><h2>When they were built</h2>
-      <p>All five pyramids in this viewer were built in under a century, by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson. That was roughly 4,500 years ago.</p></div></header>
+  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom · 4th and 5th Dynasties</div><h2>When they were built</h2>
+      <p>Five of these pyramids were built in under a century, by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson, roughly 4,500 years ago. The sixth, Unas, came about 150 years later and is the first with texts carved inside.</p></div></header>
     <div class="scroll-x">${svg}</div>
     <div class="pcards">${cards}</div>
     <div class="ctx-list">${CONTEXT.map(c => `<div><b>${c.name}</b> · ${c.place}, c. ${c.year} BC<br><span class="muted">${c.note}</span></div>`).join('')}</div>
@@ -1850,8 +1984,8 @@ function renderMap() {
     <path d="${path}" class="farmland"/><path d="${path}" class="river"/>
     ${box(30.00, 31.10, 29.95, 31.16, 'Giza')}${box(29.83, 31.18, 29.77, 31.24, 'Dahshur')}
     ${city(30.0444, 31.2357, 'Cairo (modern)')}${city(29.8467, 31.2550, 'Memphis, the Old Kingdom capital')}
-    ${CONTEXT.filter(c => c.short !== 'Unas').map(c => site(c.lat, c.lon, c.short, 'other')).join('')}
-    ${PYRAMIDS.filter(p => p.id === 'khufu' || p.id === 'red' || p.id === 'bent').map(p => site(p.lat, p.lon, p.id === 'khufu' ? 'Giza pyramids' : p.short, 'ours', p.id)).join('')}
+    ${CONTEXT.map(c => site(c.lat, c.lon, c.short, 'other')).join('')}
+    ${PYRAMIDS.filter(p => ['khufu', 'red', 'bent', 'unas'].includes(p.id)).map(p => site(p.lat, p.lon, p.id === 'khufu' ? 'Giza pyramids' : p.short, 'ours', p.id)).join('')}
     <text x="${P(29.6, 31.29)[0]}" y="${P(29.6, 31.29)[1]}" class="map-t river-t" transform="rotate(-80 ${P(29.6, 31.29).join(' ')})">Nile</text>
     <g transform="translate(${w - 40},20)"><path d="M0 18 L6 0 L12 18 L6 13 Z" class="north"/><text x="6" y="32" class="map-t small" text-anchor="middle">N</text></g>
     <g transform="translate(10,${h - 20})"><line x1="0" y1="0" x2="100" y2="0" class="scale"/><text x="0" y="-6" class="map-t small">10 km</text></g>
@@ -1879,7 +2013,7 @@ function renderMap() {
   const avg = (a, k) => a.reduce((t, p) => t + p[k], 0) / a.length;
   const el = document.getElementById('map-view');
   el.innerHTML = `<header class="view-head map-head"><div><div class="eyebrow">Lower Egypt</div><h2>Where they stand</h2>
-      <p>All five pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart. Click a pin for details, then open it in 3D.</p></div>
+      <p>All six pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart, with Saqqara between them. Click a pin for details, then open it in 3D.</p></div>
       <div class="seg" role="group" aria-label="Map style"><button type="button" data-maptab="sat" aria-pressed="true">Satellite</button><button type="button" data-maptab="diagram" aria-pressed="false">Diagram</button></div></header>
     <div id="sat-wrap" class="sat-wrap">
       <div class="row-btns" role="group" aria-label="Jump to a site">
