@@ -85,6 +85,7 @@ export default function khufu(api) {
         text: 'A level corridor running south from the foot of the Grand Gallery. The floor drops by about half a metre shortly before the chamber.',
         facts: [['Cross-section', '1.05 × 1.17 m'], ['Height after step', '1.68 m'], ['Floor step', 'c. 0.5 m']] },
       { id: 'queen', group: 'Ascending system', name: 'Queen’s Chamber', color: 'lime', conf: 'surveyed', major: true,
+        photos: () => [ph('khufu-queen-niche.jpg', 'A tall stepped niche in a rough stone wall, with a metal grille at its base', 'The corbelled niche in the east wall of the Queen\u2019s Chamber.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:Reine-niche.jpg', V(AX - 1.6, QC.y0 + 1.6, 0), V(QC.x1, QC.y0 + 2.2, 0))],
         why: 'Probably a second planned burial chamber or a room for a statue of the king, left unfinished when the design moved higher.',
         text: 'A limestone room with a pointed roof, lying exactly on the pyramid’s east–west axis. The name came from early Arab travellers; no queen was buried here. A tall corbelled niche is set into the east wall.',
         facts: [['Size', '5.76 E–W × 5.23 m N–S'], ['Height at ridge', '6.23 m'], ['Floor above base', 'c. 21 m'], ['East niche', '4.67 m high']] },

@@ -36,6 +36,7 @@ export default function bent(api) {
         text: 'Sneferu’s second pyramid. Partway up, the builders reduced the slope sharply, probably because the structure showed signs of instability, which gives it its bent outline. Much of its smooth limestone casing survives.',
         facts: [['Base side', '189.43 m · 362 cubits'], ['Height', '104.71 m · 200 cubits'], ['Lower slope', '54° 27′ 44″'], ['Slope changes at', '47.04 m'], ['Upper slope', '43° 22′']] },
       { id: 'north', group: 'Lower system', name: 'North entrance and passage', color: 'lime', conf: 'surveyed', major: true,
+        photos: () => [ph('bent-entrance.jpg', 'The Bent Pyramid from a corner, its casing largely intact, with stairs up to the north entrance', 'The north face, with the modern stairs up to the entrance on the right.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:02_bent_north_entrance.jpg', V(-B - 70, 1.7, -B - 120), V(0, 25, -B))],
         why: 'It continues the tradition of passages aimed at the northern stars.',
         text: 'The north entrance leads into a long, low passage that slopes down into the bedrock.',
         facts: [['Entrance height', '11.80 m'], ['Slope', '25°'], ['Length', '74 m'], ['Cross-section', '1.10 wide × 1.05 m high']] },

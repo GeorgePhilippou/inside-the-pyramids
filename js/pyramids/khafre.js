@@ -34,6 +34,7 @@ export default function khafre(api) {
         text: 'Built for Khafre, Khufu’s son. It is slightly smaller than the Great Pyramid but stands on bedrock about 10 m higher and has a steeper slope, so it often looks taller. The top of the pyramid still keeps part of its original limestone casing.',
         facts: [['Base side', '215.25 m · 411 cubits'], ['Original height', '143.5 m · 274 cubits'], ['Height today', '136.4 m'], ['Face slope', '53° 10′']] },
       { id: 'upper', group: 'Upper system', name: 'Upper entrance and passage', color: 'granite', conf: 'approx', major: true,
+        photos: () => [ph('khafre-passage.jpg', 'Looking up a steep, narrow passage with a modern walkway and handrails', 'Looking back up the sloping passage toward the entrance.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:04_khafre_passage.jpg', up(upEnd, 1.5), upEntrance)],
         why: 'It shows a simpler design than Khufu\u2019s, with everything kept near or below ground level.',
         text: 'The entrance used today, 11.54 m up the north face. A granite-lined passage slopes down to bedrock level, where a granite portcullis once closed it, then levels out. Like the lower system, it lies about 12 m east of the centre line.',
         facts: [['Entrance height', '11.54 m'], ['East of centre', 'c. 12 m'], ['Lining', 'Granite'], ['Slope', 'c. 26°']] },

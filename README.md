@@ -84,3 +84,6 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/khufu-lepsius.jpg` | Lepsius expedition artist (1842) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lepsius-inschrift-cheops-pyramide.jpeg) |
 | `photos/khufu-cartouche-mark.jpg` | Karl Richard Lepsius | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Kartu_Chufu01.JPG) |
 | `photos/khufu-gang-names.jpg` | George Andrew Reisner | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Khufu_work_gang_names.png) |
+| `photos/khufu-queen-niche.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Reine-niche.jpg) |
+| `photos/bent-entrance.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:02_bent_north_entrance.jpg) |
+| `photos/khafre-passage.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:04_khafre_passage.jpg) |
