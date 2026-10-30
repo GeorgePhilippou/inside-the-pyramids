@@ -3,6 +3,8 @@
 See-through 3D models of six Egyptian pyramids (the Bent and Red pyramids at Dahshur, Khufu, Khafre and Menkaure at Giza, and Unas at Saqqara, the first with the Pyramid Texts), with every known passage and chamber drawn to published survey figures.
 
 - Click any passage or chamber to see a photo, fly the camera to where it was taken, and read why it matters.
+- **Guided tours** walk you through each pyramid's real route, stop by stop.
+- Links can open a single feature, for example `#khufu/king` or `#unas/ptAE`.
 - **Timeline** view: when each pyramid was built, by dynasty and reign.
 - **Map** view: where the pyramids stand along the Nile, with to-scale plans of Giza and Dahshur.
 - Human figures (1.75 m) for scale, inscriptions and builders' marks, and neighbouring monuments in 3D.
@@ -14,7 +16,20 @@ Each feature is tagged *Surveyed*, *Approximate* or *Uncertain* according to how
 
 ## Running it
 
-It is a single static page. Open `index.html` through any web server, or visit the GitHub Pages site. It loads [three.js](https://threejs.org) 0.160.0 from jsDelivr and fonts from Google Fonts.
+It is a static site with no build step. Serve the folder with any web server (for example `python3 -m http.server`) and open `index.html`, or visit the GitHub Pages site.
+
+## Files
+
+| Path | What it is |
+|---|---|
+| `index.html` | Page structure: panels, toolbar, welcome card |
+| `css/style.css` | All styles |
+| `js/viewer.js` | The viewer: scene, looks, navigation, walk mode, tours, labels, timeline and map |
+| `js/pyramids/*.js` | One file per pyramid: measurements, features, photos and tour route |
+| `photos/` | Photographs and drawings (credits below) |
+| `preview.jpg` | Image shown when the link is shared |
+
+To add a pyramid, copy one of the files in `js/pyramids/`, then import it in `js/viewer.js` and add it to `PYRAMIDS`. It loads [three.js](https://threejs.org) 0.160.0 from jsDelivr and fonts from Google Fonts.
 
 ## Sources
 
