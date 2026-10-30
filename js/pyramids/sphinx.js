@@ -52,6 +52,7 @@ export default function sphinx(api) {
     sources: 'M. Lehner, <i>Archaeology of an Image: The Great Sphinx of Giza</i> (1991); M. Lehner &amp; Z. Hawass, <i>Giza and the Pyramids</i> (2017); S. Hassan, <i>The Sphinx</i> (1949). Overall size is published. The sculpted body is simplified, and the holes and passages are placed from published descriptions.',
     features: [
       { id: 'pyramid', group: 'Exterior', name: 'The Sphinx', color: 'sand', conf: 'surveyed',
+        photos: () => [ph('sphinx-exterior.jpg', 'The head of the Sphinx in profile against a blue sky', 'The head in profile, wearing the striped nemes headdress, seen from the north.', 'Petar Milošević', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Great_Sphinx_(%D8%A3%D8%A8%D9%88_%D8%A7%D9%84%D9%87%D9%88%D9%84).jpg', V(14, 11, -34), V(14, 15.5, 0))],
         why: 'It is the largest statue of the ancient world carved from a single mass of rock, and it is still mostly solid stone.',
         text: 'A lion with a human head wearing the royal nemes headdress, carved out of the bedrock where builders had quarried stone. It faces due east. Most scholars think it shows King Khafre. Apart from a few small holes and passages, it is solid rock.',
         facts: [['Length', '73 m'], ['Width', '19 m'], ['Height', '20 m'], ['Faces', 'East']] },
@@ -80,6 +81,7 @@ export default function sphinx(api) {
         text: 'A seismic survey of the floor around the Sphinx in the early 1990s reported a cavity in the rock beneath the front paws. Its size, shape and depth are not certain, and it may be natural. The box marks the general zone only.',
         facts: [['Found', 'Seismic survey, early 1990s'], ['Entered', 'Never'], ['Position', 'Uncertain']] },
       { id: 'stela', group: 'Inscriptions and marks', name: 'Dream Stela', color: 'mark', mark: true, conf: 'approx', major: true,
+        photos: () => [ph('sphinx-stela.jpg', 'A tall granite slab with a rounded top standing between the paws', 'The Dream Stela standing against the chest, seen from beside the north paw.', 'HoremWeb', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Dream-stela.jpg', V(21, 7, -9), V(14.8, 1.8, 0))],
         why: 'It shows the Sphinx was already ancient and revered, and half buried in sand, by the New Kingdom.',
         text: 'A granite slab set up between the paws by King Thutmose IV around 1400 BC. Its text tells how, as a prince, he fell asleep in the Sphinx’s shadow and dreamed it promised him the throne if he cleared away the sand burying it. A small space behind it is now covered with a modern roof.',
         facts: [['Set up', 'c. 1400 BC, Thutmose IV'], ['Height', 'c. 3.6 m'], ['Material', 'Granite']] },

@@ -90,6 +90,13 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/khufu-queen-niche.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Reine-niche.jpg) |
 | `photos/bent-entrance.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:02_bent_north_entrance.jpg) |
 | `photos/khafre-passage.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:04_khafre_passage.jpg) |
+| `photos/djoser-exterior.jpg` | Ondřej Havelka | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Step_Pyramid_of_Djoser.jpg) |
+| `photos/djoser-corridor.jpg` | Fabio Achili | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Corridor_of_Step_Pyramid_2023a.jpg) |
+| `photos/djoser-vault.jpg` | Richard Mortel | CC BY 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sarcophagus_of_Djoser,_Southern_entrance_of_the_Step_Pyramid_of_Djoser_at_Saqqara,_ca._2700_BCE_(1).jpg) |
+| `photos/djoser-tiles.jpg` | Metropolitan Museum of Art | CC0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Wall_tiles_from_the_funerary_apartments_of_king_Djoser_MET_DT258569.jpg) |
+| `photos/djoser-serdab.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Djoser_Serdap_1.jpg) |
+| `photos/sphinx-exterior.jpg` | Petar Milošević | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Great_Sphinx_(%D8%A3%D8%A8%D9%88_%D8%A7%D9%84%D9%87%D9%88%D9%84).jpg) |
+| `photos/sphinx-stela.jpg` | HoremWeb | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dream-stela.jpg) |
 
 ## Publishing a change
 
