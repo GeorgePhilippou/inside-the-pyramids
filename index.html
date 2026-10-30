@@ -111,7 +111,15 @@ h1 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 22px
 .stats dt { color: var(--muted); }
 .stats dd { margin: 0; font-family: var(--f-mono); font-size: 11.5px; text-align: right; }
 .contents-body { overflow-y: auto; padding: 10px 8px 14px; display: grid; gap: 14px; align-content: start; min-height: 0; }
-.group-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 2px; padding: 0 8px; }
+.group-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 2px; padding: 4px 8px; }
+summary.group-title { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; border-radius: 6px; }
+summary.group-title::-webkit-details-marker { display: none; }
+summary.group-title::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
+.grp[open] > summary.group-title::before { transform: rotate(45deg); }
+summary.group-title:hover { color: var(--ink-2); }
+summary.group-title span { margin-left: auto; font-weight: 500; letter-spacing: 0; }
+.copied { margin: 6px 16px 0; padding: 8px 10px; border-radius: 8px; background: #e5f0e8; color: var(--ok); font-size: 12.5px; }
+.copied input { width: 100%; margin-top: 4px; font: 12px var(--f-mono); }
 #features { display: grid; gap: 12px; }
 .feat-list { display: grid; gap: 1px; }
 .feat {
@@ -183,17 +191,7 @@ details.more > :not(summary) { margin-top: 8px; }
   bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
   display: flex; align-items: center; gap: 2px; padding: 5px; max-width: calc(100% - 2 * var(--gap));
 }
-.toolbar .sep { width: 1px; height: 22px; background: var(--rule); margin: 0 5px; flex: none; }
-.toolbar .icon-btn { position: relative; }
-.toolbar label { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.toolbar input[type="range"] { width: 90px; accent-color: var(--accent); }
-[data-tip]:hover::after, [data-tip]:focus-visible::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: var(--ink); color: var(--surface); font-size: 11.5px; font-weight: 500; white-space: nowrap;
-  padding: 5px 8px; border-radius: 6px; pointer-events: none;
-}
 
-/* Navigation help */
 
 .tag {
   pointer-events: auto; cursor: pointer; white-space: nowrap;
@@ -379,8 +377,6 @@ body.walking #scene canvas { cursor: crosshair; }
   .contents { width: auto; right: max(var(--gap), env(safe-area-inset-right, 0px)); z-index: 7; }
   .detail { width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); top: auto; max-height: 52%;
     bottom: calc(var(--gap) * 2 + 46px + env(safe-area-inset-bottom, 0px)); }
-  .toolbar label span { display: none; }
-  .toolbar input[type="range"] { width: 64px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 </style>
@@ -446,10 +442,14 @@ body.walking #scene canvas { cursor: crosshair; }
 <aside class="detail card" id="detail" aria-label="Selected feature" hidden>
   <div class="detail-head">
     <div class="titles" id="detail-titles"></div>
+    <button class="icon-btn" id="btn-link" type="button" aria-label="Copy a link to this">
+      <svg class="i" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+    </button>
     <button class="icon-btn" id="btn-close" type="button" aria-label="Close">
       <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
+  <p class="copied" id="copied" role="status" hidden></p>
   <div id="info" aria-live="polite"></div>
 </aside>
 
@@ -555,7 +555,9 @@ const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sa
 // ---------- Scene ----------
 const host = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// Phones and tablets get a lower resolution and lighter shadows
+const lowPower = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 820;
+renderer.setPixelRatio(Math.min(devicePixelRatio, lowPower ? 1.5 : 2));
 renderer.localClippingEnabled = true;
 host.appendChild(renderer.domElement);
 const labelRenderer = new CSS2DRenderer({ element: document.getElementById('labels') });
@@ -578,12 +580,12 @@ const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x3a2a18, 1.1);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
 sun.position.set(200, 300, 120);
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(lowPower ? 2048 : 4096, lowPower ? 2048 : 4096);
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.6;
 scene.add(sun, sun.target);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = lowPower ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 const groundXray = new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), groundXray);
 ground.rotation.x = -Math.PI / 2;
@@ -963,7 +965,8 @@ function wallImage(id, file, aspect, facing, plane, along, cy, maxW, maxH) {
   const geo = new THREE.PlaneGeometry(w, h);
   geo.userData.uv = true;   // keep the picture's own UVs
   geo.rotateY(FACING[facing]);
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: wallTexture(file), roughness: 0.9 }));
+  const tex = wallTexture(file);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35, roughness: 0.9 }));
   if (facing[0] === 'z') m.position.set(along, cy, plane); else m.position.set(plane, cy, along);
   return put(id, m, false);
 }
@@ -1810,9 +1813,10 @@ function load(def, fly) {
   document.getElementById('lede').textContent = def.features[0].text.split('. ')[0] + '.';
   document.getElementById('sources').innerHTML = `<b>Measurements from</b> ${def.sources} Each feature is tagged with how sure the published figures are. Where surveys disagree, both values are given. Passages and chambers are drawn at true scale; routes marked approximate are simplified.`;
   const groupsOrder = [...new Set(def.features.map(f => f.group))];
-  list.innerHTML = groupsOrder.map(g => `<div><p class="group-title">${g}</p><div class="feat-list">
+  const startOpen = !matchMedia('(max-width: 860px)').matches;
+  list.innerHTML = groupsOrder.map(g => `<details class="grp"${startOpen ? ' open' : ''}><summary class="group-title">${g}<span>${def.features.filter(f => f.group === g).length}</span></summary><div class="feat-list">
     ${def.features.filter(f => f.group === g).map(f => `<button type="button" class="feat" data-id="${f.id}"><i class="sw" style="background:var(--${f.color})"></i>${f.name}${f.photos?.length ? '<svg class="i cam" viewBox="0 0 24 24" aria-label="Has photos"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>' : ''}</button>`).join('')}
-    </div></div>`).join('');
+    </div></details>`).join('');
   for (const btn of document.querySelectorAll('.pyr')) btn.setAttribute('aria-pressed', btn.dataset.id === def.id);
   if (typeof pyrSelect !== 'undefined') pyrSelect.value = def.id;
   document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
@@ -1834,6 +1838,9 @@ function select(id, fly, photo = 0) {
   ctx.selected = id;
   const f = ctx.byId[id];
   const ph = f.photos?.[photo];
+  setHash(id);
+  const btn = list.querySelector(`.feat[data-id="${id}"]`);
+  if (btn) btn.closest('details').open = true;
   document.getElementById('detail-titles').innerHTML = `<span class="conf ${f.conf}">${confText[f.conf]}</span><h2>${f.name}</h2>`;
   detail.hidden = false;
   if (!helpEl.hidden) setHelp(false);
@@ -1891,6 +1898,7 @@ list.addEventListener('click', e => {
 function clearSelection() {
   if (!ctx) return;
   ctx.selected = null;
+  setHash(null);
   detail.hidden = true;
   for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', false);
   setEmissive();
@@ -2243,7 +2251,7 @@ function buildSurroundings(def) {
 // ======================================================================
 function switchTo(def) {
   setMode('model');
-  if (ctx.def !== def) { load(def, true); history.replaceState(null, '', '#' + def.id); }
+  if (ctx.def !== def) load(def, true);
 }
 const modeButtons = [...document.querySelectorAll('.mode')];
 function setMode(m) {
@@ -2676,6 +2684,26 @@ function layoutLabels() {
   }
 }
 
+// ---------- Links: #khufu opens a pyramid, #khufu/king opens a feature in it ----------
+let lastHash = '';
+function setHash(id) {
+  lastHash = '#' + ctx.def.id + (id ? '/' + id : '');
+  if (location.hash !== lastHash) history.replaceState(null, '', lastHash);
+}
+function openFromHash(fly) {
+  const [pid, fid] = decodeURIComponent(location.hash.slice(1)).split(/[/.]/);
+  const def = PYRAMIDS.find(p => p.id === pid) ?? KHUFU;
+  if (!ctx || ctx.def !== def) load(def, fly);
+  if (fid && ctx.byId[fid]) { setHelp(false); select(fid, true); } else setHash(null);
+}
+document.getElementById('btn-link').addEventListener('click', async () => {
+  const note = document.getElementById('copied'), url = location.href;
+  try { await navigator.clipboard.writeText(url); note.textContent = 'Link copied. Anyone who opens it lands right here.'; }
+  catch (e) { note.innerHTML = `Copy this link: <input value="${url}" readonly onfocus="this.select()">`; }
+  note.hidden = false;
+  clearTimeout(note.t); note.t = setTimeout(() => { note.hidden = true; }, 4000);
+});
+
 // Resize and loop
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -2686,7 +2714,8 @@ addEventListener('resize', resize);
 resize();
 
 setMode('model');
-load(PYRAMIDS.find(p => '#' + p.id === location.hash) ?? KHUFU, false);
+openFromHash(false);
+addEventListener('hashchange', () => { if (location.hash !== lastHash) openFromHash(true); });
 
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 let lastFrame = performance.now();
