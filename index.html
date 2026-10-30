@@ -3,6 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Inside the Pyramids">
+<meta property="og:description" content="Explore six Egyptian pyramids in 3D: every known passage and chamber, real photos, the Pyramid Texts, a timeline and a satellite map.">
+<meta property="og:image" content="https://georgephilippou.github.io/inside-the-pyramids/preview.jpg">
+<meta property="og:image:width" content="800">
+<meta property="og:image:height" content="420">
+<meta property="og:url" content="https://georgephilippou.github.io/inside-the-pyramids/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f0eee6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f0eee6'/%3E%3Cpath d='M16 5 3 27h26z' fill='%23c96442'/%3E%3Cpath d='M16 5 21 27h8z' fill='%239c4a30'/%3E%3C/svg%3E">
 <meta name="description" content="See-through 3D models of six Egyptian pyramids with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
 <title>Inside the Pyramids</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -184,18 +194,6 @@ details.more > :not(summary) { margin-top: 8px; }
 }
 
 /* Navigation help */
-.navhelp {
-  position: fixed; z-index: 4; width: 310px; padding: 12px 14px;
-  right: max(var(--gap), env(safe-area-inset-right, 0px));
-  bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
-  font-size: 12px; color: var(--ink-2);
-}
-.navhelp header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.navhelp header b { font-size: 12.5px; color: var(--ink); }
-.navhelp dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; margin: 0; }
-.navhelp dt { font-weight: 600; color: var(--ink); white-space: nowrap; }
-.navhelp dd { margin: 0; color: var(--muted); }
-.navhelp .icon-btn { width: 26px; height: 26px; }
 
 .tag {
   pointer-events: auto; cursor: pointer; white-space: nowrap;
@@ -219,7 +217,7 @@ details.more > :not(summary) { margin-top: 8px; }
 .mode svg.i { width: 16px; height: 16px; }
 .mode:hover { color: var(--ink); }
 .mode[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,20,19,.12); }
-body:not([data-mode="model"]) :is(.contents, .detail, .toolbar, .navhelp, #labels) { display: none !important; }
+body:not([data-mode="model"]) :is(.contents, .detail, .toolbar, #labels) { display: none !important; }
 .view {
   position: fixed; z-index: 6; overflow-y: auto; padding: 28px 32px 32px;
   top: calc(var(--gap) * 2 + var(--bar-h) + env(safe-area-inset-top, 0px));
@@ -289,9 +287,7 @@ svg.map { width: 100%; height: auto; max-height: 62vh; display: block; backgroun
 .walk-pad { display: none; gap: 8px; }
 .walk-pad button { flex: 1; height: 44px; border-radius: 10px; border: 1px solid var(--rule); background: #fff; font-size: 16px; color: var(--ink); touch-action: none; }
 @media (pointer: coarse) { .walk-pad { display: flex; } }
-body.walking .navhelp { display: none !important; }
 body.walking #scene canvas { cursor: crosshair; }
-.toolbar input:disabled, .toolbar .icon-btn:disabled { opacity: .35; cursor: default; }
 
 /* Satellite map */
 .map-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
@@ -318,9 +314,65 @@ body.walking #scene canvas { cursor: crosshair; }
 .pop b { font-family: var(--f-display); font-size: 16px; }
 .pop p { margin: 0 0 4px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
 @media (max-width: 860px) { .walkhud { right: max(var(--gap), env(safe-area-inset-right, 0px)); width: auto; bottom: calc(var(--gap) * 2 + 46px); } #minimap { height: 110px; } }
+
+/* Toolbar: Walk | Look | View | Show */
+.toolbar { gap: 6px; padding: 5px; }
+.tbtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 500 13px/1 var(--f-body); cursor: pointer; white-space: nowrap; }
+.tbtn:hover { background: rgba(20,20,19,.05); color: var(--ink); }
+.tbtn[aria-pressed="true"], .tbtn[aria-expanded="true"] { background: var(--accent-tint); color: var(--accent); }
+.tbtn svg.i { width: 17px; height: 17px; }
+.look { display: flex; gap: 2px; padding: 3px; background: #efece3; border-radius: 9px; }
+.look button { border: 0; background: none; padding: 6px 10px; border-radius: 6px; font: 500 12.5px/1 var(--f-body); color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.look button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,20,19,.12); }
+.look button:disabled { opacity: .35; cursor: default; }
+.look .short { display: none; }
+.menu-wrap { position: relative; }
+.menu { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: 260px; padding: 6px; display: grid; gap: 2px; z-index: 9; }
+.menu-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: none; text-align: left; font: 400 13.5px/1.25 var(--f-body); color: var(--ink); cursor: pointer; }
+.menu-row:hover { background: rgba(20,20,19,.045); }
+.menu-row svg.i { width: 16px; height: 16px; color: var(--ink-2); }
+.menu-row.switch i { flex: none; width: 28px; height: 16px; border-radius: 999px; background: #d9d4c8; position: relative; transition: background .15s; }
+.menu-row.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.menu-row.switch[aria-pressed="true"] i { background: var(--accent); }
+.menu-row.switch[aria-pressed="true"] i::after { transform: translateX(12px); }
+.menu-slider { display: grid; gap: 6px; padding: 8px 10px 6px; font-size: 12.5px; color: var(--ink-2); border-top: 1px solid var(--rule); margin-top: 4px; }
+.menu-slider input { width: 100%; accent-color: var(--accent); }
+.menu-slider input:disabled { opacity: .4; }
+
+/* Phone pyramid picker */
+.pyr-pick { display: none; flex: 1; min-width: 0; }
+.pyr-pick select { width: 100%; font: 600 14px var(--f-body); color: var(--ink); background: #efece3; border: 0; border-radius: 9px; padding: 8px 10px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Welcome */
+.welcome-back { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(20,20,19,.28); }
+.welcome { width: min(470px, 100%); max-height: calc(100% - 32px); overflow-y: auto; padding: 24px 24px 20px; display: grid; gap: 12px; }
+.welcome h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 28px; line-height: 1.1; }
+.welcome p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+.tries { margin: 0; padding: 0 0 0 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.tries b { color: var(--ink); font-weight: 600; }
+.moves summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.moves dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 10px 0 0; font-size: 12.5px; }
+.moves dt { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.moves dd { margin: 0; color: var(--muted); }
+.moves .touch { display: none; }
+@media (pointer: coarse) { .moves .touch { display: grid; } .moves .mouse { display: none; } }
+.primary { justify-self: start; border: 0; border-radius: 9px; padding: 10px 18px; background: var(--ink); color: var(--surface); font: 600 14px var(--f-body); cursor: pointer; }
+.primary:hover { background: #2c2c2a; }
+
+@media (max-width: 860px) {
+  .switcher, .brand b { display: none; }
+  .pyr-pick { display: block; }
+  .modes { margin-left: auto; }
+  .toolbar { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); transform: none; justify-content: space-between; max-width: none; }
+  .tbtn { flex-direction: column; gap: 2px; height: 42px; padding: 0 8px; font-size: 10.5px; }
+  .look .long { display: none; } .look .short { display: inline; }
+  .look button { padding: 8px 9px; }
+  .menu { left: auto; right: 0; transform: none; width: min(280px, calc(100vw - 2 * var(--gap))); }
+  #menu-view + .menu { right: auto; left: 50%; transform: translateX(-50%); }
+}
 @media (max-width: 1180px) { .brand b { display: none; } }
 @media (max-width: 980px) { .pyr small { display: none; } }
-@media (max-width: 1100px) { .navhelp { display: none; } .navhelp.force { display: block; } }
 @media (max-width: 860px) {
   .brand b, .pyr small { display: none; }
   .pyr { padding: 7px 9px; }
@@ -329,7 +381,6 @@ body.walking #scene canvas { cursor: crosshair; }
     bottom: calc(var(--gap) * 2 + 46px + env(safe-area-inset-bottom, 0px)); }
   .toolbar label span { display: none; }
   .toolbar input[type="range"] { width: 64px; }
-  .navhelp.force { left: max(var(--gap), env(safe-area-inset-left, 0px)); width: auto; bottom: calc(var(--gap) * 2 + 46px); z-index: 8; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 </style>
@@ -346,13 +397,14 @@ body.walking #scene canvas { cursor: crosshair; }
     <b>Inside the Pyramids</b>
   </div>
   <nav class="switcher" id="switcher" aria-label="Choose a pyramid"></nav>
+  <label class="pyr-pick"><span class="sr">Pyramid</span><select id="pyr-select" aria-label="Choose a pyramid"></select></label>
   <div class="modes" role="group" aria-label="View">
     <button class="mode" type="button" data-mode="model" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg><span>3D</span></button>
     <button class="mode" type="button" data-mode="timeline" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h18M7 8v8M12 6v12M17 9v6"/></svg><span>Timeline</span></button>
     <button class="mode" type="button" data-mode="map" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
   </div>
   <div class="bar-right">
-    <button class="icon-btn" id="btn-help" type="button" aria-expanded="false" aria-controls="navhelp" aria-label="How to move around">
+    <button class="icon-btn" id="btn-help" type="button" aria-expanded="false" aria-controls="welcome" aria-label="About this site and how to move around">
       <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 17h.01"/></svg>
     </button>
   </div>
@@ -402,46 +454,38 @@ body.walking #scene canvas { cursor: crosshair; }
 </aside>
 
 <div class="toolbar card" role="toolbar" aria-label="View">
-  <button class="icon-btn" id="btn-walk" type="button" data-tip="Walk at eye level" aria-label="Walk at eye level" aria-pressed="false">
-    <svg class="i" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2.2-6.5L10 12l1.5-4.5 3.5 3 3 1M9.5 12.5 8 9l-2.5 2.5M12.2 14.5 15 21"/></svg>
+  <button class="tbtn" id="btn-walk" type="button" aria-pressed="false">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2.2-6.5L10 12l1.5-4.5 3.5 3 3 1M9.5 12.5 8 9l-2.5 2.5M12.2 14.5 15 21"/></svg><span>Walk</span>
   </button>
-  <button class="icon-btn" id="tg-today" data-toggle="today" type="button" data-tip="As it looks today (off: as built)" aria-label="Show as it looks today" aria-pressed="true" disabled>
-    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18M5 20l3-5h2l2-4h2l2-4 3 13"/></svg>
-  </button>
-  <button class="icon-btn" id="tg-stone" data-toggle="stone" type="button" data-tip="Stone look" aria-label="Stone look" aria-pressed="false">
-    <svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg>
-  </button>
-  <span class="sep"></span>
-  <button class="icon-btn" id="btn-overview" type="button" data-tip="Overview" aria-label="Overview">
-    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg>
-  </button>
-  <button class="icon-btn" id="btn-side" type="button" data-tip="Side profile" aria-label="Side profile">
-    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M12 20V9"/></svg>
-  </button>
-  <button class="icon-btn" id="btn-cut" type="button" data-tip="Cut away east half" aria-label="Cut away east half" aria-pressed="false">
-    <svg class="i" viewBox="0 0 24 24"><path d="M3 20h9V4z"/><path d="M15 20h6l-6-11" stroke-dasharray="2 2.5"/></svg>
-  </button>
-  <span class="sep"></span>
-  <button class="icon-btn" id="tg-humans" type="button" data-tip="Human figures" aria-label="Human figures" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 8v7M8 11h8M10 21l2-6 2 6"/></svg>
-  </button>
-  <button class="icon-btn" id="tg-shafts" type="button" data-tip="Shafts" aria-label="Shafts" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><path d="M5 19 19 5M9 19l10-10"/></svg>
-  </button>
-  <button class="icon-btn" id="tg-scan" type="button" data-tip="Scan discoveries" aria-label="Scan discoveries" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><rect x="5" y="9" width="14" height="6" rx="1" stroke-dasharray="3 2"/><path d="M12 3v3M12 18v3"/></svg>
-  </button>
-  <button class="icon-btn" id="tg-marks" type="button" data-tip="Inscriptions" aria-label="Inscriptions" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><path d="M12 3l6 9-6 9-6-9z"/></svg>
-  </button>
-  <button class="icon-btn" id="tg-surround" type="button" data-tip="Neighbouring monuments" aria-label="Neighbouring monuments" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><path d="M2 20h20M4 20l4-7 4 7M12 20l5-10 5 10" /></svg>
-  </button>
-  <button class="icon-btn" id="tg-labels" type="button" data-tip="Labels" aria-label="Labels" aria-pressed="true">
-    <svg class="i" viewBox="0 0 24 24"><path d="M4 5h10l6 7-6 7H4z"/></svg>
-  </button>
-  <span class="sep"></span>
-  <label for="opacity"><span>Walls</span><input id="opacity" type="range" min="0" max="60" value="22"></label>
+  <div class="look" role="group" aria-label="How the pyramid looks">
+    <button type="button" data-look="xray" aria-pressed="true"><span class="long">See-through</span><span class="short">X-ray</span></button>
+    <button type="button" data-look="built" aria-pressed="false"><span class="long">As built</span><span class="short">Built</span></button>
+    <button type="button" data-look="today" aria-pressed="false"><span class="long">Today</span><span class="short">Today</span></button>
+  </div>
+  <div class="menu-wrap">
+    <button class="tbtn" id="menu-view" type="button" aria-expanded="false" aria-controls="view-menu">
+      <svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg><span>View</span>
+    </button>
+    <div class="menu card" id="view-menu" hidden>
+      <button class="menu-row" id="btn-overview" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg>Overview</button>
+      <button class="menu-row" id="btn-side" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M12 20V9"/></svg>Side profile of the passages</button>
+      <button class="menu-row switch" id="btn-cut" type="button" aria-pressed="false"><i></i>Cut away east half</button>
+    </div>
+  </div>
+  <div class="menu-wrap">
+    <button class="tbtn" id="menu-show" type="button" aria-expanded="false" aria-controls="show-menu">
+      <svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg><span>Show</span>
+    </button>
+    <div class="menu card" id="show-menu" hidden>
+      <button class="menu-row switch" id="tg-humans" type="button" aria-pressed="true"><i></i>Human figures (1.75 m)</button>
+      <button class="menu-row switch" id="tg-labels" type="button" aria-pressed="true"><i></i>Name labels</button>
+      <button class="menu-row switch" id="tg-surround" type="button" aria-pressed="true"><i></i>Neighbouring monuments</button>
+      <button class="menu-row switch" id="tg-marks" type="button" aria-pressed="true"><i></i>Inscriptions and marks</button>
+      <button class="menu-row switch" id="tg-shafts" type="button" aria-pressed="true"><i></i>Narrow shafts</button>
+      <button class="menu-row switch" id="tg-scan" type="button" aria-pressed="true"><i></i>Scan discoveries</button>
+      <label class="menu-slider" for="opacity">Outer walls (See-through)<input id="opacity" type="range" min="0" max="60" value="22"></label>
+    </div>
+  </div>
 </div>
 
 <section class="view card" id="timeline-view" aria-label="Timeline" hidden></section>
@@ -455,17 +499,36 @@ body.walking #scene canvas { cursor: crosshair; }
   <div class="walk-pad" aria-hidden="true"><button type="button" data-walk="arrowup">&#9650;</button><button type="button" data-walk="arrowdown">&#9660;</button></div>
 </section>
 
-<section class="navhelp card" id="navhelp" aria-label="How to move around">
-  <header><b>Moving around</b><button class="icon-btn" id="btn-help-close" type="button" aria-label="Hide"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
-  <dl>
-    <dt>Drag</dt><dd>Turn around the point you grab</dd>
-    <dt>Scroll or pinch</dt><dd>Zoom toward the pointer</dd>
-    <dt>Swipe sideways</dt><dd>Turn (trackpad)</dd>
-    <dt>Right-drag, Shift + drag</dt><dd>Move sideways</dd>
-    <dt>W A S D, arrows</dt><dd>Walk and turn; Q / E down and up</dd>
-    <dt>Double-click</dt><dd>Jump to that spot</dd>
-  </dl>
-</section>
+<div class="welcome-back" id="welcome" hidden>
+  <section class="welcome card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="eyebrow">Welcome</div>
+    <h2 id="welcome-title">Inside the Pyramids</h2>
+    <p>Explore six Egyptian pyramids in 3D, from Sneferu’s Bent Pyramid to the Pyramid of Unas, with every known passage and chamber drawn from published surveys.</p>
+    <ul class="tries">
+      <li><b>Click any chamber or name</b> to see photos, measurements and why it matters.</li>
+      <li><b>Press Walk</b> to stand inside at human height.</li>
+      <li><b>Change the Look</b> to see the pyramid as built or as it is today, or open the <b>Timeline</b> and <b>Map</b>.</li>
+    </ul>
+    <details class="moves">
+      <summary>How to move around</summary>
+      <dl class="mouse">
+        <dt>Drag</dt><dd>Turn around the point you grab</dd>
+        <dt>Scroll or pinch</dt><dd>Zoom toward the pointer</dd>
+        <dt>Swipe sideways</dt><dd>Turn (trackpad)</dd>
+        <dt>Right-drag, Shift + drag</dt><dd>Move sideways</dd>
+        <dt>W A S D, arrows</dt><dd>Walk and turn; Q / E down and up</dd>
+        <dt>Double-click</dt><dd>Jump to that spot</dd>
+      </dl>
+      <dl class="touch">
+        <dt>One finger</dt><dd>Turn</dd>
+        <dt>Pinch</dt><dd>Zoom</dd>
+        <dt>Two fingers</dt><dd>Move sideways</dd>
+        <dt>Double-tap</dt><dd>Jump to that spot</dd>
+      </dl>
+    </details>
+    <button class="primary" id="welcome-go" type="button">Start exploring</button>
+  </section>
+</div>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -661,7 +724,7 @@ function applyLook() {
   for (const grp of [ctx.ext.built, ctx.ext.today]) if (grp) grp.visible = solidVisible(grp.userData.solid, stone, grp.userData.hasToday);
   for (const m of ctx.extra) { m.map = stone ? TEX[m.userData.key] : null; m.color.copy(stone ? new THREE.Color(0xdedede) : m.userData.col); m.needsUpdate = true; }
   sun.castShadow = stone;
-  document.getElementById('tg-today').disabled = !stone || !ctx.ext.today;
+  syncLook();
   ground.material = stone ? groundStone : groundXray;
   grid.visible = !stone;
   hemi.intensity = stone ? 0.9 : 1.1; sun.intensity = stone ? 2.4 : 1.4;
@@ -1751,6 +1814,7 @@ function load(def, fly) {
     ${def.features.filter(f => f.group === g).map(f => `<button type="button" class="feat" data-id="${f.id}"><i class="sw" style="background:var(--${f.color})"></i>${f.name}${f.photos?.length ? '<svg class="i cam" viewBox="0 0 24 24" aria-label="Has photos"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>' : ''}</button>`).join('')}
     </div></div>`).join('');
   for (const btn of document.querySelectorAll('.pyr')) btn.setAttribute('aria-pressed', btn.dataset.id === def.id);
+  if (typeof pyrSelect !== 'undefined') pyrSelect.value = def.id;
   document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
   document.getElementById('tg-scan').hidden = !def.features.some(f => f.scan);
   document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark || f.inscribed);
@@ -1835,23 +1899,53 @@ function clearSelection() {
   refreshLabels();
 }
 document.getElementById('btn-close').addEventListener('click', clearSelection);
-addEventListener('keydown', e => { if (e.key === 'Escape') { if (walk.on) stopWalk(); else clearSelection(); } });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!helpEl.hidden) return setHelp(false);
+  if (menus.some(([, m]) => !m.hidden)) return closeMenus();
+  if (walk.on) stopWalk(); else clearSelection();
+});
 
 // Contents panel and navigation help
 const contentsEl = document.getElementById('contents'), contentsBtn = document.getElementById('btn-contents');
 function setContents(open) { contentsEl.hidden = !open; contentsBtn.setAttribute('aria-expanded', open); }
 contentsBtn.addEventListener('click', () => setContents(contentsEl.hidden));
 setContents(!matchMedia('(max-width: 860px)').matches);
-const helpEl = document.getElementById('navhelp'), helpBtn = document.getElementById('btn-help');
+const helpEl = document.getElementById('welcome'), helpBtn = document.getElementById('btn-help');
 let helpSeen = false;
-try { helpSeen = localStorage.getItem('pyramids-help-seen') === '1'; } catch (e) {}
-function setHelp(open, force) {
-  helpEl.hidden = !open; helpEl.classList.toggle('force', !!force && open); helpBtn.setAttribute('aria-expanded', open);
-  if (!open) try { localStorage.setItem('pyramids-help-seen', '1'); } catch (e) {}
+try { helpSeen = localStorage.getItem('pyramids-welcome-seen') === '1'; } catch (e) {}
+function setHelp(open) {
+  helpEl.hidden = !open; helpBtn.setAttribute('aria-expanded', open);
+  if (open) document.getElementById('welcome-go').focus();
+  else try { localStorage.setItem('pyramids-welcome-seen', '1'); } catch (e) {}
 }
-helpBtn.addEventListener('click', () => setHelp(helpEl.hidden, true));
-document.getElementById('btn-help-close').addEventListener('click', () => setHelp(false));
-setHelp(!helpSeen, false);
+helpBtn.addEventListener('click', () => setHelp(helpEl.hidden));
+document.getElementById('welcome-go').addEventListener('click', () => setHelp(false));
+helpEl.addEventListener('click', e => { if (e.target === helpEl) setHelp(false); });
+setHelp(!helpSeen);
+
+// Toolbar menus: one open at a time; close on outside click, Esc, or after a one-off action
+const menus = [['menu-view', 'view-menu'], ['menu-show', 'show-menu']].map(([b, m]) => [document.getElementById(b), document.getElementById(m)]);
+function closeMenus(except) { for (const [b, m] of menus) if (m !== except) { m.hidden = true; b.setAttribute('aria-expanded', false); } }
+for (const [b, m] of menus) b.addEventListener('click', e => { e.stopPropagation(); const open = m.hidden; closeMenus(); m.hidden = !open; b.setAttribute('aria-expanded', open); layoutLabels.t = 0; });
+addEventListener('pointerdown', e => { if (!e.target.closest('.menu-wrap')) closeMenus(); });
+for (const id of ['btn-overview', 'btn-side']) document.getElementById(id).addEventListener('click', () => closeMenus());
+
+// Look: See-through, As built (smooth casing) or Today (weathered)
+const lookButtons = [...document.querySelectorAll('[data-look]')];
+function syncLook() {
+  const look = !toggles.stone ? 'xray' : toggles.today && ctx?.ext?.today ? 'today' : 'built';
+  for (const b of lookButtons) b.setAttribute('aria-pressed', b.dataset.look === look);
+  const todayBtn = lookButtons.find(b => b.dataset.look === 'today');
+  todayBtn.disabled = !ctx?.ext?.today;
+  todayBtn.title = todayBtn.disabled ? 'No \u201ctoday\u201d model for this pyramid yet' : '';
+}
+function setLook(look) {
+  toggles.stone = look !== 'xray';
+  if (look !== 'xray') toggles.today = look === 'today';
+  applyToggles();
+}
+for (const b of lookButtons) b.addEventListener('click', () => setLook(b.dataset.look));
 
 // Camera moves
 let anim = null;
@@ -1861,7 +1955,8 @@ function flyTo(target, pos) {
 function overviewPose() {
   const k = ctx.def.rings[0][0] / 115;
   const h = ctx.def.rings[ctx.def.rings.length - 1][1];
-  return { t: V(0, h * 0.24, 0), p: V(285 * k, 150 * k, 250 * k) };
+  const fit = camera.aspect < 1 ? Math.min(2.2, 0.85 / camera.aspect) : 1;   // step back on tall, narrow screens
+  return { t: V(0, h * 0.3, 0), p: V(285 * k * fit, 150 * k * fit + h * 0.06, 250 * k * fit) };
 }
 function overview() { const v = overviewPose(); flyTo(v.t, v.p); }
 function interiorBox() {
@@ -1900,9 +1995,11 @@ function applyToggles() {
     if (f.mark || f.inscribed) ctx.groups[f.id].visible = toggles.marks;
   }
   applyLook();
-  ctx.groups.pyramid.traverse(o => { if (o.material) o.material.clippingPlanes = toggles.cut ? [clip] : []; });
-  shellMat.clippingPlanes = shellStone.clippingPlanes = toggles.cut ? [clip] : [];
-  for (const m of Object.values(MAIN_MATS)) m.clippingPlanes = toggles.cut ? [clip] : [];
+  // Cut away the east half of the outer pyramid. Changing the number of clipping planes needs a shader rebuild.
+  const planes = toggles.cut ? [clip] : [];
+  const cutMats = new Set([shellMat, shellStone, ...Object.values(MAIN_MATS)]);
+  ctx.groups.pyramid.traverse(o => { if (o.material) cutMats.add(o.material); });
+  for (const m of cutMats) if (m.clippingPlanes?.length !== planes.length) { m.clippingPlanes = planes; m.needsUpdate = true; }
   refreshLabels();
 }
 function toggle(btn, key) {
@@ -1917,13 +2014,13 @@ toggle(document.getElementById('tg-scan'), 'scan');
 toggle(document.getElementById('tg-marks'), 'marks');
 toggle(document.getElementById('tg-surround'), 'surround');
 toggle(document.getElementById('tg-labels'), 'labels');
-toggle(document.getElementById('tg-stone'), 'stone');
-toggle(document.getElementById('tg-today'), 'today');
 const op = document.getElementById('opacity');
 op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 
 // Pyramid switcher, with a tiny profile drawn from each pyramid's own outline
-const switcher = document.getElementById('switcher');
+const switcher = document.getElementById('switcher'), pyrSelect = document.getElementById('pyr-select');
+pyrSelect.innerHTML = PYRAMIDS.map(d => `<option value="${d.id}">${d.short} pyramid</option>`).join('');
+pyrSelect.addEventListener('change', () => switchTo(PYRAMIDS.find(d => d.id === pyrSelect.value)));
 for (const def of PYRAMIDS) {
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'pyr'; btn.dataset.id = def.id;
@@ -2377,7 +2474,6 @@ function placeCamera() {
 }
 function setToggle(key, on) {
   toggles[key] = on;
-  document.querySelector(`[data-toggle="${key}"]`)?.setAttribute('aria-pressed', on);
   applyToggles();
 }
 function outsideStart() {
@@ -2560,7 +2656,7 @@ function layoutLabels() {
   if (!layoutLabels.ui || now - layoutLabels.t > 400) {
     layoutLabels.t = now;
     const host = renderer.domElement.getBoundingClientRect();
-    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .navhelp')]
+    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .menu')]
       .filter(el => el.offsetWidth > 0).map(el => el.getBoundingClientRect())
       .map(r => ({ x0: r.left - host.left, x1: r.right - host.left, y0: r.top - host.top, y1: r.bottom - host.top }));
   }
