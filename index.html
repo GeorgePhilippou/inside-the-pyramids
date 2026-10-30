@@ -369,6 +369,21 @@ body.walking #scene canvas { cursor: crosshair; }
   .menu { left: auto; right: 0; transform: none; width: min(280px, calc(100vw - 2 * var(--gap))); }
   #menu-view + .menu { right: auto; left: 50%; transform: translateX(-50%); }
 }
+
+/* Guided tour */
+.tourhud { position: fixed; z-index: 7; width: 340px; padding: 14px 16px; display: grid; gap: 8px;
+  left: max(var(--gap), env(safe-area-inset-left, 0px)); bottom: calc(var(--gap) * 2 + 46px + env(safe-area-inset-bottom, 0px)); }
+.tourhud header { display: flex; justify-content: space-between; align-items: center; }
+.tourhud h3 { margin: 0; font-family: var(--f-display); font-size: 20px; font-weight: 600; line-height: 1.15; }
+.tourhud p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.tour-dots { display: flex; gap: 5px; }
+.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--rule); }
+.tour-dots i.done { background: var(--edge); } .tour-dots i.now { background: var(--accent); }
+.tour-nav { display: flex; justify-content: space-between; align-items: center; }
+.tour-nav .primary:disabled { opacity: .5; }
+.welcome-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+body.touring .contents, body.touring .detail { display: none !important; }
+@media (max-width: 860px) { .tourhud { right: max(var(--gap), env(safe-area-inset-right, 0px)); width: auto; } }
 @media (max-width: 1180px) { .brand b { display: none; } }
 @media (max-width: 980px) { .pyr small { display: none; } }
 @media (max-width: 860px) {
@@ -457,6 +472,9 @@ body.walking #scene canvas { cursor: crosshair; }
   <button class="tbtn" id="btn-walk" type="button" aria-pressed="false">
     <svg class="i" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2.2-6.5L10 12l1.5-4.5 3.5 3 3 1M9.5 12.5 8 9l-2.5 2.5M12.2 14.5 15 21"/></svg><span>Walk</span>
   </button>
+  <button class="tbtn" id="btn-tour" type="button" aria-pressed="false">
+    <svg class="i" viewBox="0 0 24 24"><path d="M5 19c2-6 5-2 7-8s5-5 7-6"/><circle cx="5" cy="19" r="1.6"/><circle cx="19" cy="5" r="1.6"/></svg><span>Tour</span>
+  </button>
   <div class="look" role="group" aria-label="How the pyramid looks">
     <button type="button" data-look="xray" aria-pressed="true"><span class="long">See-through</span><span class="short">X-ray</span></button>
     <button type="button" data-look="built" aria-pressed="false"><span class="long">As built</span><span class="short">Built</span></button>
@@ -499,6 +517,14 @@ body.walking #scene canvas { cursor: crosshair; }
   <div class="walk-pad" aria-hidden="true"><button type="button" data-walk="arrowup">&#9650;</button><button type="button" data-walk="arrowdown">&#9660;</button></div>
 </section>
 
+<section class="tourhud card" id="tourhud" aria-label="Guided tour" hidden>
+  <header><span class="eyebrow" id="tour-step"></span><button class="text-btn" id="tour-exit" type="button">End tour</button></header>
+  <h3 id="tour-title"></h3>
+  <p id="tour-say"></p>
+  <div class="tour-dots" id="tour-dots" aria-hidden="true"></div>
+  <div class="tour-nav"><button class="text-btn" id="tour-back" type="button">Back</button><button class="primary" id="tour-next" type="button">Next</button></div>
+</section>
+
 <div class="welcome-back" id="welcome" hidden>
   <section class="welcome card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="eyebrow">Welcome</div>
@@ -506,7 +532,7 @@ body.walking #scene canvas { cursor: crosshair; }
     <p>Explore six Egyptian pyramids in 3D, from Sneferu’s Bent Pyramid to the Pyramid of Unas, with every known passage and chamber drawn from published surveys.</p>
     <ul class="tries">
       <li><b>Click any chamber or name</b> to see photos, measurements and why it matters.</li>
-      <li><b>Press Walk</b> to stand inside at human height.</li>
+      <li><b>Take the Tour</b> to be walked through the passages, or <b>Walk</b> on your own at human height.</li>
       <li><b>Change the Look</b> to see the pyramid as built or as it is today, or open the <b>Timeline</b> and <b>Map</b>.</li>
     </ul>
     <details class="moves">
@@ -526,7 +552,7 @@ body.walking #scene canvas { cursor: crosshair; }
         <dt>Double-tap</dt><dd>Jump to that spot</dd>
       </dl>
     </details>
-    <button class="primary" id="welcome-go" type="button">Start exploring</button>
+    <div class="welcome-actions"><button class="primary" id="welcome-go" type="button">Start exploring</button><button class="text-btn" id="welcome-tour" type="button">Take the guided tour</button></div>
   </section>
 </div>
 
@@ -546,6 +572,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // All models: metres, origin at the centre of the base. +x = east, +y = up, +z = south.
 const D = Math.PI / 180;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const up = (p, h) => p.clone().add(V(0, h, 0));   // a point h metres above a floor point
 // Photo with its estimated camera position and look-at point (model metres)
 const ph = (src, alt, caption, credit, license, url, cam, look) => ({ src: 'photos/' + src, alt, caption, credit, license, url, cam: cam.toArray(), look: look.toArray() });
 const css = getComputedStyle(document.documentElement);
@@ -1046,6 +1073,17 @@ const KHUFU = (() => {
     id: 'khufu', king: 'Khufu', reign: [2589, 2566], year: 2570, lat: 29.97917, lon: 31.13417,
     short: 'Khufu', site: 'Giza', date: 'c. 2570 BC', title: 'The Great Pyramid of Khufu',
     rings: [[B, 0], [0, H]], today: 138.5, lowest: -30, start: 'king',
+    tour: () => [
+      { id: 'pyramid', path: [V(AX, 1.65, -B - 60)], look: V(AX, 17, entrance.z), say: 'We start on the north side. The original entrance is about 17 m up the face, a little east of the centre line.' },
+      { id: 'entrance', path: [V(AX, 15, entrance.z - 9), up(entrance, 1.0)], look: up(entrance.clone().addScaledVector(descDir, 15), 1.0), say: 'The real entrance. From here a passage only 1.2 m high slopes steeply down into the pyramid.' },
+      { id: 'descending', path: [up(entrance.clone().addScaledVector(descDir, 26), 1.0)], look: up(entrance.clone().addScaledVector(descDir, 45), 1.0), say: 'The descending passage runs on for about 100 m, deep into the bedrock. We turn off just ahead, where a hidden passage climbs upward.' },
+      { id: 'ascending', path: [up(entrance.clone().addScaledVector(descDir, 28.6), 1.0), up(ascStart, 1.0), up(ascStart.clone().addScaledVector(ascDir, 22), 1.0)], look: up(galStart, 1.0), say: 'The ascending passage. Its lower end is still blocked by three granite plugs; visitors today reach it through the robbers\u2019 tunnel.' },
+      { id: 'queen', path: [up(galStart, 1.0), up(V(AX, 21.66, -9), 1.0), up(V(AX, QC.y0, -3.4), 1.3), V(AX - 1.2, QC.y0 + 1.65, -0.8)], look: V(QC.x1, QC.y0 + 2.4, 0), say: 'A side trip along the level passage to the Queen\u2019s Chamber, which sits exactly on the pyramid\u2019s east\u2013west axis. The tall niche in the east wall may once have held a statue.' },
+      { id: 'gallery', path: [up(V(AX, QC.y0, -3.4), 1.3), up(V(AX, 21.66, -9), 1.0), up(galStart.clone().add(V(0, 0, 1.6)), 1.65)], look: galStart.clone().addScaledVector(ascDir, 40).add(V(0, 4, 0)), say: 'The Grand Gallery: 46.7 m long and 8.6 m high. Its walls step inward in seven courses so the roof can span the gap without an arch.' },
+      { id: 'antechamber', path: [up(galStart.clone().addScaledVector(ascDir, 16), 1.65), up(galStart.clone().addScaledVector(ascDir, 44), 1.65), up(V(AX, 43.01, 1.3), 1.0), up(V(AX, 43.0, 2.4), 1.0), V(AX, 44.6, 4.3)], look: V(AX, 44.4, 8.4), say: 'Over the Great Step and into the antechamber, where three stone slabs once slid down in grooves to seal the way.' },
+      { id: 'king', path: [up(V(AX, 43.0, 6.5), 1.0), up(V(AX, 43.0, 8.7), 1.0), V(4.6, 44.65, 11.6)], look: V(KC.x0 + 1.7, 43.6, 11.9), say: 'The King\u2019s Chamber, lined entirely with granite from Aswan. The lidless sarcophagus at the far end is the only thing left in it.' },
+      { id: 'relieving', path: [V(3, 44.65, 11.2)], look: V(3, 62, 11.6), say: 'Above this flat ceiling are five more low chambers, stacked to spread the weight of the stone above. Their walls carry the builders\u2019 painted marks naming Khufu.' },
+    ],
     stats: [['Original height', '146.6 m'], ['Base', '230.3 m per side']],
     sources: 'W. M. F. Petrie, <i>The Pyramids and Temples of Gizeh</i> (1883); V. Maragioglio &amp; C. Rinaldi, <i>L’Architettura delle Piramidi Menfite</i> IV (1965); M. Lehner, <i>The Complete Pyramids</i> (1997); G. Dormion, <i>La chambre de Chéops</i> (2004); Morishima et al., <i>Nature</i> 552 (2017); Procureur et al., <i>Nature Communications</i> 14 (2023).',
     features: [
@@ -1307,6 +1345,13 @@ const KHAFRE = (() => {
     id: 'khafre', king: 'Khafre', reign: [2558, 2532], year: 2540, lat: 29.97611, lon: 31.13083,
     short: 'Khafre', site: 'Giza', date: 'c. 2540 BC', title: 'The Pyramid of Khafre',
     rings: [[B, 0], [0, H]], today: 136.4, lowest: -11, start: 'burial',
+    tour: () => [
+      { id: 'pyramid', path: [V(AX, 1.65, -B - 55)], look: V(AX, 12, upEntrance.z), say: 'Khafre\u2019s pyramid has two entrances on the north side: one in the face about 11.5 m up, and one in the pavement below it.' },
+      { id: 'upper', path: [V(AX, 10, upEntrance.z - 8), up(upEntrance, 1.0), up(upEntrance.clone().lerp(upEnd, 0.6), 1.0)], look: up(upEnd, 1.0), say: 'The upper passage, lined with granite, slopes down to bedrock level. A granite portcullis once blocked its lower end.' },
+      { id: 'horizontal', path: [up(upEnd, 1.0), up(V(AX, 0, -40), 1.0)], look: up(V(AX, 0, BC.s0), 1.0), say: 'The long level passage runs south to the burial chamber. The ramp from the lower entrance joins it along the way.' },
+      { id: 'burial', path: [up(V(AX, 0, -3.2), 1.2), V(9, 1.65, 0)], look: V(0.3, 0.5, 0), say: 'The burial chamber, cut into the bedrock with a pointed roof of huge limestone beams. The granite sarcophagus is sunk into the floor near the west wall.' },
+      { id: 'belzoni', path: [V(5.5, 1.65, -1.2)], look: V(5, 3.3, BC.s1), say: 'On the wall: \u201cScoperta da G. Belzoni 2 mar 1818\u201d, painted by the first modern visitor to reach this room.' },
+    ],
     stats: [['Original height', '143.5 m'], ['Base', '215.25 m per side']],
     sources: 'M. Verner, <i>The Pyramids</i> (2001); M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); W. M. F. Petrie (1883); G. Belzoni’s 1818 account. Overall size is surveyed. The published interior plans give few passage figures online, so passage angles and lengths here are approximate.',
     features: [
@@ -1387,6 +1432,14 @@ const MENKAURE = (() => {
     id: 'menkaure', king: 'Menkaure', reign: [2532, 2503], year: 2510, lat: 29.97250, lon: 31.12806,
     short: 'Menkaure', site: 'Giza', date: 'c. 2510 BC', title: 'The Pyramid of Menkaure',
     rings: [[B, 0], [0, H]], today: 61, lowest: BCy - 1, start: 'burial',
+    tour: () => [
+      { id: 'pyramid', path: [V(0, 1.65, -B - 40)], look: V(0, 8, entrance.z), say: 'Menkaure\u2019s is the smallest of the three great Giza pyramids. Its lowest courses were cased in red granite, and some of it is still in place.' },
+      { id: 'descending', path: [V(0, 4.5, entrance.z - 6), up(entrance, 1.0), up(entrance.clone().lerp(dEnd, 0.6), 1.0)], look: up(dEnd, 1.0), say: 'The entrance passage, lined with granite, slopes down into the rock.' },
+      { id: 'panelled', path: [up(dEnd, 1.0), V(0, fl + 1.6, dEnd.z + 1.8)], look: V(0, fl + 1.1, dEnd.z + 3.6), say: 'The panelled chamber, carved to look like the front of a royal palace: the only decorated room in the three Giza pyramids.' },
+      { id: 'portcullis', path: [up(V(0, fl, dEnd.z + 3.8), 1.0), up(V(0, fl, dEnd.z + 7), 1.0)], look: up(V(0, fl, AC.s0), 1.0), say: 'Three granite portcullis slabs once dropped into slots along this passage to block it.' },
+      { id: 'antechamber', path: [up(V(0, fl, AC.s0 - 0.3), 1.0), V(1.5, fl + 1.65, 0)], look: V(-7, fl + 2, 0), say: 'The large rectangular room, cut in the bedrock. It may have been the first burial chamber before the plan was enlarged.' },
+      { id: 'burial', path: [up(V(2, fl, 0), 1.0), up(V(-4.5, BCy, 0), 1.0), up(V(-6.2, BCy, 0), 1.2), V(-6.8, BCy + 1.65, 0)], look: V(-12.8, BCy + 1.8, 0), say: 'Down to the granite burial chamber. Its basalt sarcophagus was lost at sea in 1838 on the way to England.' },
+    ],
     stats: [['Original height', 'c. 65 m'], ['Base', '102.2 × 104.6 m']],
     sources: 'V. Maragioglio &amp; C. Rinaldi, <i>L’Architettura delle Piramidi Menfite</i> VI (1967); M. Lehner, <i>The Complete Pyramids</i> (2008); R. Howard Vyse (1840). Overall size is surveyed. Interior room sizes come from secondary summaries of these surveys and are approximate.',
     features: [
@@ -1471,6 +1524,13 @@ const RED = (() => {
     id: 'red', king: 'Sneferu', reign: [2613, 2589], year: 2590, lat: 29.80889, lon: 31.20611,
     short: 'Red', site: 'Dahshur', date: 'c. 2590 BC', title: 'The Red Pyramid of Sneferu',
     rings: [[B, 0], [0, H]], lowest: -2, start: 'chamber3',
+    tour: () => [
+      { id: 'pyramid', path: [V(0, 1.65, -B - 60)], look: V(0, 30, entrance.z), say: 'The Red Pyramid, Sneferu\u2019s third and final pyramid, with a gentle 43\u00b0 slope. The entrance is 28 m up the north face.' },
+      { id: 'descending', path: [V(0, 27, entrance.z - 8), up(entrance, 0.75), up(entrance.clone().lerp(dEnd, 0.55), 0.75)], look: up(dEnd, 0.75), say: 'A 61 m passage, less than a metre high, slopes all the way down to ground level.' },
+      { id: 'chamber1', path: [up(dEnd, 0.8), V(0, 1.6, c1[0] + 0.8), V(0, 1.6, (c1[0] + c1[1]) / 2)], look: V(0, 11, (c1[0] + c1[1]) / 2 + 1), say: 'The first chamber. Its roof rises 12 m in eleven inward steps.' },
+      { id: 'chamber2', path: [V(-1, 1.0, c1[1] - 0.3), V(-1, 1.0, c2[0] + 0.3), V(0, 1.6, -0.5)], look: V(0, 7.8, c2[1]), say: 'The second chamber, directly under the apex. The opening high in the far wall leads to the burial chamber.' },
+      { id: 'chamber3', path: [V(0, 1.6, 2.6), V(0, 8.8, c2[1] - 0.2), V(0, 8.8, c3[0] + 0.3), V(0, 8.6, (c3[0] + c3[1]) / 2)], look: V(0, 13, c3[1]), say: 'Up the modern stair into the burial chamber. Its floor was dug up by treasure hunters; human remains, possibly Sneferu\u2019s, were found here.' },
+    ],
     stats: [['Height', '105 m'], ['Base', '220 m per side']],
     sources: 'M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); R. Stadelmann’s Dahshur work; site guides for chamber plan sizes. Overall size, passage slope and chamber heights are published figures. Chamber floor plans and the third chamber’s level are approximate.',
     features: [
@@ -1540,6 +1600,13 @@ const BENT = (() => {
     id: 'bent', king: 'Sneferu', reign: [2613, 2589], year: 2600, lat: 29.79028, lon: 31.20944,
     short: 'Bent', site: 'Dahshur', date: 'c. 2600 BC', title: 'The Bent Pyramid of Sneferu',
     rings, lowest: nEnd.y, start: 'lowerChamber',
+    tour: () => [
+      { id: 'pyramid', path: [V(0, 1.65, -B - 60)], look: V(0, 40, -bendB), say: 'The Bent Pyramid: its slope changes about halfway up. Much of its smooth limestone casing is still in place.' },
+      { id: 'north', path: [V(0, 12, nEntrance.z - 6), up(nEntrance, 0.9), up(nEntrance.clone().lerp(nEnd, 0.5), 0.9)], look: up(nEnd, 0.9), say: 'The north passage runs 74 m down into the bedrock.' },
+      { id: 'lowerAnte', path: [up(nEnd, 0.9), V(0, nEnd.y + 1.6, ante[0] + 2.7)], look: V(0, nEnd.y + 12, ante[0] + 3.2), say: 'A narrow space with a stepped roof 12.6 m high, an early experiment in the technique later used in the Grand Gallery.' },
+      { id: 'lowerChamber', path: [V(0, lowY + 1.6, LC.s0 + 0.7), V(0, lowY + 1.6, (LC.s0 + LC.s1) / 2)], look: V(0, lowY + 15, (LC.s0 + LC.s1) / 2 + 0.3), say: 'The lower chamber, 6.5 m above the antechamber floor, with a stepped roof rising 17 m.' },
+      { id: 'upperChamber', path: [V(-1, lowY + 13, LC.s0 + 0.6), V(-3.5, lowY + 13.5, LC.s0 + 0.6), V(-6.5, 0.5, -1), V(-8.6, UC.y0 + 1, wS), V(-1.5, UC.y0 + 1.65, wS)], look: V(0, UC.y0 + 6, wS + 0.8), say: 'Through the rough connecting tunnel to the upper chamber, still braced with its original cedar beams.' },
+    ],
     stats: [['Height', '104.71 m'], ['Base', '189.43 m per side']],
     sources: 'A. Fakhry, <i>The Monuments of Sneferu at Dahshur</i> (1959–61); M. Verner, <i>The Pyramids</i> (2001); M. Lehner, <i>The Complete Pyramids</i> (1997, 2008); R. Stadelmann (1997). The west passage angle, the upper chamber’s exact position and the robbers’ tunnel route are approximate.',
     features: [
@@ -1615,6 +1682,13 @@ const UNAS = (() => {
     id: 'unas', king: 'Unas', reign: [2375, 2345], year: 2350, lat: 29.86833, lon: 31.21472,
     short: 'Unas', site: 'Saqqara', date: 'c. 2350 BC', title: 'The Pyramid of Unas',
     rings: [[B, 0], [0, H]], lowest: fl - 1, start: 'texts',
+    tour: () => [
+      { id: 'pyramid', path: [V(0, 1.65, -B - 30)], look: V(0, 10, 0), say: 'Unas\u2019s pyramid is now a low mound, but the rooms underneath are almost intact. Their walls are the first ever covered in writing.' },
+      { id: 'descending', path: [V(0, 1.65, entrance.z - 4), up(entrance, 1.0), up(entrance.clone().lerp(V(0, fl, vS0), 0.6), 1.0)], look: up(V(0, fl, vS0), 1.0), say: 'The entrance opens in the floor of a chapel against the north face. The corridor slopes down at 22\u00b0.' },
+      { id: 'passage', path: [up(V(0, fl, vS0), 1.0), up(V(0, fl, pS0 + 1), 1.0), up(V(0, fl, pS1 - 1.5), 1.0)], look: V(0.55, fl + 0.7, pS1 - 1.5), say: 'Past the three granite portcullises. On the last stretch of the passage the Pyramid Texts begin.' },
+      { id: 'antechamber', path: [V(0, fl + 1.65, AC.s0 + 0.4), V(0, fl + 1.65, 0.6)], look: V(AC.x1, fl + 2.3, 0), say: 'The antechamber, directly under the apex, with real photographs of its texts on the walls. The east gable holds the Cannibal Hymn.' },
+      { id: 'burial', path: [V(-1.2, fl + 1.65, 0), V(-4.3, fl + 1.65, 0)], look: V(BC.x0, fl + 2.6, 0), say: 'The burial chamber, its ceiling painted with stars. Spells to protect the king cover the gable above the sarcophagus.' },
+    ],
     stats: [['Original height', '43 m'], ['Base', '57.75 m per side']],
     sources: 'D. Arnold (2003); M. Lehner, <i>The Complete Pyramids</i> (2008); M. Verner, <i>The Pyramids</i> (2001); R. Stadelmann (1985); J. P. Allen, <i>The Ancient Egyptian Pyramid Texts</i> (2005). Room plans and passage lengths are published figures; room heights and the sarcophagus size are approximate, and the inscribed panels show where the texts are, not their actual signs.',
     features: [
@@ -1756,6 +1830,7 @@ const toggles = { humans: true, shafts: true, scan: true, marks: true, surround:
 
 function load(def, fly) {
   if (ctx && walk.on) stopWalk();
+  if (ctx && tour.on) stopTour();
   if (ctx) {
     for (const o of ctx.labels) o.element.remove();
     scene.remove(ctx.root);
@@ -1822,6 +1897,7 @@ function load(def, fly) {
   document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
   document.getElementById('tg-scan').hidden = !def.features.some(f => f.scan);
   document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark || f.inscribed);
+  document.getElementById('btn-tour').hidden = !def.tour;
 
   applyToggles();
   clearSelection();
@@ -1911,7 +1987,7 @@ addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (!helpEl.hidden) return setHelp(false);
   if (menus.some(([, m]) => !m.hidden)) return closeMenus();
-  if (walk.on) stopWalk(); else clearSelection();
+  if (tour.on) stopTour(); else if (walk.on) stopWalk(); else clearSelection();
 });
 
 // Contents panel and navigation help
@@ -1986,12 +2062,14 @@ function flyToFeature(id) {
 }
 
 // Toggles
+// true while walking or touring inside a pyramid, where outside labels would show through the walls
+const indoors = () => (walk.on && walk.inside) || (tour.on && tour.inside);
 function refreshLabels() {
   for (const o of ctx.labels) {
     const f = o.userData.id && ctx.byId[o.userData.id];
     const groupVisible = !f || ctx.groups[f.id].visible;
     const hidden = toggles.stone && !toggles.cut && o.userData.id && o.userData.id !== ctx.selected;   // solid stone hides what is inside
-    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !(walk.on && walk.inside) : ((o.userData.quiet && !(walk.on && walk.inside)) || o.userData.major || o.userData.id === ctx.selected));
+    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !indoors() : ((o.userData.quiet && !indoors()) || o.userData.major || o.userData.id === ctx.selected));
   }
 }
 function applyToggles() {
@@ -2256,6 +2334,7 @@ function switchTo(def) {
 const modeButtons = [...document.querySelectorAll('.mode')];
 function setMode(m) {
   if (m !== 'model' && walk.on) stopWalk();
+  if (m !== 'model' && tour.on) stopTour();
   document.body.dataset.mode = m;
   for (const b of modeButtons) b.setAttribute('aria-pressed', b.dataset.mode === m);
   document.getElementById('timeline-view').hidden = m !== 'timeline';
@@ -2540,6 +2619,7 @@ startSel.addEventListener('change', () => {
 });
 walkBtn.addEventListener('click', () => {
   if (walk.on) return stopWalk();
+  if (tour.on) stopTour();
   setMode('model');
   const s = outsideStart(); startWalk(s.p, s.look);
 });
@@ -2704,6 +2784,89 @@ document.getElementById('btn-link').addEventListener('click', async () => {
   clearTimeout(note.t); note.t = setTimeout(() => { note.hidden = true; }, 4000);
 });
 
+
+// ======================================================================
+// Guided tour: the camera moves along each pyramid's real route, stopping to explain each part
+// ======================================================================
+const TOUR_SPEED = 6;   // metres per second between stops
+const tour = { on: false, stops: [], i: -1, pts: [], lens: [], total: 0, d: 0, moving: false, look: null, saved: null };
+const tourHud = document.getElementById('tourhud'), tourBtn = document.getElementById('btn-tour');
+function startTour() {
+  if (!ctx.def.tour) return;
+  if (walk.on) stopWalk();
+  setMode('model'); setHelp(false); closeMenus();
+  tour.saved = { stone: toggles.stone, fov: camera.fov };
+  tour.on = true; tour.stops = ctx.def.tour(); anim = null;
+  controls.enabled = false;
+  if (!toggles.stone) { toggles.stone = true; toggles.today = true; applyToggles(); }
+  camera.fov = 62; camera.updateProjectionMatrix();
+  document.body.classList.add('touring');
+  tourHud.hidden = false; tourBtn.setAttribute('aria-pressed', true);
+  document.getElementById('tour-dots').innerHTML = tour.stops.map(() => '<i></i>').join('');
+  goStop(0);
+}
+function stopTour() {
+  if (!tour.on) return;
+  tour.on = false; tour.moving = false;
+  controls.enabled = true;
+  camera.fov = tour.saved.fov; camera.updateProjectionMatrix();
+  if (!tour.saved.stone) { toggles.stone = false; applyToggles(); }
+  document.body.classList.remove('touring');
+  tour.inside = false; refreshLabels();
+  tourHud.hidden = true; tourBtn.setAttribute('aria-pressed', false);
+  torch.intensity = 0;
+}
+function goStop(i) {
+  tour.i = i;
+  const st = tour.stops[i], f = ctx.byId[st.id];
+  tour.pts = [camera.position.clone(), ...st.path];
+  tour.lens = []; tour.total = 0;
+  for (let k = 1; k < tour.pts.length; k++) { const l = tour.pts[k].distanceTo(tour.pts[k - 1]); tour.lens.push(l); tour.total += l; }
+  tour.d = 0; tour.moving = true; tour.look = st.look;
+  tour.dir = controls.target.clone().sub(camera.position).normalize();
+  controls.enabled = false;
+  document.getElementById('tour-step').textContent = `Guided tour \u00b7 ${i + 1} of ${tour.stops.length}`;
+  document.getElementById('tour-title').textContent = f.name;
+  document.getElementById('tour-say').textContent = st.say ?? f.why;
+  [...document.getElementById('tour-dots').children].forEach((d, k) => d.className = k < i ? 'done' : k === i ? 'now' : '');
+  document.getElementById('tour-back').disabled = i === 0;
+  document.getElementById('tour-next').textContent = i === tour.stops.length - 1 ? 'Finish' : 'Next';
+  ctx.selected = st.id; setEmissive(); refreshLabels(); setHash(st.id);
+}
+const _tl = new THREE.Vector3();
+function tourStep(dt) {
+  if (!tour.moving) return;
+  // faster over long stretches, easing to a walking pace as the stop gets close
+  tour.d = Math.min(tour.total, tour.d + Math.max(TOUR_SPEED, (tour.total - tour.d) * 1.4) * dt);
+  // position along the path, heading along the current segment, turning toward the stop's view near the end
+  let d = tour.d, k = 0;
+  while (k < tour.lens.length - 1 && d > tour.lens[k]) { d -= tour.lens[k]; k++; }
+  const a = tour.pts[k], b = tour.pts[k + 1] ?? a, t = tour.lens[k] ? d / tour.lens[k] : 1;
+  camera.position.lerpVectors(a, b, t);
+  const remaining = tour.total - tour.d;
+  const ahead = b.distanceTo(a) > 0.01 ? b.clone().sub(a).normalize() : V(0, 0, 1);
+  const toLook = tour.look.clone().sub(camera.position).normalize();
+  const w = Math.min(1, Math.max(0, 1 - remaining / 6));   // blend into the final view over the last 6 m
+  // turn smoothly toward where we are heading, so the view never swings backwards
+  const want = ahead.lerp(toLook, w).normalize();
+  tour.dir = (tour.dir ?? want.clone()).lerp(want, Math.min(1, dt * 5)).normalize();
+  controls.target.copy(camera.position).addScaledVector(tour.dir, 3);
+  camera.lookAt(controls.target);
+  const inside = inFootprint(camera.position.x, camera.position.z) || camera.position.y < 0;
+  if (inside !== tour.inside) { tour.inside = inside; refreshLabels(); }
+  torch.position.copy(camera.position).add(V(0, 0.4, 0)); torch.intensity = inside ? 10 : 0;
+  if (tour.d >= tour.total) {
+    tour.moving = false;
+    controls.target.copy(tour.look);   // at a stop you can drag to look around what is being described
+    controls.enabled = true;
+  }
+}
+tourBtn.addEventListener('click', () => tour.on ? stopTour() : startTour());
+document.getElementById('welcome-tour').addEventListener('click', startTour);
+document.getElementById('tour-exit').addEventListener('click', stopTour);
+document.getElementById('tour-next').addEventListener('click', () => tour.i < tour.stops.length - 1 ? goStop(tour.i + 1) : stopTour());
+document.getElementById('tour-back').addEventListener('click', () => tour.i > 0 && goStop(tour.i - 1));
+
 // Resize and loop
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -2721,7 +2884,7 @@ const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 let lastFrame = performance.now();
 renderer.setAnimationLoop(now => {
   const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
-  stepNav(dt);
+  if (tour.on) tourStep(dt); else stepNav(dt);
   if (anim) {
     const t = Math.min(1, (now - anim.t0) / anim.dur), k = ease(t);
     controls.target.lerpVectors(anim.ft, anim.tt, k);
