@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Inside the Pyramids">
-<meta property="og:description" content="Explore six Egyptian pyramids in 3D: every known passage and chamber, real photos, the Pyramid Texts, a timeline and a satellite map.">
+<meta property="og:description" content="Explore Egypt’s pyramids and the Great Sphinx in 3D: every known passage and chamber, real photos, the Pyramid Texts, a timeline and a satellite map.">
 <meta property="og:image" content="https://georgephilippou.github.io/inside-the-pyramids/preview.jpg">
 <meta property="og:image:width" content="800">
 <meta property="og:image:height" content="420">
@@ -13,16 +13,22 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#f0eee6">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f0eee6'/%3E%3Cpath d='M16 5 3 27h26z' fill='%23c96442'/%3E%3Cpath d='M16 5 21 27h8z' fill='%239c4a30'/%3E%3C/svg%3E">
-<meta name="description" content="See-through 3D models of six Egyptian pyramids with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
+<meta name="description" content="See-through 3D models of seven Egyptian pyramids and the Great Sphinx with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
 <title>Inside the Pyramids</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/style.css?v=2619315c">
+<link rel="stylesheet" href="css/style.css?v=daccaff5">
 </head>
 <body>
 <div id="scene"></div>
 <div id="labels"></div>
+<section class="picker card" id="picker" role="dialog" aria-label="Choose a monument" hidden>
+  <div class="picker-head"><div><h2>Choose a monument</h2><p>Oldest on the left. All drawn to the same scale.</p></div>
+    <button class="icon-btn" id="picker-close" type="button" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="scale-strip" id="scale-strip"></div>
+  <div class="pick-groups" id="pick-groups"></div>
+</section>
 <aside class="orient card" id="orient" aria-label="Where you are">
   <svg class="compass" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="18"/><g id="compass-rose"><path class="n" d="M0-15 4 0H-4z"/><path class="s" d="M0 15 4 0H-4z"/><text y="-17.5">N</text></g></svg>
   <div class="orient-txt"><b id="orient-where">Outside</b><span id="orient-height"></span></div>
@@ -37,8 +43,14 @@
     </button>
     <b>Inside the Pyramids</b>
   </div>
-  <nav class="switcher" id="switcher" aria-label="Choose a pyramid"></nav>
-  <label class="pyr-pick"><span class="sr">Pyramid</span><select id="pyr-select" aria-label="Choose a pyramid"></select></label>
+  <div class="pick-wrap">
+    <button class="icon-btn" id="pick-prev" type="button" aria-label="Previous: older monument"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="pick-btn" id="pick-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker">
+      <span class="pick-icon" id="pick-icon"></span><span class="pick-txt"><b id="pick-name"></b><small id="pick-sub"></small></span>
+      <svg class="i chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button class="icon-btn" id="pick-next" type="button" aria-label="Next: newer monument"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
   <div class="modes" role="group" aria-label="View">
     <button class="mode" type="button" data-mode="model" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg><span>3D</span></button>
     <button class="mode" type="button" data-mode="timeline" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h18M7 8v8M12 6v12M17 9v6"/></svg><span>Timeline</span></button>
@@ -146,7 +158,7 @@
   <section class="welcome card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="eyebrow">Welcome</div>
     <h2 id="welcome-title">Inside the Pyramids</h2>
-    <p>Explore six Egyptian pyramids in 3D, from Sneferu’s Bent Pyramid to the Pyramid of Unas, with every known passage and chamber drawn from published surveys.</p>
+    <p>Explore Egypt’s pyramids and the Great Sphinx in 3D, from Djoser’s Step Pyramid, the first, to the Pyramid of Unas, with every known passage and chamber drawn from published surveys.</p>
     <ul class="tries">
       <li><b>Click any chamber or name</b> to see photos, measurements and why it matters.</li>
       <li><b>Take the Tour</b> to be walked through the passages, or <b>Walk</b> on your own at human height.</li>
@@ -179,15 +191,17 @@
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=2619315c",
-  "./js/pyramids/red.js": "./js/pyramids/red.js?v=2619315c",
-  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=2619315c",
-  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=2619315c",
-  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=2619315c",
-  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=2619315c"
+  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=daccaff5",
+  "./js/pyramids/red.js": "./js/pyramids/red.js?v=daccaff5",
+  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=daccaff5",
+  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=daccaff5",
+  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=daccaff5",
+  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=daccaff5",
+  "./js/pyramids/djoser.js": "./js/pyramids/djoser.js?v=daccaff5",
+  "./js/pyramids/sphinx.js": "./js/pyramids/sphinx.js?v=daccaff5"
 } }
 </script>
-<script type="module" src="js/viewer.js?v=2619315c"></script>
+<script type="module" src="js/viewer.js?v=daccaff5"></script>
 
 </body>
 </html>

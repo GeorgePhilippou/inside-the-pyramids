@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import bent from './pyramids/bent.js';
 import red from './pyramids/red.js';
 import khufu from './pyramids/khufu.js';
 import khafre from './pyramids/khafre.js';
 import menkaure from './pyramids/menkaure.js';
 import unas from './pyramids/unas.js';
+import djoser from './pyramids/djoser.js';
+import sphinx from './pyramids/sphinx.js';
 
 // All models: metres, origin at the centre of the base. +x = east, +y = up, +z = south.
 const D = Math.PI / 180;
@@ -17,7 +20,7 @@ const up = (p, h) => p.clone().add(V(0, h, 0));   // a point h metres above a fl
 const ph = (src, alt, caption, credit, license, url, cam, look) => ({ src: 'photos/' + src, alt, caption, credit, license, url, cam: cam.toArray(), look: look.toArray() });
 const css = getComputedStyle(document.documentElement);
 const C = n => new THREE.Color(css.getPropertyValue('--' + n).trim());
-const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), later: C('later'), cedar: C('cedar'), mark: C('mark'), texts: C('texts'), human: C('human') };
+const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), later: C('later'), faience: C('faience'), stage: C('stage'), cedar: C('cedar'), mark: C('mark'), texts: C('texts'), human: C('human') };
 
 // ---------- Scene ----------
 const host = document.getElementById('scene');
@@ -136,8 +139,22 @@ TEX.texts = (() => {
   t.repeat.set(1 / tile, 1 / tile);
   return t;
 })();
+TEX.faience = (() => {
+  // small blue-green tiles in rows, set like reed matting, as in Djoser's blue chambers
+  const size = 256, tile = 1, c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), r = rng(31), n = 16, w = size / n;
+  g.fillStyle = '#d9cfb8'; g.fillRect(0, 0, size, size);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n * 2; j++) {
+    g.fillStyle = `hsl(${178 + r() * 14}, ${45 + r() * 15}%, ${38 + r() * 10}%)`;
+    g.fillRect(i * w + 1.5, j * w / 2 + 1, w - 3, w / 2 - 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.repeat.set(1 / tile, 1 / tile);
+  return t;
+})();
 TEX.sand.repeat.set(200, 200);       // ground plane is 6 km across with 0–1 UVs
-const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime', later: 'rock', texts: 'texts' };
+const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime', later: 'rock', texts: 'texts', faience: 'faience' };
 const WHITE = new THREE.Color(0xffffff);
 const shellStone = new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide });
 const groundStone = new THREE.MeshStandardMaterial({ map: TEX.sand, roughness: 1, side: THREE.DoubleSide });
@@ -162,8 +179,8 @@ function worldUV(geo) {
   }
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 }
-function makeShellGeo(rings) {
-  const pos = [], uv = [], corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+function makeShellGeo(rings, zr = 1) {
+  const pos = [], uv = [], corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => [x, z * zr]);
   for (let i = 0; i < rings.length - 1; i++) {
     const [a, ya] = rings[i], [b, yb] = rings[i + 1];
     for (let k = 0; k < 4; k++) {
@@ -226,6 +243,7 @@ function applyLook() {
 
 // ---------- Exteriors: smooth white casing as built, or the weathered stepped core seen today ----------
 TEX.tura = stoneTexture({ tile: 14, base: '#e9e2d0', course: [1.0, 1.5], blockW: [1.5, 3.0], spread: 0.03, joint: 'rgba(90,80,60,.16)', grain: 12, seed: 13 });
+TEX.sphinx = stoneTexture({ tile: 8, base: '#c9a675', course: [0.4, 1.3], blockW: [40, 60], spread: 0.2, joint: 'rgba(90,65,35,.3)', grain: 30, cracks: 40, seed: 17 });   // bands of bedrock
 TEX.core = stoneTexture({ tile: 9, base: '#bea47b', course: [3, 3], blockW: [0.7, 2.0], spread: 0.16, joint: 'rgba(70,52,30,.5)', grain: 30, cracks: 25, seed: 15 });
 function exteriorMats() {
   const m = {
@@ -235,6 +253,7 @@ function exteriorMats() {
     granite: new THREE.MeshStandardMaterial({ map: TEX.granite, roughness: 0.85, side: THREE.DoubleSide }),
     weathered: new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide }),
     oldCasing: new THREE.MeshStandardMaterial({ map: TEX.tura, color: '#d6c39d', roughness: 0.85, side: THREE.DoubleSide }),
+    bedrock: new THREE.MeshStandardMaterial({ map: TEX.sphinx, roughness: 1, side: THREE.DoubleSide }),
   };
   for (const x of Object.values(m)) x.clipShadows = true;
   return m;
@@ -248,7 +267,13 @@ const TODAY = {
   menkaure: { top: 61, courses: [1.0, 0.6], baseTo: 8, baseMat: 'granite' }, // 7 of the granite courses survive
   red: { top: 104, courses: [0.9, 0.55], core: 'redCore' },
   bent: { smooth: true },                                                   // most of its casing is still in place
+  djoser: { smooth: true },                                                 // steps weathered, casing mostly gone
 };
+// A sculpted monument (the Sphinx) gives its own pieces; they are merged once into one surface
+function shapeGeo(def) {
+  if (!def._shape) { const g = mergeGeometries(def.shape().map(x => x.index ? x.toNonIndexed() : x)); worldUV(g); def._shape = g; }
+  return def._shape;
+}
 function frustumGeo(rings, y0, y1, inset = 0) {
   const rs = [[halfAt(rings, y0) - inset, y0], ...rings.filter(([, y]) => y > y0 && y < y1).map(([r, y]) => [r - inset, y]), [Math.max(0, halfAt(rings, y1) - inset), y1]];
   return makeShellGeo(rs);
@@ -292,10 +317,11 @@ function exteriorGroups(def, neighbour = false, holes = []) {
   const M = neighbour ? NEIGHBOUR_MATS : MAIN_MATS, built = new THREE.Group(), today = new THREE.Group();
   const add = (grp, geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; grp.add(m); };
   const top = def.rings[def.rings.length - 1][1];
+  if (def.shape) { add(built, shapeGeo(def), M.bedrock); built.userData.solid = 'built'; return { built, today: null }; }
   if (def.id === 'menkaure') { add(built, frustumGeo(def.rings, 0, 20), M.granite); add(built, frustumGeo(def.rings, 20, top), M.tura); }   // lowest 16 courses were granite
-  else add(built, makeShellGeo(def.rings), M.tura);
+  else add(built, makeShellGeo(def.rings, def.zr), M.tura);
   const t = TODAY[def.id];
-  if (t?.smooth) add(today, makeShellGeo(def.rings), M.weathered);
+  if (t?.smooth) add(today, makeShellGeo(def.rings, def.zr), M.weathered);
   else if (t) {
     if (t.baseTo) add(today, frustumGeo(def.rings, 0, t.baseTo), M[t.baseMat]);
     add(today, stepGeo(def.rings, t.baseTo ?? 0, t.capFrom ?? t.top, t.courses, 1.0, 5, holes), M[t.core ?? 'core']);
@@ -368,6 +394,7 @@ function faceAt(p) {
 }
 // If p lies on the outer face and the passage runs inward from it, the face plane there (q, n)
 function faceEnd(p, inward) {
+  if (ctx.def.shape || (ctx.def.zr ?? 1) !== 1) return null;
   const rings = ctx.def.rings, top = rings[rings.length - 1][1];
   if (p.y < -0.05 || p.y > top) return null;
   const r = halfAt(rings, Math.max(0, p.y)), m = Math.max(Math.abs(p.x), Math.abs(p.z));
@@ -650,9 +677,9 @@ function halfAt(rings, y) {
   return 0;
 }
 function buildShell(def) {
-  const rings = def.rings, g = ctx.groups.pyramid;
+  const rings = def.rings, g = ctx.groups.pyramid, zr = def.zr ?? 1;
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-  const geo = makeShellGeo(rings);
+  const geo = def.shape ? shapeGeo(def) : makeShellGeo(rings, zr);
   const shell = new THREE.Mesh(geo, shellMat);
   ctx.shell = shell;
   shell.renderOrder = 10;
@@ -660,13 +687,16 @@ function buildShell(def) {
   ctx.ext = exteriorGroups(def);
   g.add(ctx.ext.built);
   if (ctx.ext.today) g.add(ctx.ext.today);
-  const square = (r, y) => [V(-r, y, -r), V(r, y, -r), V(r, y, r), V(-r, y, r), V(-r, y, -r)];
+  const square = (r, y) => [V(-r, y, -r * zr), V(r, y, -r * zr), V(r, y, r * zr), V(-r, y, r * zr), V(-r, y, -r * zr)];
   const edgeMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.9 });
   const courseMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.22 });
-  for (const c of corners) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rings.map(([r, y]) => V(c[0] * r, y, c[1] * r))), edgeMat));
-  for (const [r, y] of rings) if (r > 0) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(r, y)), edgeMat));
   const top = rings[rings.length - 1][1];
-  for (let y = 10; y < top; y += 10) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(halfAt(rings, y), y)), courseMat));
+  if (def.shape) g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 40), courseMat));
+  else {
+    for (const c of corners) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rings.map(([r, y]) => V(c[0] * r, y, c[1] * r * zr))), edgeMat));
+    for (const [r, y] of rings) if (r > 0) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(r, y)), edgeMat));
+    for (let y = 10; y < top; y += 10) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(halfAt(rings, y), y)), courseMat));
+  }
   if (def.today) {
     const t = new THREE.Line(new THREE.BufferGeometry().setFromPoints(square(halfAt(rings, def.today), def.today)), new THREE.LineDashedMaterial({ color: COL.edge, dashSize: 1, gapSize: 1 }));
     t.computeLineDistances();
@@ -682,17 +712,19 @@ function buildShell(def) {
     m.userData.solid = solid; m.userData.cap = true;
     g.add(m);
   };
-  const outline = rs => [...rs.map(([r, y]) => [-r, y]), ...[...rs].reverse().map(([r, y]) => [r, y])];
-  section(outline(rings), CAP_MATS.core, def.id in TODAY ? 'built' : true);
+  const outline = rs => [...rs.map(([r, y]) => [-r * zr, y]), ...[...rs].reverse().map(([r, y]) => [r * zr, y])];
   const T = TODAY[def.id];
-  if (T && !T.smooth) {
-    const top = T.top, rs = [...rings.filter(([, y]) => y < top).map(([r, y]) => [Math.max(0.5, r - 1), y]), [Math.max(0.5, halfAt(rings, top) - 1), top]];
-    section(outline(rs), CAP_MATS.core, 'today');
-  } else if (T) section(outline(rings), CAP_MATS.core, 'today');
-  const w = rings[0][0] + 40;
+  if (!def.shape) {
+    section(outline(rings), CAP_MATS.core, def.id in TODAY ? 'built' : true);
+    if (T && !T.smooth) {
+      const top = T.top, rs = [...rings.filter(([, y]) => y < top).map(([r, y]) => [Math.max(0.5, r - 1), y]), [Math.max(0.5, halfAt(rings, top) - 1), top]];
+      section(outline(rs), CAP_MATS.core, 'today');
+    } else if (T) section(outline(rings), CAP_MATS.core, 'today');
+  }
+  const w = rings[0][0] * zr + 40;
   section([[-w, -depth], [w, -depth], [w, 0], [-w, 0]], CAP_MATS.rock, true);
-  // bedrock outline below ground
-  const bed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(rings[0][0] * 2 + 60, depth, rings[0][0] * 2 + 60)), new THREE.LineBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.35 }));
+
+  const bed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(rings[0][0] * 2 + 60, depth, rings[0][0] * zr * 2 + 60)), new THREE.LineBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.35 }));
   bed.position.y = -depth / 2;
   g.add(bed);
 }
@@ -709,9 +741,9 @@ function buildShell(def) {
 
 
 // Each pyramid's data lives in its own file and is built with these shared helpers
-const api = { THREE, V, D, up, ph, COL, passage, room, doorway, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
-const [BENT, RED, KHUFU, KHAFRE, MENKAURE, UNAS] = [bent, red, khufu, khafre, menkaure, unas].map(make => make(api));
-const PYRAMIDS = [BENT, RED, KHUFU, KHAFRE, MENKAURE, UNAS];
+const api = { THREE, RoundedBoxGeometry, V, D, up, ph, COL, passage, room, doorway, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
+const [DJOSER, BENT, RED, KHUFU, KHAFRE, SPHINX_DEF, MENKAURE, UNAS] = [djoser, bent, red, khufu, khafre, sphinx, menkaure, unas].map(make => make(api));
+const PYRAMIDS = [DJOSER, BENT, RED, KHUFU, KHAFRE, SPHINX_DEF, MENKAURE, UNAS];   // oldest first
 
 // ======================================================================
 // Loading a pyramid into the scene
@@ -769,8 +801,8 @@ function load(def, fly) {
     o.userData = { id: f.id, major: !!f.major };
     root.add(o); ctx.labels.push(o);
   }
-  const b = def.rings[0][0] + 22;
-  for (const [txt, p] of [['North', V(0, 0.2, -b)], ['South', V(0, 0.2, b)], ['East', V(b, 0.2, 0)], ['West', V(-b, 0.2, 0)]]) {
+  const b = def.rings[0][0] + 22, bz = def.rings[0][0] * (def.zr ?? 1) + 22;
+  for (const [txt, p] of [['North', V(0, 0.2, -bz)], ['South', V(0, 0.2, bz)], ['East', V(b, 0.2, 0)], ['West', V(-b, 0.2, 0)]]) {
     const el = document.createElement('div'); el.className = 'tag quiet'; el.textContent = txt;
     el.style.pointerEvents = 'none';
     const o = new CSS2DObject(el); o.position.copy(p); o.userData = { quiet: true }; root.add(o); ctx.labels.push(o);
@@ -787,8 +819,7 @@ function load(def, fly) {
   list.innerHTML = groupsOrder.map(g => `<details class="grp"${startOpen ? ' open' : ''}><summary class="group-title">${g}<span>${def.features.filter(f => f.group === g).length}</span></summary><div class="feat-list">
     ${def.features.filter(f => f.group === g).map(f => `<button type="button" class="feat" data-id="${f.id}"><i class="sw" style="background:var(--${f.color})"></i>${f.name}${f.photos?.length ? '<svg class="i cam" viewBox="0 0 24 24" aria-label="Has photos"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg>' : ''}</button>`).join('')}
     </div></details>`).join('');
-  for (const btn of document.querySelectorAll('.pyr')) btn.setAttribute('aria-pressed', btn.dataset.id === def.id);
-  if (typeof pyrSelect !== 'undefined') pyrSelect.value = def.id;
+  if (typeof syncPicker === 'function') syncPicker(def);
   document.getElementById('tg-shafts').hidden = !def.features.some(f => f.shaft);
   document.getElementById('tg-scan').hidden = !def.features.some(f => f.scan);
   document.getElementById('tg-marks').hidden = !def.features.some(f => f.mark || f.inscribed);
@@ -881,6 +912,7 @@ function clearSelection() {
 document.getElementById('btn-close').addEventListener('click', clearSelection);
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (!picker.hidden) return setPicker(false);
   if (!helpEl.hidden) return setHelp(false);
   if (menus.some(([, m]) => !m.hidden)) return closeMenus();
   if (tour.on) stopTour(); else if (walk.on) stopWalk(); else clearSelection();
@@ -1001,20 +1033,58 @@ toggle(document.getElementById('tg-labels'), 'labels');
 const op = document.getElementById('opacity');
 op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 
-// Pyramid switcher, with a tiny profile drawn from each pyramid's own outline
-const switcher = document.getElementById('switcher'), pyrSelect = document.getElementById('pyr-select');
-pyrSelect.innerHTML = PYRAMIDS.map(d => `<option value="${d.id}">${d.short}</option>`).join('');
-pyrSelect.addEventListener('change', () => switchTo(PYRAMIDS.find(d => d.id === pyrSelect.value)));
-for (const def of PYRAMIDS) {
-  const btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'pyr'; btn.dataset.id = def.id;
-  const w = def.rings[0][0], top = def.rings[def.rings.length - 1][1], s = 12 / 115;
-  const pts = [...def.rings.map(([r, y]) => [13 - r * s, 15 - y * s]), ...def.rings.slice(0, -1).reverse().map(([r, y]) => [13 + r * s, 15 - y * s])];
-  btn.innerHTML = `${profileSVG(def)}${def.short}<small>${def.date.replace('c. ', '')}</small>`;
-  btn.setAttribute('aria-label', `${def.title}, ${def.site}`);
-  btn.addEventListener('click', () => switchTo(def));
-  switcher.appendChild(btn);
+// Monument picker: the current one in the top bar, with older/newer arrows; the panel shows every
+// monument at the same scale, then grouped by site
+const pickBtn = document.getElementById('pick-btn'), picker = document.getElementById('picker');
+const SITES = ['Saqqara', 'Dahshur', 'Giza'];
+function scaleStrip(current) {
+  const gap = 44, base = 150, pad = 8, foot = 78;
+  let x = pad;
+  const parts = PYRAMIDS.map(def => {
+    const pts = profilePts(def), minX = Math.min(...pts.map(p => p[0])), maxX = Math.max(...pts.map(p => p[0]));
+    const ox = x - minX; x += maxX - minX + gap;
+    const top = Math.max(...pts.map(p => p[1]));
+    return `<g class="strip-item${def === current ? ' on' : ''}" tabindex="0" role="button" data-id="${def.id}" aria-label="${def.title}, ${def.date}">
+      <rect x="${ox + minX - gap / 2}" y="0" width="${maxX - minX + gap}" height="${base + foot}" class="hit"/>
+      <polygon points="${pts.map(([px, py]) => `${(ox + px).toFixed(1)},${(base - py).toFixed(1)}`).join(' ')}"/>
+      <text x="${ox + (minX + maxX) / 2}" y="${base + 36}" class="nm">${def.short}</text>
+      <text x="${ox + (minX + maxX) / 2}" y="${base + 66}" class="dt">${def.date.replace('c. ', '')}</text>
+      <text x="${ox + (minX + maxX) / 2}" y="${base - top - 10}" class="ht">${Math.round(top)} m</text></g>`;
+  }).join('');
+  return `<svg viewBox="0 -36 ${x - gap + pad} ${base + foot + 36}" role="group" aria-label="All monuments to scale">
+    <line x1="0" y1="${base}" x2="${x}" y2="${base}" class="ground"/>${parts}</svg>`;
 }
+function renderPicker() {
+  const cur = ctx?.def;
+  document.getElementById('scale-strip').innerHTML = scaleStrip(cur);
+  document.getElementById('pick-groups').innerHTML = SITES.map(site => `<div class="pick-group"><h3>${site}</h3><div class="pick-cards">${
+    PYRAMIDS.filter(d => d.site === site).map(d => `<button type="button" class="pick-card" data-id="${d.id}" aria-current="${d === cur}">
+      <span class="pc-icon">${profileSVG(d, 40, 24)}</span>
+      <span class="pc-txt"><b>${d.title}</b><span>${d.date} · King ${d.king}</span><span class="muted">${d.stats.map(([k, v]) => `${k} ${v}`).join(' · ')}</span></span></button>`).join('')
+  }</div></div>`).join('');
+}
+function setPicker(open) {
+  if (open) renderPicker();
+  picker.hidden = !open; pickBtn.setAttribute('aria-expanded', open);
+  if (open) picker.querySelector('[aria-current="true"]')?.focus();
+  layoutLabels.t = 0;
+}
+function syncPicker(def) {
+  document.getElementById('pick-icon').innerHTML = profileSVG(def, 30, 18);
+  document.getElementById('pick-name').textContent = def.short;
+  document.getElementById('pick-sub').textContent = `${def.site} · ${def.date}`;
+  pickBtn.setAttribute('aria-label', `${def.title}, ${def.date}. Choose another monument`);
+  const i = PYRAMIDS.indexOf(def);
+  document.getElementById('pick-prev').disabled = i === 0;
+  document.getElementById('pick-next').disabled = i === PYRAMIDS.length - 1;
+}
+pickBtn.addEventListener('click', e => { e.stopPropagation(); setPicker(picker.hidden); });
+document.getElementById('picker-close').addEventListener('click', () => setPicker(false));
+document.getElementById('pick-prev').addEventListener('click', () => switchTo(PYRAMIDS[Math.max(0, PYRAMIDS.indexOf(ctx.def) - 1)]));
+document.getElementById('pick-next').addEventListener('click', () => switchTo(PYRAMIDS[Math.min(PYRAMIDS.length - 1, PYRAMIDS.indexOf(ctx.def) + 1)]));
+picker.addEventListener('click', e => { const t = e.target.closest('[data-id]'); if (t) { setPicker(false); switchTo(PYRAMIDS.find(p => p.id === t.dataset.id)); } });
+picker.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.strip-item')) { e.preventDefault(); e.target.click(); } });
+addEventListener('pointerdown', e => { if (!picker.hidden && !e.target.closest('#picker, #pick-btn')) setPicker(false); });
 
 // Picking
 const ray = new THREE.Raycaster();
@@ -1160,13 +1230,12 @@ function stepNav(dt) {
 // ======================================================================
 // Surroundings: neighbouring pyramids and the Sphinx, placed from their real coordinates
 // ======================================================================
-const SPHINX = { name: 'Great Sphinx', lat: 29.97528, lon: 31.13750 };
 const M_LAT = 110850, mLon = lat => 111320 * Math.cos(lat * D);
 const localPos = (def, lat, lon) => V((lon - def.lon) * mLon(def.lat), 0, -(lat - def.lat) * M_LAT);
 const surroundMat = new THREE.LineBasicMaterial({ color: COL.edge, transparent: true, opacity: 0.6, fog: false });
-function outlinePyramid(rings, at) {
+function outlinePyramid(rings, at, zr = 1) {
   const g = new THREE.Group();
-  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => [x, z * zr]);
   for (const c of corners) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rings.map(([r, y]) => V(c[0] * r, y, c[1] * r))), surroundMat));
   for (const [r, y] of rings) if (r > 0) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...corners, corners[0]].map(c => V(c[0] * r, y, c[1] * r))), surroundMat));
   g.position.copy(at);
@@ -1187,38 +1256,12 @@ function buildSurroundings(def) {
     if (p === def) continue;
     const at = localPos(def, p.lat, p.lon);
     if (at.length() > 3500) continue;
-    const outline = outlinePyramid(p.rings, at); outline.userData.solid = false; ctx.surround.add(outline);
+    const outline = p.shape ? new THREE.LineSegments(new THREE.EdgesGeometry(shapeGeo(p), 40), surroundMat) : outlinePyramid(p.rings, at, p.zr);
+    if (p.shape) outline.position.copy(at);
+    outline.userData.solid = false; ctx.surround.add(outline);
     const ex = exteriorGroups(p, true);
     for (const grp of [ex.built, ex.today]) if (grp) { grp.position.copy(at); grp.visible = false; ctx.surround.add(grp); }
     surroundLabel(`${p.short} →`, at.clone().setY(p.rings[p.rings.length - 1][1] + 6), () => switchTo(p));
-  }
-  // Djoser's Step Pyramid: six tiers, about 121 x 109 m at the base and 62.5 m high (tier sizes approximate)
-  const dj = CONTEXT.find(c => c.short === 'Djoser'), dpos = localPos(def, dj.lat, dj.lon);
-  if (dpos.length() < 3500) {
-    const outline = new THREE.Group(), solid = new THREE.Group(), th = 62.5 / 6;
-    for (let i = 0; i < 6; i++) {
-      const w = 121 - i * 15, d = 109 - i * 13.5;
-      const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, th, d)), surroundMat);
-      e.position.set(0, th * (i + 0.5), 0); outline.add(e);
-      const g = new THREE.BoxGeometry(w, th, d); worldUV(g);
-      const m = new THREE.Mesh(g, shellStone); m.position.copy(e.position); solid.add(m);
-    }
-    outline.position.copy(dpos); solid.position.copy(dpos);
-    outline.userData.solid = false; solid.userData.solid = true; solid.visible = false;
-    ctx.surround.add(outline, solid);
-    surroundLabel('Step Pyramid of Djoser', dpos.clone().setY(70));
-  }
-  const s = localPos(def, SPHINX.lat, SPHINX.lon);
-  if (s.length() < 3500) {
-    // body about 73 m long, 19 m wide, 20 m high, facing east
-    const box = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(73, 20, 19)), surroundMat);
-    box.position.copy(s).setY(10); box.userData.solid = false;
-    ctx.surround.add(box);
-    const sgeo = new THREE.BoxGeometry(73, 20, 19); worldUV(sgeo);
-    const body = new THREE.Mesh(sgeo, sphinxStone);
-    body.position.copy(s).setY(10); body.userData.solid = true; body.visible = false;
-    ctx.surround.add(body);
-    surroundLabel('Great Sphinx', s.clone().setY(26));
   }
 }
 
@@ -1241,9 +1284,13 @@ function setMode(m) {
 }
 for (const b of modeButtons) b.addEventListener('click', () => setMode(b.dataset.mode));
 
+// Side profile in metres, west to east: from the pyramid's rings, or the monument's own outline
+function profilePts(def) {
+  return def.profile ?? [...def.rings.map(([r, y]) => [-r, y]), ...def.rings.slice(0, -1).reverse().map(([r, y]) => [r, y])];
+}
 function profileSVG(def, w = 26, h = 16) {
   const s = (h - 2) / 146.6, cx = w / 2;
-  const pts = [...def.rings.map(([r, y]) => [cx - r * s, h - 1 - y * s]), ...def.rings.slice(0, -1).reverse().map(([r, y]) => [cx + r * s, h - 1 - y * s])];
+  const pts = profilePts(def).map(([px, py]) => [cx + px * s, h - 1 - py * s]);
   return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true"><polygon points="${pts.map(p => p.map(n => n.toFixed(2)).join(',')).join(' ')}" fill="currentColor"/></svg>`;
 }
 function fmtReign(d) { return `c. ${d.reign[0]}–${d.reign[1]} BC`; }
@@ -1252,20 +1299,20 @@ function fmtReign(d) { return `c. ${d.reign[0]}–${d.reign[1]} BC`; }
 const DYNASTIES = [['3rd Dynasty', 2686, 2613], ['4th Dynasty', 2613, 2494], ['5th Dynasty', 2494, 2345], ['6th Dynasty', 2345, 2181]];
 const KINGS = [['Djoser', 2667, 2648], ['Sneferu', 2613, 2589], ['Khufu', 2589, 2566], ['Djedefre', 2566, 2558], ['Khafre', 2558, 2532], ['Menkaure', 2532, 2503], ['Unas', 2375, 2345]];
 const CONTEXT = [
-  { name: 'Step Pyramid of Djoser', short: 'Djoser', place: 'Saqqara', year: 2650, lat: 29.87111, lon: 31.21639, note: 'The first pyramid: six stone steps, designed by the architect Imhotep.' },
   { name: 'Meidum pyramid', short: 'Meidum', place: 'Meidum', year: 2610, lat: 29.38806, lon: 31.15694, note: 'Probably begun for Huni and finished by Sneferu; its outer layers later collapsed.' },
 ];
 
 function renderTimeline() {
-  const W = 1000, x = yr => 40 + (2700 - yr) * (920 / 400);
+  const W = 1000, x = yr => 40 + (2700 - yr) * (920 / 400);   // 2700 to 2300 BC
   const band = DYNASTIES.map(([n, a, b], i) => {
     const x0 = x(Math.min(a, 2700)), x1 = x(Math.max(b, 2300));
     return `<rect x="${x0}" y="8" width="${x1 - x0}" height="26" class="${i % 2 ? 'dyn b' : 'dyn'}"/><text x="${(x0 + x1) / 2}" y="25" class="dyn-t">${n}</text>`;
   }).join('');
   const kings = KINGS.map(([n, a, b]) => `<rect x="${x(a)}" y="66" width="${x(b) - x(a)}" height="18" rx="3" class="reign${PYRAMIDS.some(p => p.king === n) ? ' ours' : ''}"/><text x="${(x(a) + x(b)) / 2}" y="${x(b) - x(a) < 40 ? 60 : 100}" class="king-t">${n}</text>`).join('');
   const items = [...CONTEXT.map(c => ({ ...c, ctx: true })), ...PYRAMIDS.map(p => ({ name: p.short, year: p.year, def: p }))].sort((a, b) => b.year - a.year);
+  const seen = {};
   const marks = items.map((it, i) => {
-    const cx = x(it.year), ly = i % 2 ? 196 : 176;
+    const cx = x(it.year) + (seen[it.year] = (seen[it.year] ?? -1) + 1) * 30, ly = i % 2 ? 196 : 176;
     const icon = it.def ? `<g transform="translate(${cx - 13},${132})" class="pm ours">${profileSVG(it.def).replace('<svg', '<svg width="26" height="16"')}</g>`
       : `<path d="M${cx - 9} 148 L${cx} 134 L${cx + 9} 148 Z" class="pm"/>`;
     const label = `<line x1="${cx}" y1="150" x2="${cx}" y2="${ly - 11}" class="tick"/><text x="${cx}" y="${ly}" class="${it.def ? 'mk-t ours' : 'mk-t'}">${it.def ? it.def.short : it.short}</text>`;
@@ -1280,8 +1327,8 @@ function renderTimeline() {
       <span class="pcard-date">${p.date}</span><b>${p.short}</b>
       <span>${p.site} · King ${p.king}</span><span class="muted">Reign ${fmtReign(p)}</span></button>`).join('');
   const el = document.getElementById('timeline-view');
-  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom · 4th and 5th Dynasties</div><h2>When they were built</h2>
-      <p>Five of these pyramids were built in under a century, by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson, roughly 4,500 years ago. The sixth, Unas, came about 150 years later and is the first with texts carved inside.</p></div></header>
+  el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom · 3rd to 5th Dynasties</div><h2>When they were built</h2>
+      <p>Djoser’s Step Pyramid, the first, came about 50 years before the others. Five pyramids and the Sphinx were then built in under a century by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson. Unas came about 150 years later, the first with texts carved inside.</p></div></header>
     <div class="scroll-x">${svg}</div>
     <div class="pcards">${cards}</div>
     <div class="ctx-list">${CONTEXT.map(c => `<div><b>${c.name}</b> · ${c.place}, c. ${c.year} BC<br><span class="muted">${c.note}</span></div>`).join('')}</div>
@@ -1309,7 +1356,7 @@ function renderMap() {
     ${box(30.00, 31.10, 29.95, 31.16, 'Giza')}${box(29.83, 31.18, 29.77, 31.24, 'Dahshur')}
     ${city(30.0444, 31.2357, 'Cairo (modern)')}${city(29.8467, 31.2550, 'Memphis, the Old Kingdom capital')}
     ${CONTEXT.map(c => site(c.lat, c.lon, c.short, 'other')).join('')}
-    ${PYRAMIDS.filter(p => ['khufu', 'red', 'bent', 'unas'].includes(p.id)).map(p => site(p.lat, p.lon, p.id === 'khufu' ? 'Giza pyramids' : p.short, 'ours', p.id)).join('')}
+    ${PYRAMIDS.filter(p => ['khufu', 'red', 'bent', 'unas', 'djoser'].includes(p.id)).map(p => site(p.lat, p.lon, p.id === 'khufu' ? 'Giza pyramids' : p.short, 'ours', p.id, p.id === 'djoser' ? -8 : 8)).join('')}
     <text x="${P(29.6, 31.29)[0]}" y="${P(29.6, 31.29)[1]}" class="map-t river-t" transform="rotate(-80 ${P(29.6, 31.29).join(' ')})">Nile</text>
     <g transform="translate(${w - 40},20)"><path d="M0 18 L6 0 L12 18 L6 13 Z" class="north"/><text x="6" y="32" class="map-t small" text-anchor="middle">N</text></g>
     <g transform="translate(10,${h - 20})"><line x1="0" y1="0" x2="100" y2="0" class="scale"/><text x="0" y="-6" class="map-t small">10 km</text></g>
@@ -1320,11 +1367,11 @@ function renderMap() {
     const s = 600 / spanM;
     const Q = (lat, lon) => [300 + (lon - cLon) * mLon(cLat) * s, 300 - (lat - cLat) * M_LAT * s];
     const sq = sites.map(p => {
-      const [px, py] = Q(p.lat, p.lon), r = p.rings[0][0] * s;
+      const [px, py] = Q(p.lat, p.lon), r = p.rings[0][0] * s, rz = r * (p.zr ?? 1);
       return `<g class="tl-hit" tabindex="0" role="button" data-id="${p.id}" aria-label="Open ${p.title}">
-        <rect x="${px - r}" y="${py - r}" width="${2 * r}" height="${2 * r}" class="foot"/>
-        <path d="M${px - r} ${py - r} L${px + r} ${py + r} M${px + r} ${py - r} L${px - r} ${py + r}" class="foot-x"/>
-        <text x="${px}" y="${py + r + 16}" class="map-t ours" text-anchor="middle">${p.short}</text></g>`;
+        <rect x="${px - r}" y="${py - rz}" width="${2 * r}" height="${2 * rz}" class="${p.shape ? 'sphinx' : 'foot'}"/>
+        ${p.shape ? '' : `<path d="M${px - r} ${py - rz} L${px + r} ${py + rz} M${px + r} ${py - rz} L${px - r} ${py + rz}" class="foot-x"/>`}
+        <text x="${px}" y="${py + rz + 16}" class="map-t ours" text-anchor="middle">${p.short}</text></g>`;
     }).join('');
     const ex = extras.map(e => { const [px, py] = Q(e.lat, e.lon); return `<rect x="${px - 36.5 * s}" y="${py - 9.5 * s}" width="${73 * s}" height="${19 * s}" class="sphinx"/><text x="${px}" y="${py + 9.5 * s + 14}" class="map-t small" text-anchor="middle">${e.name}</text>`; }).join('');
     return `<svg viewBox="0 0 600 600" class="map" role="img" aria-label="${label}">
@@ -1337,7 +1384,7 @@ function renderMap() {
   const avg = (a, k) => a.reduce((t, p) => t + p[k], 0) / a.length;
   const el = document.getElementById('map-view');
   el.innerHTML = `<header class="view-head map-head"><div><div class="eyebrow">Lower Egypt</div><h2>Where they stand</h2>
-      <p>All six pyramids sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart, with Saqqara between them. Click a pin for details, then open it in 3D.</p></div>
+      <p>All of these monuments sit on the desert edge west of the Nile, close to Memphis, the capital of the Old Kingdom. Giza and Dahshur are about 20 km apart, with Saqqara between them. Click a pin for details, then open it in 3D.</p></div>
       <div class="seg" role="group" aria-label="Map style"><button type="button" data-maptab="sat" aria-pressed="true">Satellite</button><button type="button" data-maptab="diagram" aria-pressed="false">Diagram</button></div></header>
     <div id="sat-wrap" class="sat-wrap">
       <div class="row-btns" role="group" aria-label="Jump to a site">
@@ -1351,7 +1398,7 @@ function renderMap() {
       <p class="fine" id="map-note"></p>
       <div class="maps">
         <figure>${region}<figcaption>The region. River course simplified.</figcaption></figure>
-        <figure>${plan(giza, [SPHINX], avg(giza, 'lat') - 0.0005, avg(giza, 'lon') + 0.0015, 1500, 'Plan of the Giza plateau', 200)}<figcaption>Giza plateau, to scale.</figcaption></figure>
+        <figure>${plan(giza, [], avg(giza, 'lat') - 0.0005, avg(giza, 'lon') + 0.0015, 1500, 'Plan of the Giza plateau', 200)}<figcaption>Giza plateau, to scale.</figcaption></figure>
         <figure>${plan(dah, [], avg(dah, 'lat'), avg(dah, 'lon'), 2600, 'Plan of the Dahshur pyramids', 500)}<figcaption>Dahshur, to scale.</figcaption></figure>
       </div>
       <p class="fine">Positions from published site coordinates. Pyramid bases drawn at their true size and orientation.</p>
@@ -1372,7 +1419,6 @@ renderMap();
 let satMap = null;
 const SAT_CONTEXT = [
   ...CONTEXT,
-  { name: 'Great Sphinx', short: 'Sphinx', place: 'Giza', lat: SPHINX.lat, lon: SPHINX.lon, note: 'Carved from the bedrock beside Khafre’s causeway, probably in his reign.' },
   { name: 'Memphis', short: 'Memphis', place: 'Mit Rahina', lat: 29.8467, lon: 31.2550, note: 'The capital of Egypt in the Old Kingdom.' },
 ];
 function showMapTab(tab, note) {
@@ -1397,7 +1443,7 @@ function initSatMap() {
   const pin = (cls, title, sub) => L.divIcon({ className: 'pin-wrap', html: `<span class="pin ${cls}"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>`, iconSize: null, iconAnchor: [0, 0] });
   const items = [];
   for (const p of PYRAMIDS) {
-    const r = p.rings[0][0], dLa = r / M_LAT, dLo = r / mLon(p.lat);
+    const r = p.rings[0][0], dLa = r * (p.zr ?? 1) / M_LAT, dLo = r / mLon(p.lat);
     L.rectangle([[p.lat - dLa, p.lon - dLo], [p.lat + dLa, p.lon + dLo]], { color: '#c96442', weight: 2, fill: false, interactive: false }).addTo(satMap);
     const m = L.marker([p.lat + dLa, p.lon], { icon: pin('ours', p.short, p.date), riseOnHover: true })   // pin sits on the north edge so the pyramid stays visible
       .bindPopup(`<div class="pop"><div class="eyebrow">${p.site} · ${p.date}</div><b>${p.title}</b><p>${p.features[0].text.split('. ')[0]}.</p><button type="button" class="text-btn" data-id="${p.id}">Open in 3D</button></div>`);
@@ -1475,7 +1521,7 @@ function headroom(x, feet, z) {
   const h = walkRay.intersectObjects(walk.objs, false)[0];
   return h ? h.distance + 0.2 : Infinity;
 }
-const inFootprint = (x, z) => { const r = halfAt(ctx.def.rings, 0); return Math.abs(x) < r && Math.abs(z) < r; };
+const inFootprint = (x, z) => { const r = halfAt(ctx.def.rings, 0); return Math.abs(x) < r && Math.abs(z) < r * (ctx.def.zr ?? 1); };
 const lookDir = () => V(-Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
 function placeCamera() {
   camera.position.set(walk.x, walk.feet + walk.eye, walk.z);
@@ -1487,8 +1533,8 @@ function setToggle(key, on) {
   applyToggles();
 }
 function outsideStart() {
-  const r = halfAt(ctx.def.rings, 0);
-  return { p: V(0, 0, -r - 60), look: V(0, 22, -r) };
+  const r = halfAt(ctx.def.rings, 0) * (ctx.def.zr ?? 1);
+  return { p: V(0, 0, -r - 60), look: V(0, Math.min(22, ctx.def.rings[ctx.def.rings.length - 1][1] * 0.6), -r) };
 }
 function startWalk(p, look) {
   if (!walk.on) {
@@ -1615,7 +1661,7 @@ function buildMinimap() {
   mm.width = mm.clientWidth * dpr; mm.height = mm.clientHeight * dpr;
 }
 function drawMinimap() {
-  const W = mm.width, H = mm.height, rings = ctx.def.rings, r0 = rings[0][0], top = rings[rings.length - 1][1];
+  const W = mm.width, H = mm.height, zr = ctx.def.zr ?? 1, rings = ctx.def.rings.map(([r, y]) => [r * zr, y]), r0 = rings[0][0], top = rings[rings.length - 1][1];
   const low = Math.min(ctx.def.lowest, 0) - 6, span = Math.max(2 * r0 + 60, (top - low) * W / H);
   const k = W / span, X = z => W / 2 + z * k, Y = y => H - 8 - (y - low) * k * 0.98;
   mmg.clearRect(0, 0, W, H);
@@ -1717,7 +1763,7 @@ function layoutLabels() {
   if (!layoutLabels.ui || now - layoutLabels.t > 400) {
     layoutLabels.t = now;
     const host = renderer.domElement.getBoundingClientRect();
-    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .menu, .orient')]
+    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .menu, .orient, .picker')]
       .filter(el => el.offsetWidth > 0).map(el => el.getBoundingClientRect())
       .map(r => ({ x0: r.left - host.left, x1: r.right - host.left, y0: r.top - host.top, y1: r.bottom - host.top }));
   }
@@ -1858,7 +1904,7 @@ document.getElementById('tour-next').addEventListener('click', () => tour.i < to
 document.getElementById('tour-back').addEventListener('click', () => tour.i > 0 && goStop(tour.i - 1));
 
 // ---------- Where you are: compass, position in words, colour key ----------
-const KEY_TEXT = { lime: 'Built of limestone', granite: 'Granite', rock: 'Cut into the bedrock', shaft: 'Shafts and narrow tunnels', later: 'Dug later by robbers', scan: 'Found by scans, not entered', mark: 'Inscriptions and marks', texts: 'Pyramid Texts' };
+const KEY_TEXT = { stage: 'Earlier building stages', faience: 'Blue faience tiles', lime: 'Built of limestone', granite: 'Granite', rock: 'Cut into the bedrock', shaft: 'Shafts and narrow tunnels', later: 'Dug later by robbers', scan: 'Found by scans, not entered', mark: 'Inscriptions and marks', texts: 'Pyramid Texts' };
 const keyEl = document.getElementById('key'), keyBtn = document.getElementById('btn-key');
 function buildKey() {
   const used = new Set(ctx.def.features.filter(f => f.id !== 'pyramid').map(f => f.color));
@@ -1872,11 +1918,11 @@ const SIDES = { 'z-': 'north', 'z+': 'south', 'x+': 'east', 'x-': 'west' };
 function updateOrient() {
   const f = controls.target.clone().sub(camera.position);
   rose.setAttribute('transform', `rotate(${Math.atan2(f.x, -f.z) * -180 / Math.PI})`);
-  const p = camera.position, rings = ctx.def.rings, r = halfAt(rings, Math.max(0, p.y));
-  const m = Math.max(Math.abs(p.x), Math.abs(p.z));
+  const p = camera.position, rings = ctx.def.rings, zr = ctx.def.zr ?? 1, r = halfAt(rings, Math.max(0, p.y));
+  const m = Math.max(Math.abs(p.x), Math.abs(p.z) / zr);
   const side = SIDES[Math.abs(p.x) > Math.abs(p.z) ? (p.x > 0 ? 'x+' : 'x-') : (p.z > 0 ? 'z+' : 'z-')];
-  const inside = p.y >= 0 && m < r;
-  whereEl.textContent = p.y < 0 ? (m < rings[0][0] + 30 ? 'Below ground, in the bedrock' : 'Below ground') : inside ? 'Inside the pyramid' : p.y > rings[rings.length - 1][1] * 1.4 || m > rings[0][0] * 4 ? `Above the ${side} side` : `Outside, ${side} side`;
+  const inside = p.y >= 0 && m < r && !ctx.def.shape;
+  whereEl.textContent = p.y < 0 ? (m < rings[0][0] + 30 ? 'Below ground, in the bedrock' : 'Below ground') : inside ? `Inside the ${ctx.def.kind ?? 'pyramid'}` : p.y > rings[rings.length - 1][1] * 1.4 || m > rings[0][0] * 4 ? `Above the ${side} side` : `Outside, ${side} side`;
   // the nearest named part, if one is close
   let near = null, best = Math.max(12, r * 0.15);
   for (const o of ctx.labels) {
@@ -1887,12 +1933,12 @@ function updateOrient() {
   const h = Math.round(p.y);
   heightEl.textContent = (Math.abs(h) < 1 ? 'At ground level' : h > 0 ? `${h} m above the base` : `${-h} m below the base`) + (near ? ` \u00b7 near ${near}` : '');
 }
-// Top bar: drop the title, then the dates, until every pyramid fits
+// Top bar: drop the title, then the place and date under the monument's name, until it fits
 const topbar = document.querySelector('.topbar');
 function fitTopbar() {
-  topbar.classList.remove('tight1', 'tight2', 'tight3');
-  for (const c of ['tight1', 'tight2', 'tight3']) {
-    if (switcher.scrollWidth <= switcher.clientWidth + 1) break;
+  topbar.classList.remove('tight1', 'tight2');
+  for (const c of ['tight1', 'tight2']) {
+    if (topbar.scrollWidth <= topbar.clientWidth + 1) break;
     topbar.classList.add(c);
   }
 }
