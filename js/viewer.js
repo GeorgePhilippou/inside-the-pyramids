@@ -214,6 +214,7 @@ function applyLook() {
   scene.fog.color.copy(stone ? HORIZON : PAPER);
   ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, o.userData.hasToday); });
   for (const g of Object.values(ctx.groups)) for (const o of g.children) if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, !!ctx.ext.today);
+  syncRecesses(true);
   document.getElementById('opacity').disabled = stone;
   setEmissive();
 }
@@ -415,6 +416,7 @@ function passage(id, a, b, w, h) {
     collar.material = ctx.mats[id];
     put(id, collar);
     collar.userData.solid = 'door';
+    ctx.collars.push(collar);
   }
   return m;
 }
@@ -448,9 +450,22 @@ function doorway(id, p, dir, w, h, pn) {
   recess.material = recessMat;
   recess.userData.solid = 'today';
   ctx.groups[id].add(recess);
+  // when you stand in the doorway, the recess gives way to the passage itself
+  const near = new THREE.Box3().setFromObject(recess).expandByScalar(4);
+  ctx.recesses.push({ recess, near, collars: ctx.collars.filter(c => new THREE.Box3().setFromObject(c).intersectsBox(near)), inside: false });
   // the hole in the steps covers where the recess passes through the core
   const box = new THREE.Box3().setFromObject(recess), side = SIDE_OF(hz), along = side % 2 ? 'z' : 'x';
   ctx.holes.push({ k: side, u0: box.min[along] - 0.05, u1: box.max[along] + 0.05, y0: box.min.y - 0.05, y1: box.max.y + 0.05 });
+}
+function syncRecesses(force) {
+  for (const r of ctx.recesses) {
+    const inside = r.near.containsPoint(camera.position);
+    if (inside === r.inside && !force) continue;
+    r.inside = inside;
+    const stone = toggles.stone, hasToday = !!ctx.ext.today;
+    r.recess.visible = solidVisible('today', stone, hasToday) && !inside;
+    for (const c of r.collars) c.visible = solidVisible('door', stone, hasToday) || inside;
+  }
 }
 function addDoorways() {
   for (const d of ctx.faceEnds) {
@@ -697,7 +712,7 @@ function load(def, fly) {
   const R = def.rings[0][0] + 160;
   Object.assign(sun.shadow.camera, { left: -R, right: R, top: R, bottom: -R, near: 10, far: 2200 });
   sun.shadow.camera.updateProjectionMatrix();
-  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(), extra: [], faceEnds: [], doors: [], holes: [],
+  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(), extra: [], faceEnds: [], doors: [], holes: [], collars: [], recesses: [],
     byId: Object.fromEntries(def.features.map(f => [f.id, f])), selected: null };
   root.add(ctx.humans);
   for (const f of def.features) {
@@ -1748,7 +1763,7 @@ function tourStep(dt) {
   camera.lookAt(controls.target);
   const inside = inFootprint(camera.position.x, camera.position.z) || camera.position.y < 0;
   if (inside !== tour.inside) { tour.inside = inside; refreshLabels(); }
-  torch.position.copy(camera.position).add(V(0, 0.4, 0)); torch.intensity = inside ? 10 : 0;
+  torch.position.copy(camera.position).addScaledVector(tour.dir, -0.9); torch.intensity = inside ? 8 : 0;   // held just behind your head
   if (tour.d >= tour.total) {
     tour.moving = false;
     controls.target.copy(tour.look);   // at a stop you can drag to look around what is being described
@@ -1829,6 +1844,7 @@ renderer.setAnimationLoop(now => {
   }
   if (ctx.mats.bigVoid && ctx.groups.bigVoid.visible) ctx.mats.bigVoid.opacity = 0.32 + 0.14 * Math.sin(now / 600);
   controls.update();
+  if (ctx.recesses.length) syncRecesses();
   renderer.render(scene, camera);
   layoutLabels();
   labelRenderer.render(scene, camera);
