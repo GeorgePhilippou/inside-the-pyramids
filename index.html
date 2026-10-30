@@ -23,6 +23,12 @@
 <body>
 <div id="scene"></div>
 <div id="labels"></div>
+<aside class="orient card" id="orient" aria-label="Where you are">
+  <svg class="compass" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="18"/><g id="compass-rose"><path class="n" d="M0-15 4 0H-4z"/><path class="s" d="M0 15 4 0H-4z"/><text y="-17.5">N</text></g></svg>
+  <div class="orient-txt"><b id="orient-where">Outside</b><span id="orient-height"></span></div>
+  <button type="button" class="key-btn" id="btn-key" aria-expanded="false" aria-controls="key">Key</button>
+  <div class="key" id="key" hidden></div>
+</aside>
 
 <header class="topbar card">
   <div class="brand">
@@ -57,19 +63,6 @@
     <details class="more">
       <summary>What about hieroglyphs?</summary>
       <p class="note">The five 4th-Dynasty pyramids here have no carved hieroglyphic texts on their inside walls; what survives in them are builders’ marks and later inscriptions, shown on the stone where a picture of them exists, or as a dashed clay outline where only the place is known. Inscribed burial chambers first appear about 150 years after Menkaure, in the Pyramid of Unas at Saqqara (c. 2350 BC). Open it to see where its Pyramid Texts are, shown in blue.</p>
-    </details>
-    <details class="more">
-      <summary>Colour key</summary>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--lime)"></i>Limestone-built</span>
-        <span><i class="sw" style="background:var(--granite)"></i>Granite</span>
-        <span><i class="sw" style="background:var(--rock)"></i>Cut into bedrock</span>
-        <span><i class="sw" style="background:var(--scan)"></i>Found by scanning</span>
-        <span><i class="sw" style="background:var(--shaft)"></i>Shafts and tunnels</span>
-        <span><i class="sw" style="background:var(--human)"></i>Person, 1.75 m</span>
-        <span><i class="sw" style="background:var(--mark)"></i>Inscription or mark</span>
-        <span><i class="sw" style="background:var(--texts)"></i>Pyramid Texts</span>
-      </div>
     </details>
     <details class="more">
       <summary>Sources</summary>

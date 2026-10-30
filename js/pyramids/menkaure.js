@@ -21,7 +21,7 @@ export default function menkaure(api) {
       { id: 'panelled', path: [up(dEnd, 1.0), V(0, fl + 1.6, dEnd.z + 1.8)], look: V(0, fl + 1.1, dEnd.z + 3.6), say: 'The panelled chamber, carved to look like the front of a royal palace: the only decorated room in the three Giza pyramids.' },
       { id: 'portcullis', path: [up(V(0, fl, dEnd.z + 3.8), 1.0), up(V(0, fl, dEnd.z + 7), 1.0)], look: up(V(0, fl, AC.s0), 1.0), say: 'Three granite portcullis slabs once dropped into slots along this passage to block it.' },
       { id: 'antechamber', path: [up(V(0, fl, AC.s0 - 0.3), 1.0), V(1.5, fl + 1.65, 0)], look: V(-7, fl + 2, 0), say: 'The large rectangular room, cut in the bedrock. It may have been the first burial chamber before the plan was enlarged.' },
-      { id: 'burial', path: [up(V(2, fl, 0), 1.0), up(V(-4.5, BCy, 0), 1.0), up(V(-6.2, BCy, 0), 1.2), V(-6.8, BCy + 1.65, 0)], look: V(-12.8, BCy + 1.8, 0), say: 'Down to the granite burial chamber. Its basalt sarcophagus was lost at sea in 1838 on the way to England.' },
+      { id: 'burial', path: [up(V(2, fl, 0), 1.0), up(V(-4.5, BCy, 0), 1.0), up(V(-6.4, BCy, 0), 1.2), V(-7.0, BCy + 1.65, -2.4)], look: V(-7.7, BCy + 1.6, 3.3), say: 'Down to the granite burial chamber. Its basalt sarcophagus was lost at sea in 1838 on the way to England.' },
     ],
     stats: [['Original height', 'c. 65 m'], ['Base', '102.2 × 104.6 m']],
     sources: 'V. Maragioglio &amp; C. Rinaldi, <i>L’Architettura delle Piramidi Menfite</i> VI (1967); M. Lehner, <i>The Complete Pyramids</i> (2008); R. Howard Vyse (1840). Overall size is surveyed. Interior room sizes come from secondary summaries of these surveys and are approximate.',
@@ -56,9 +56,9 @@ export default function menkaure(api) {
         facts: [['Ends', 'In the masonry'], ['Route', 'Simplified']] },
       { id: 'burial', group: 'Burial rooms', name: 'Burial chamber', color: 'granite', conf: 'approx', major: true,
         why: 'Its imitation vault is an early experiment in making a stone roof look curved.',
-        photos: () => [ph('menkaure-burial.jpg', 'Granite chamber with a curved ceiling', 'The granite burial chamber and its curved ceiling.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:17_menkaure_burial_chamber.jpg', V(-6.5, BCy + 1.6, 0), V(-12.8, BCy + 1.8, 0))],
-        text: 'A granite-lined room set lower and to the west. Its roof is made of granite beams in pairs, cut underneath into a curve so it looks like a vault. The basalt sarcophagus found here was lost at sea in 1838 when the ship Beatrice sank on its way to England.',
-        facts: [['Size', 'c. 6.6 × 2.6 m'], ['Height', 'c. 3.4 m'], ['Sarcophagus', 'Lost at sea, 1838']] },
+        photos: () => [ph('menkaure-burial.jpg', 'Granite chamber with a curved ceiling', 'The granite burial chamber and its curved ceiling.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:17_menkaure_burial_chamber.jpg', V(-7.0, BCy + 1.6, -2.6), V(-7.7, BCy + 1.8, 3.3))],
+        text: 'A granite-lined room set lower and to the west, running north\u2013south. Its roof is nine pairs of granite beams leaning against each other, cut underneath into a curve so it looks like a vault. The basalt sarcophagus found here was lost at sea in 1838 when the ship Beatrice sank on its way to England.',
+        facts: [['Size', 'c. 6.6 N–S × 2.6 m'], ['Roof', '9 pairs of granite beams'], ['Height', 'c. 3.4 m'], ['Sarcophagus', 'Lost at sea, 1838']] },
       { id: 'cellar', group: 'Burial rooms', name: 'Six-niche room', color: 'rock', conf: 'approx',
         why: 'Storerooms like these became a standard part of later royal tombs.',
         photos: () => [ph('menkaure-niches.jpg', 'Rock-cut room with niches', 'The niche room.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:15_menkaure_chamber_with_five_niches.jpg', V(-5.2, BCy + 0.6, -2.6), V(-3.0, BCy - 0.4, -4.6))],
@@ -79,14 +79,14 @@ export default function menkaure(api) {
       route('upperPassage', [V(0, fl + 3.6, AC.s0), V(0, fl + 3.6, AC.s0 - 12), V(0, 0.5, -B + 22)], 1.05, 1.2);
       // corridor down to the burial chamber, then the chamber
       route('burial', [V(2.0, fl, 0), V(-4.5, BCy, 0), V(-6.2, BCy, 0)], 1.05, 1.2);
-      room('burial', -12.8, -6.2, BCy, BCy + 3.4, -1.3, 1.3);
+      gabledRoom('burial', -9.0, -6.4, BCy, 2.6, 3.4, -3.3, 3.3, true);   // runs north–south, under a pointed roof
       // six-niche room off the corridor's north side
       route('cellar', [V(-4.9, BCy, -0.5), V(-4.9, BCy - 0.9, -2.4)], 1.0, 1.6);
       room('cellar', -6.4, -3.4, BCy - 0.9, BCy + 1.3, -5.2, -2.4);
       for (const s of [-4.9, -4.2, -3.5, -2.8]) room('cellar', -3.4, -2.4, BCy - 0.9, BCy + 0.6, s, s + 0.5);
       for (const x of [-5.8, -4.6]) room('cellar', x, x + 0.8, BCy - 0.9, BCy + 0.6, -6.2, -5.2);
 
-      person(-9.5, BCy, 0.2, 0.6);
+      person(-7.7, BCy, 1.4, 0.6);
       person(3, fl, 0.3, -0.4);
       person(0, fl, dEnd.z + 1.6, Math.PI);
       person(4, 0, -B - 5, Math.PI);

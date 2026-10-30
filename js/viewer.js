@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import bent from './pyramids/bent.js';
 import red from './pyramids/red.js';
 import khufu from './pyramids/khufu.js';
@@ -16,14 +17,15 @@ const up = (p, h) => p.clone().add(V(0, h, 0));   // a point h metres above a fl
 const ph = (src, alt, caption, credit, license, url, cam, look) => ({ src: 'photos/' + src, alt, caption, credit, license, url, cam: cam.toArray(), look: look.toArray() });
 const css = getComputedStyle(document.documentElement);
 const C = n => new THREE.Color(css.getPropertyValue('--' + n).trim());
-const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), cedar: C('cedar'), mark: C('mark'), texts: C('texts'), human: C('human') };
+const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sand'), lime: C('lime'), granite: C('granite'), rock: C('rock'), scan: C('scan'), shaft: C('shaft'), later: C('later'), cedar: C('cedar'), mark: C('mark'), texts: C('texts'), human: C('human') };
 
 // ---------- Scene ----------
 const host = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-// Phones and tablets get a lower resolution and lighter shadows
+// Phones and tablets get lighter shadows; phones also a lower resolution
 const lowPower = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 820;
-renderer.setPixelRatio(Math.min(devicePixelRatio, lowPower ? 1.5 : 2));
+const phone = Math.min(screen.width, screen.height) < 600;
+renderer.setPixelRatio(Math.min(devicePixelRatio, phone ? 1.5 : 2));
 renderer.localClippingEnabled = true;
 host.appendChild(renderer.domElement);
 const labelRenderer = new CSS2DRenderer({ element: document.getElementById('labels') });
@@ -131,7 +133,7 @@ TEX.texts = (() => {
   return t;
 })();
 TEX.sand.repeat.set(200, 200);       // ground plane is 6 km across with 0–1 UVs
-const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime', texts: 'texts' };
+const TEX_FOR = { sand: 'casing', lime: 'lime', granite: 'granite', rock: 'rock', shaft: 'lime', later: 'rock', texts: 'texts' };
 const WHITE = new THREE.Color(0xffffff);
 const shellStone = new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide });
 const groundStone = new THREE.MeshStandardMaterial({ map: TEX.sand, roughness: 1, side: THREE.DoubleSide });
@@ -172,6 +174,17 @@ function makeShellGeo(rings) {
   geo.computeVertexNormals();
   return geo;
 }
+// See-through shading: faces seen head-on are clearer, edges and grazing faces denser, so each volume reads as a solid
+function xray(m) {
+  m.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', `
+      float xr = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));
+      gl_FragColor.a = clamp(gl_FragColor.a * (0.55 + 1.5 * xr * xr), 0.0, 1.0);
+      #include <dithering_fragment>`);
+  };
+  m.customProgramCacheKey = () => 'xray';
+  return m;
+}
 function setEmissive() {
   const lo = toggles.stone ? 0 : 0.12, hi = toggles.stone ? 0.3 : 0.55;
   for (const [k, m] of Object.entries(ctx.mats)) m.emissiveIntensity = k === ctx.selected ? hi : lo;
@@ -200,6 +213,7 @@ function applyLook() {
   scene.background = stone ? SKY : PAPER;
   scene.fog.color.copy(stone ? HORIZON : PAPER);
   ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, o.userData.hasToday); });
+  for (const g of Object.values(ctx.groups)) for (const o of g.children) if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, !!ctx.ext.today);
   document.getElementById('opacity').disabled = stone;
   setEmissive();
 }
@@ -233,21 +247,30 @@ function frustumGeo(rings, y0, y1, inset = 0) {
   return makeShellGeo(rs);
 }
 function capGeo(r, y) { const g = new THREE.PlaneGeometry(2 * r, 2 * r); g.rotateX(-Math.PI / 2); g.translate(0, y, 0); worldUV(g); return g; }
-// Hollow stepped surface: a vertical riser and a flat tread for every course, set back from the casing line
-function stepGeo(rings, y0, y1, courses, inset = 1.0, seed = 5) {
-  const pos = [], uv = [], r = rng(seed), C = [[-1, -1], [1, -1], [1, 1], [-1, 1]], top = rings[rings.length - 1][1];
+// Hollow stepped surface: a vertical riser and a flat tread for every course, set back from the casing line.
+// holes: openings to leave out, as { k: side (0 N, 1 E, 2 S, 3 W), u0, u1: span along the side, y0, y1 }
+function stepGeo(rings, y0, y1, courses, inset = 1.0, seed = 5, holes = []) {
+  const pos = [], uv = [], r = rng(seed), top = rings[rings.length - 1][1];
   const quad = (a, b, c, d, ua, ub, uc, ud) => { pos.push(...a, ...b, ...c, ...a, ...c, ...d); uv.push(...ua, ...ub, ...uc, ...ua, ...uc, ...ud); };
+  const SP = [(rr, u, yy) => [u, yy, -rr], (rr, u, yy) => [rr, yy, u], (rr, u, yy) => [u, yy, rr], (rr, u, yy) => [-rr, yy, u]];
+  const DIR = [1, 1, -1, -1];   // each side runs corner to corner in this direction along u
+  const spans = (k, R, ya, yb) => {
+    let s = [[-R, R]];
+    for (const h of holes) if (h.k === k && h.y1 > ya && h.y0 < yb) s = s.flatMap(([l, q]) => h.u1 <= l || h.u0 >= q ? [[l, q]] : [[l, h.u0], [h.u1, q]].filter(([x0, x1]) => x1 - x0 > 0.01));
+    return s.map(([l, q]) => DIR[k] > 0 ? [l, q] : [q, l]);
+  };
   let y = y0, R = Math.max(0.5, halfAt(rings, y0) - inset);
   while (y < y1 - 0.01) {
     let h = (courses[0] + (courses[1] - courses[0]) * (y / top)) * (0.85 + r() * 0.3);
     if (y + h > y1 - 0.2) h = y1 - y;
-    const Rn = Math.max(0.5, halfAt(rings, y + h) - inset);
+    const Rn = Math.max(0.5, halfAt(rings, y + h) - inset), ci = u => Math.max(-Rn, Math.min(Rn, u));
     for (let k = 0; k < 4; k++) {
-      const a = C[k], b = C[(k + 1) % 4];
-      const P = (c, rr, yy) => [c[0] * rr, yy, c[1] * rr], U = (c, rr, yy) => [k % 2 ? c[1] * rr : c[0] * rr, yy];
-      quad(P(a, R, y), P(b, R, y), P(b, R, y + h), P(a, R, y + h), U(a, R, y), U(b, R, y), U(b, R, y + h), U(a, R, y + h));
-      const T = (c, rr) => [c[0] * rr, y + h, c[1] * rr], TU = (c, rr) => [c[0] * rr, c[1] * rr];
-      quad(T(a, R), T(b, R), T(b, Rn), T(a, Rn), TU(a, R), TU(b, R), TU(b, Rn), TU(a, Rn));
+      const P = SP[k];
+      for (const [ua, ub] of spans(k, R, y, y + h)) quad(P(R, ua, y), P(R, ub, y), P(R, ub, y + h), P(R, ua, y + h), [ua, y], [ub, y], [ub, y + h], [ua, y + h]);
+      for (const [ua, ub] of spans(k, R, y + h - 0.01, y + h + 0.01)) {
+        const pts = [P(R, ua, y + h), P(R, ub, y + h), P(Rn, ci(ub), y + h), P(Rn, ci(ua), y + h)];
+        quad(...pts, ...pts.map(p => [p[0], p[2]]));
+      }
     }
     y += h; R = Rn;
   }
@@ -258,7 +281,7 @@ function stepGeo(rings, y0, y1, courses, inset = 1.0, seed = 5) {
   geo.computeVertexNormals();
   return geo;
 }
-function exteriorGroups(def, neighbour = false) {
+function exteriorGroups(def, neighbour = false, holes = []) {
   const M = neighbour ? NEIGHBOUR_MATS : MAIN_MATS, built = new THREE.Group(), today = new THREE.Group();
   const add = (grp, geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; grp.add(m); };
   const top = def.rings[def.rings.length - 1][1];
@@ -268,7 +291,7 @@ function exteriorGroups(def, neighbour = false) {
   if (t?.smooth) add(today, makeShellGeo(def.rings), M.weathered);
   else if (t) {
     if (t.baseTo) add(today, frustumGeo(def.rings, 0, t.baseTo), M[t.baseMat]);
-    add(today, stepGeo(def.rings, t.baseTo ?? 0, t.capFrom ?? t.top, t.courses), M[t.core ?? 'core']);
+    add(today, stepGeo(def.rings, t.baseTo ?? 0, t.capFrom ?? t.top, t.courses, 1.0, 5, holes), M[t.core ?? 'core']);
     if (t.capFrom) { add(today, frustumGeo(def.rings, t.capFrom, t.top), M.oldCasing); add(today, capGeo(halfAt(def.rings, t.top), t.top), M.oldCasing); }
   }
   built.userData.solid = 'built'; built.userData.hasToday = !!t;
@@ -281,20 +304,20 @@ function extraMat(color, key) {
   ctx.extra.push(m);
   return m;
 }
-const solidVisible = (s, stone, hasToday) => s === false ? !stone : s === 'today' ? stone && toggles.today : s === 'built' ? stone && !(toggles.today && hasToday) : stone;
+const solidVisible = (s, stone, hasToday) => s === 'door' ? !(stone && toggles.today && hasToday) : s === false ? !stone : s === 'today' ? stone && toggles.today : s === 'built' ? stone && !(toggles.today && hasToday) : stone;
 
 // ---------- Building helpers (act on the pyramid being built) ----------
 let ctx = null;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function put(id, mesh, edges = true) {
+function put(id, mesh, edges = true, edgeGeo = null) {
   mesh.userData.fid = id;
   if (mesh.isMesh && !mesh.geometry.userData.uv) { worldUV(mesh.geometry); mesh.geometry.userData.uv = true; }
   mesh.castShadow = mesh.receiveShadow = true;
   ctx.groups[id].add(mesh);
   ctx.pickables.push(mesh);
   if (edges) {
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 20), lineMat(id));
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(edgeGeo ?? mesh.geometry, 20), lineMat(id));
     e.position.copy(mesh.position); e.quaternion.copy(mesh.quaternion);
     ctx.groups[id].add(e);
   }
@@ -313,17 +336,135 @@ function frame(a, b) {
   const x = new THREE.Vector3().crossVectors(n, dir);
   return { dir, len, n, x, q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, n, dir)) };
 }
+// A box with slightly rounded edges, so light catches the corners; outlined along the plain box edges
+function softBox(id, w, h, d, mat) {
+  const r = Math.min(0.06, Math.min(w, h, d) * 0.12);
+  const m = new THREE.Mesh(r > 0.01 ? new RoundedBoxGeometry(w, h, d, 2, r) : new THREE.BoxGeometry(w, h, d), mat ?? ctx.mats[id]);
+  m.userData.edgeGeo = new THREE.BoxGeometry(w, h, d);
+  return m;
+}
+// ---------- Where passages meet the outer face ----------
+// Passages are trimmed flush with the face, and the opening is drawn as a dark doorway. In the "today" look
+// the casing is gone, so the opening is cut back into the stepped core: the steps get a hole, and a short
+// dark recess sits behind it.
+const CORE_DEPTH = 2.2;   // how far in (horizontally) the opening sits in the stepped core
+const doorMat = new THREE.MeshBasicMaterial({ color: 0x2b2117, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+const recessMat = new THREE.MeshBasicMaterial({ color: 0x241b12, side: THREE.BackSide });
+const doorRimMat = new THREE.LineBasicMaterial({ color: 0x5a4527 });
+const SIDE_OF = n => n.z < -0.5 ? 0 : n.x > 0.5 ? 1 : n.z > 0.5 ? 2 : 3;   // north, east, south, west
+function faceAt(p) {
+  // outward horizontal direction of the face nearest to p, and the face's slope there
+  const rings = ctx.def.rings, hz = Math.abs(p.x) > Math.abs(p.z) ? V(Math.sign(p.x), 0, 0) : V(0, 0, Math.sign(p.z) || -1);
+  let s = 0;
+  for (let i = 0; i < rings.length - 1; i++) if (p.y <= rings[i + 1][1] || i === rings.length - 2) { s = (rings[i][0] - rings[i + 1][0]) / (rings[i + 1][1] - rings[i][1]); break; }
+  return { hz, n: hz.clone().add(V(0, s, 0)).normalize(), u: V(0, 1, 0).addScaledVector(hz, -s).normalize() };
+}
+// If p lies on the outer face and the passage runs inward from it, the face plane there (q, n)
+function faceEnd(p, inward) {
+  const rings = ctx.def.rings, top = rings[rings.length - 1][1];
+  if (p.y < -0.05 || p.y > top) return null;
+  const r = halfAt(rings, Math.max(0, p.y)), m = Math.max(Math.abs(p.x), Math.abs(p.z));
+  if (Math.abs(m - r) > 0.8) return null;
+  const F = faceAt(p);
+  if (inward.dot(F.n) > -0.2) return null;
+  const q = p.clone().addScaledVector(F.hz, r - m);
+  const T = TODAY[ctx.def.id];
+  const stepped = !!(T && !T.smooth && p.y < (T.capFrom ?? T.top) && p.y >= (T.baseTo ?? 0) - 0.01);
+  return { ...F, q, stepped };
+}
+// A passage-shaped box from a to b, with either end trimmed onto a plane {p, n} (projected along the passage)
+function cutBox(a, b, w, h, cutA, cutB) {
+  const f = frame(a, b), geo = new THREE.BoxGeometry(w, h, f.len);
+  const pos = geo.attributes.position, v = new THREE.Vector3();
+  const centre = a.clone().addScaledVector(f.dir, f.len / 2).addScaledVector(f.n, h / 2);
+  const toWorld = new THREE.Matrix4().compose(centre, f.q, V(1, 1, 1)), toLocal = toWorld.clone().invert();
+  for (let i = 0; i < pos.count; i++) {
+    const cut = pos.getZ(i) < 0 ? cutA : cutB;
+    if (!cut) continue;
+    v.fromBufferAttribute(pos, i).applyMatrix4(toWorld);
+    v.addScaledVector(f.dir, -v.clone().sub(cut.p).dot(cut.n) / f.dir.dot(cut.n));
+    v.applyMatrix4(toLocal);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo);
+  m.position.copy(centre); m.quaternion.copy(f.q);
+  return m;
+}
+const innerPlane = (e, d) => ({ p: e.q.clone().addScaledVector(e.hz, -d), n: e.n });
 function passage(id, a, b, w, h) {
-  const f = frame(a, b);
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, f.len), ctx.mats[id]);
-  m.quaternion.copy(f.q);
-  m.position.copy(a).addScaledVector(f.dir, f.len / 2).addScaledVector(f.n, h / 2);
-  return put(id, m);
+  const f = frame(a, b), inward = f.dir;
+  const ea = faceEnd(a, inward), eb = faceEnd(b, inward.clone().negate());
+  if (!ea && !eb) {
+    const m = softBox(id, w, h, f.len);
+    m.quaternion.copy(f.q);
+    m.position.copy(a).addScaledVector(f.dir, f.len / 2).addScaledVector(f.n, h / 2);
+    return put(id, m, true, m.userData.edgeGeo);
+  }
+  // trimmed at the face; where the core is stepped today, the last stretch is a separate piece that hides in that look
+  const cut = e => e && (e.stepped ? innerPlane(e, CORE_DEPTH + 0.3) : { p: e.q, n: e.n });
+  const m = cutBox(a, b, w, h, cut(ea), cut(eb));
+  m.material = ctx.mats[id];
+  put(id, m);
+  for (const [e, end, dir] of [[ea, a, inward], [eb, b, inward.clone().negate()]]) {
+    if (!e) continue;
+    ctx.faceEnds.push({ id, p: end, e, dir, w, h, n: f.n });
+    if (!e.stepped) continue;
+    const reach = (CORE_DEPTH + 3) / Math.max(0.2, -dir.dot(e.hz));
+    const collar = cutBox(end.clone().addScaledVector(dir, -2), end.clone().addScaledVector(dir, reach), w, h, { p: e.q, n: e.n }, innerPlane(e, CORE_DEPTH + 0.3));
+    collar.material = ctx.mats[id];
+    put(id, collar);
+    collar.userData.solid = 'door';
+  }
+  return m;
 }
 function room(id, x0, x1, y0, y1, s0, s1, mat) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, s1 - s0), mat ?? ctx.mats[id]);
+  const m = softBox(id, x1 - x0, y1 - y0, s1 - s0, mat);
   m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (s0 + s1) / 2);
-  return put(id, m);
+  return put(id, m, true, m.userData.edgeGeo);
+}
+// The doorway itself: a dark opening on the face plane with a thin rim (hidden in "today" where the casing is gone),
+// and for the stepped core a dark recess plus a hole in the steps
+function doorway(id, p, dir, w, h, pn) {
+  ctx.doors.push(p.clone());
+  const e = faceEnd(p, dir.clone().negate()) ?? { ...faceAt(p), q: p.clone(), stepped: false };
+  const { hz, n, u, q: fq } = e;
+  const t = new THREE.Vector3().crossVectors(u, n);
+  const c = p.clone().addScaledVector(pn ?? V(0, 1, 0), h / 2);
+  const k = dir.dot(n);
+  if (Math.abs(k) > 1e-3) c.addScaledVector(dir, -c.clone().sub(fq).dot(n) / k);   // slide the centre onto the face plane
+  const hh = Math.min(h / Math.max(0.3, Math.abs(k)), h * 3);
+  const geo = new THREE.PlaneGeometry(w, hh); geo.userData.uv = true;
+  const rot = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, u, n));
+  const face = new THREE.Group(); if (e.stepped) face.userData.solid = 'door';
+  const hole = new THREE.Mesh(geo, doorMat); hole.position.copy(c).addScaledVector(n, 0.03); hole.quaternion.copy(rot);
+  hole.userData.fid = id; hole.renderOrder = 12; face.add(hole); ctx.pickables.push(hole);
+  const rim = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(w + 0.3, hh + 0.3)), doorRimMat);
+  rim.position.copy(hole.position); rim.quaternion.copy(rot); face.add(rim);
+  ctx.groups[id].add(face);
+  if (!e.stepped) return;
+  const inward = dir.clone().negate(), reach = (CORE_DEPTH + 3) / Math.max(0.2, inward.dot(hz.clone().negate()));
+  const recess = cutBox(p.clone().addScaledVector(inward, -2), p.clone().addScaledVector(inward, reach), w + 0.1, h + 0.1, { p: fq.clone().addScaledVector(hz, 0.2), n }, innerPlane(e, CORE_DEPTH));
+  recess.material = recessMat;
+  recess.userData.solid = 'today';
+  ctx.groups[id].add(recess);
+  // the hole in the steps covers where the recess passes through the core
+  const box = new THREE.Box3().setFromObject(recess), side = SIDE_OF(hz), along = side % 2 ? 'z' : 'x';
+  ctx.holes.push({ k: side, u0: box.min[along] - 0.05, u1: box.max[along] + 0.05, y0: box.min.y - 0.05, y1: box.max.y + 0.05 });
+}
+function addDoorways() {
+  for (const d of ctx.faceEnds) {
+    if (ctx.doors.some(q => q.distanceTo(d.p) < 1.5)) continue;
+    doorway(d.id, d.p, d.dir.clone().negate(), d.w, d.h, d.n);
+  }
+  // rebuild the stepped "today" exterior with holes where the openings are
+  if (ctx.holes.length && ctx.ext.today) {
+    const visible = ctx.ext.today.visible;
+    ctx.groups.pyramid.remove(ctx.ext.today);
+    ctx.ext.today = exteriorGroups(ctx.def, false, ctx.holes).today;
+    ctx.ext.today.visible = visible;
+    ctx.groups.pyramid.add(ctx.ext.today);
+  }
 }
 // Pointed roof with its ridge running east–west (or north–south when ridgeNS)
 function gabledRoom(id, x0, x1, y0, wallH, peakH, s0, s1, ridgeNS = false) {
@@ -385,11 +526,20 @@ function wallTexture(file, { recolor = true, crop = null } = {}) {
     c.width = w; c.height = h;
     const g = c.getContext('2d'); g.drawImage(img, x0, y0, sw, sh, 0, 0, w, h);
     const d = g.getImageData(0, 0, w, h), px = d.data;
-    const ink = [36, 52, 82], stone = [214, 203, 180];
+    // a blurred copy finds large dark areas (doorways, deep shadow), which are not signs
+    const bw = Math.max(2, Math.round(w / 40)), bh = Math.max(2, Math.round(h / 40));
+    const small = document.createElement('canvas'); small.width = bw; small.height = bh;
+    small.getContext('2d').drawImage(c, 0, 0, bw, bh);
+    const blur = document.createElement('canvas'); blur.width = w; blur.height = h;
+    const bg = blur.getContext('2d'); bg.drawImage(small, 0, 0, w, h);
+    const bd = bg.getImageData(0, 0, w, h).data;
+    const ink = [36, 52, 82], stone = [214, 203, 180], gap = [43, 33, 23];
     for (let i = 0; i < px.length; i += 4) {
       const l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / 255;
+      const m = (bd[i] * 0.3 + bd[i + 1] * 0.59 + bd[i + 2] * 0.11) / 255;
       const k = Math.min(1, Math.max(0, (l - 0.25) / 0.45));   // dark carved signs -> ink, light stone -> stone
-      for (let j = 0; j < 3; j++) px[i + j] = ink[j] + (stone[j] - ink[j]) * k;
+      const open = Math.min(1, Math.max(0, (0.24 - m) / 0.08)) * (l < 0.3 ? 1 : 0);   // inside a big dark area -> opening
+      for (let j = 0; j < 3; j++) px[i + j] = (ink[j] + (stone[j] - ink[j]) * k) * (1 - open) + gap[j] * open;
     }
     g.putImageData(d, 0, 0);
     t.needsUpdate = true;
@@ -405,12 +555,30 @@ function plaqueMesh(f) {
   geo.rotateY(FACING[p.facing]);
   const tex = wallTexture(p.file, { recolor: false, crop: p.crop });
   // lit a little from within, so it stays readable on shaded faces and in dark rooms
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55, roughness: 0.9 }));
+  const mat = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.75, roughness: 0.9 });
+  const m = new THREE.Mesh(geo, mat);
   m.position.copy(f.at);
   put(f.id, m, false);
-  const frame = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: COL.mark }));
+  backSide(f.id, m, p.facing, mat);
+  // a pale panel behind it, so it stands out from the stone around it
+  const pad = new THREE.Mesh(new THREE.PlaneGeometry(p.w + 0.24, p.w / p.aspect + 0.24).rotateY(FACING[p.facing]), new THREE.MeshBasicMaterial({ color: 0xf2e9d6, side: THREE.DoubleSide }));
+  pad.geometry.userData.uv = true;
+  pad.position.copy(f.at);
+  ctx.groups[f.id].add(pad);
+  const frame = new THREE.LineSegments(new THREE.EdgesGeometry(pad.geometry), new THREE.LineBasicMaterial({ color: COL.mark }));
   frame.position.copy(f.at);
   ctx.groups[f.id].add(frame);
+}
+// The same picture on the back of a wall image, the right way round, so it reads from either side of the wall
+const NORMAL = { 'z+': V(0, 0, 1), 'z-': V(0, 0, -1), 'x+': V(1, 0, 0), 'x-': V(-1, 0, 0) };
+function backSide(id, front, facing, mat) {
+  const g = front.geometry.clone();
+  g.rotateY(Math.PI);
+  g.userData.uv = true;
+  const b = new THREE.Mesh(g, mat);
+  b.position.copy(front.position).addScaledVector(NORMAL[facing], -0.03);
+  front.position.addScaledVector(NORMAL[facing], 0.03);
+  put(id, b, false);
 }
 // Where only the place is known: a faint flat patch with a dashed clay outline
 function outlineMesh(f) {
@@ -432,9 +600,12 @@ function wallImage(id, file, aspect, facing, plane, along, cy, maxW, maxH) {
   geo.userData.uv = true;   // keep the picture's own UVs
   geo.rotateY(FACING[facing]);
   const tex = wallTexture(file);
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35, roughness: 0.9 }));
+  const mat = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45, roughness: 0.9 });
+  const m = new THREE.Mesh(geo, mat);
   if (facing[0] === 'z') m.position.set(along, cy, plane); else m.position.set(plane, cy, along);
-  return put(id, m, false);
+  put(id, m, false);
+  backSide(id, m, facing, mat);
+  return m;
 }
 function person(x, y, z, turn = 0) {
   const g = new THREE.Group();
@@ -499,7 +670,7 @@ function buildShell(def) {
 
 
 // Each pyramid's data lives in its own file and is built with these shared helpers
-const api = { THREE, V, D, up, ph, COL, passage, room, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
+const api = { THREE, V, D, up, ph, COL, passage, room, doorway, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
 const [BENT, RED, KHUFU, KHAFRE, MENKAURE, UNAS] = [bent, red, khufu, khafre, menkaure, unas].map(make => make(api));
 const PYRAMIDS = [BENT, RED, KHUFU, KHAFRE, MENKAURE, UNAS];
 
@@ -526,17 +697,18 @@ function load(def, fly) {
   const R = def.rings[0][0] + 160;
   Object.assign(sun.shadow.camera, { left: -R, right: R, top: R, bottom: -R, near: 10, far: 2200 });
   sun.shadow.camera.updateProjectionMatrix();
-  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(), extra: [],
+  ctx = { def, root, groups: {}, mats: {}, lineMats: {}, pickables: [], labels: [], humans: new THREE.Group(), extra: [], faceEnds: [], doors: [], holes: [],
     byId: Object.fromEntries(def.features.map(f => [f.id, f])), selected: null };
   root.add(ctx.humans);
   for (const f of def.features) {
     const g = new THREE.Group();
     root.add(g);
     ctx.groups[f.id] = g;
-    ctx.mats[f.id] = new THREE.MeshStandardMaterial({ color: COL[f.color], emissive: COL[f.color], emissiveIntensity: 0.12, roughness: 0.8, transparent: true, opacity: f.scan ? 0.45 : f.mark ? 0.95 : 0.62, depthWrite: false, side: THREE.DoubleSide });
+    ctx.mats[f.id] = xray(new THREE.MeshStandardMaterial({ color: COL[f.color], emissive: COL[f.color], emissiveIntensity: 0.12, roughness: 0.8, transparent: true, opacity: f.scan ? 0.45 : f.mark ? 0.95 : 0.62, depthWrite: false, side: THREE.DoubleSide }));
   }
   buildShell(def);
   def.build();
+  addDoorways();
   buildSurroundings(def);
   for (const f of def.features) if (f.at) {
     if (f.plaque) plaqueMesh(f);
@@ -585,6 +757,7 @@ function load(def, fly) {
 
   applyToggles();
   clearSelection();
+  buildKey();
   if (fly) overview(); else { const v = overviewPose(); camera.position.copy(v.p); controls.target.copy(v.t); }
 }
 
@@ -753,7 +926,7 @@ function refreshLabels() {
     const f = o.userData.id && ctx.byId[o.userData.id];
     const groupVisible = !f || ctx.groups[f.id].visible;
     const hidden = toggles.stone && !toggles.cut && o.userData.id && o.userData.id !== ctx.selected;   // solid stone hides what is inside
-    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !indoors() : ((o.userData.quiet && !indoors()) || o.userData.major || o.userData.id === ctx.selected));
+    o.visible = toggles.labels && groupVisible && !hidden && (o.userData.surround ? toggles.surround && !indoors() : o.userData.quiet ? !indoors() : true);
   }
 }
 function applyToggles() {
@@ -767,7 +940,7 @@ function applyToggles() {
   applyLook();
   // Cut away the east half of the outer pyramid. Changing the number of clipping planes needs a shader rebuild.
   const planes = toggles.cut ? [clip] : [];
-  const cutMats = new Set([shellMat, shellStone, ...Object.values(MAIN_MATS)]);
+  const cutMats = new Set([shellMat, shellStone, doorMat, doorRimMat, recessMat, ...Object.values(MAIN_MATS)]);
   ctx.groups.pyramid.traverse(o => { if (o.material) cutMats.add(o.material); });
   for (const m of cutMats) if (m.clippingPlanes?.length !== planes.length) { m.clippingPlanes = planes; m.needsUpdate = true; }
   refreshLabels();
@@ -789,7 +962,7 @@ op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 
 // Pyramid switcher, with a tiny profile drawn from each pyramid's own outline
 const switcher = document.getElementById('switcher'), pyrSelect = document.getElementById('pyr-select');
-pyrSelect.innerHTML = PYRAMIDS.map(d => `<option value="${d.id}">${d.short} pyramid</option>`).join('');
+pyrSelect.innerHTML = PYRAMIDS.map(d => `<option value="${d.id}">${d.short}</option>`).join('');
 pyrSelect.addEventListener('change', () => switchTo(PYRAMIDS.find(d => d.id === pyrSelect.value)));
 for (const def of PYRAMIDS) {
   const btn = document.createElement('button');
@@ -1400,6 +1573,42 @@ function drawMinimap() {
 // shrinks to a dot (pointing at it shows the name). Smaller features only get a full label once they are
 // big enough on screen, so more names appear as you zoom in.
 const _lv = new THREE.Vector3(), _ls = new THREE.Sphere(), _lb = new THREE.Box3();
+// Points along each part of a feature where its label can sit. Long passages get one every few metres,
+// so when you are close to one end the label stays on screen next to the part you can see.
+function labelAnchors(id) {
+  const pts = [], b = new THREE.Box3(), sz = new THREE.Vector3();
+  ctx.groups[id].updateMatrixWorld(true);
+  ctx.groups[id].traverse(o => {
+    if (!o.isMesh || o.userData.solid === 'today') return;
+    o.geometry.computeBoundingBox(); b.copy(o.geometry.boundingBox); b.getSize(sz);
+    const ax = sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.z >= sz.y ? 'z' : 'y';
+    const n = Math.min(24, Math.max(1, Math.ceil(sz[ax] / 6)));
+    for (let i = 0; i < n; i++) {
+      const p = b.getCenter(new THREE.Vector3());
+      p[ax] = b.min[ax] + sz[ax] * (i + 0.5) / n;
+      if (ax !== 'y') p.y = b.max.y;
+      pts.push(p.applyMatrix4(o.matrixWorld));
+    }
+  });
+  return pts;
+}
+const _la = new THREE.Vector3();
+const onScreen = (p, m) => { _la.copy(p).project(camera); return _la.z < 1 && Math.abs(_la.x) < m && Math.abs(_la.y) < m; };
+function placeAnchor(o, u, whole) {
+  // the whole feature fits on screen: one steady label above it; otherwise the nearest visible part
+  let i = whole && onScreen(u.anchors[0], 0.9) ? 0 : (u.ai && onScreen(u.anchors[u.ai], 0.8) ? u.ai : -1);
+  if (i < 0) {
+    let best = Infinity;
+    for (let k = 1; k < u.anchors.length; k++) {
+      if (!onScreen(u.anchors[k], 0.8)) continue;
+      const d = _la.x * _la.x + _la.y * _la.y;
+      if (d < best) { best = d; i = k; }
+    }
+  }
+  if (i < 0) i = 0;
+  u.ai = i;
+  o.position.copy(u.anchors[i]);
+}
 const overlaps = (r, list) => list.some(q => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
 function layoutLabels() {
   const W = renderer.domElement.clientWidth, H = renderer.domElement.clientHeight;
@@ -1409,11 +1618,12 @@ function layoutLabels() {
     if (!o.visible) continue;
     const u = o.userData, el = o.element;
     if (u.r === undefined) {
-      if (u.id) { _lb.setFromObject(ctx.groups[u.id]).getBoundingSphere(_ls); u.r = _ls.radius; } else u.r = 0;
+      if (u.id) { _lb.setFromObject(ctx.groups[u.id]).getBoundingSphere(_ls); u.r = _ls.radius; u.c = _ls.center.clone(); u.anchors = [o.position.clone(), ...labelAnchors(u.id)]; } else u.r = 0;
     }
     if (!u.w && el.offsetWidth && !el.classList.contains('dot')) { u.w = el.offsetWidth; u.h = el.offsetHeight; }
+    const dist = u.c ? Math.max(0.5, u.c.distanceTo(camera.position) - u.r * 0.5) : o.getWorldPosition(_lv).distanceTo(camera.position);
+    if (u.anchors) placeAnchor(o, u, u.r / dist * focal < 0.6 * Math.min(W, H));
     o.getWorldPosition(_lv);
-    const dist = _lv.distanceTo(camera.position);
     _lv.project(camera);
     if (_lv.z > 1 || Math.abs(_lv.x) > 1.1 || Math.abs(_lv.y) > 1.1) continue;
     const sel = !!u.id && u.id === ctx.selected;
@@ -1428,7 +1638,7 @@ function layoutLabels() {
   if (!layoutLabels.ui || now - layoutLabels.t > 400) {
     layoutLabels.t = now;
     const host = renderer.domElement.getBoundingClientRect();
-    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .menu')]
+    layoutLabels.ui = [...document.querySelectorAll('.topbar, .contents, .detail, .toolbar, .walkhud, .menu, .orient')]
       .filter(el => el.offsetWidth > 0).map(el => el.getBoundingClientRect())
       .map(r => ({ x0: r.left - host.left, x1: r.right - host.left, y0: r.top - host.top, y1: r.bottom - host.top }));
   }
@@ -1439,7 +1649,7 @@ function layoutLabels() {
     const wantsFull = sel || u.quiet || u.surround || u.major || px > 28;
     let mode = 'gone';
     if (wantsFull && !overlaps(rect, placed)) { mode = 'full'; placed.push(rect); }
-    else if (!u.quiet) {
+    else if (!u.quiet && (u.major || u.surround || px > 8)) {
       const d = { x0: x - 8, x1: x + 8, y0: y - 22, y1: y - 6 };
       if (!overlaps(d, placed) && !overlaps(d, dots)) { mode = 'dot'; dots.push(d); }
     }
@@ -1551,12 +1761,54 @@ document.getElementById('tour-exit').addEventListener('click', stopTour);
 document.getElementById('tour-next').addEventListener('click', () => tour.i < tour.stops.length - 1 ? goStop(tour.i + 1) : stopTour());
 document.getElementById('tour-back').addEventListener('click', () => tour.i > 0 && goStop(tour.i - 1));
 
+// ---------- Where you are: compass, position in words, colour key ----------
+const KEY_TEXT = { lime: 'Built of limestone', granite: 'Granite', rock: 'Cut into the bedrock', shaft: 'Shafts and narrow tunnels', later: 'Dug later by robbers', scan: 'Found by scans, not entered', mark: 'Inscriptions and marks', texts: 'Pyramid Texts' };
+const keyEl = document.getElementById('key'), keyBtn = document.getElementById('btn-key');
+function buildKey() {
+  const used = new Set(ctx.def.features.filter(f => f.id !== 'pyramid').map(f => f.color));
+  keyEl.innerHTML = Object.entries(KEY_TEXT).filter(([c]) => used.has(c)).map(([c, t]) => `<div><i style="background:var(--${c})"></i>${t}</div>`).join('')
+    + (ctx.doors.length ? '<div><i class="door"></i>Opening in the outer face</div>' : '')
+    + '<div><i style="background:var(--human)"></i>Person, 1.75 m tall</div>';
+}
+keyBtn.addEventListener('click', () => { keyEl.hidden = !keyEl.hidden; keyBtn.setAttribute('aria-expanded', !keyEl.hidden); layoutLabels.t = 0; });
+const rose = document.getElementById('compass-rose'), whereEl = document.getElementById('orient-where'), heightEl = document.getElementById('orient-height');
+const SIDES = { 'z-': 'north', 'z+': 'south', 'x+': 'east', 'x-': 'west' };
+function updateOrient() {
+  const f = controls.target.clone().sub(camera.position);
+  rose.setAttribute('transform', `rotate(${Math.atan2(f.x, -f.z) * -180 / Math.PI})`);
+  const p = camera.position, rings = ctx.def.rings, r = halfAt(rings, Math.max(0, p.y));
+  const m = Math.max(Math.abs(p.x), Math.abs(p.z));
+  const side = SIDES[Math.abs(p.x) > Math.abs(p.z) ? (p.x > 0 ? 'x+' : 'x-') : (p.z > 0 ? 'z+' : 'z-')];
+  const inside = p.y >= 0 && m < r;
+  whereEl.textContent = p.y < 0 ? (m < rings[0][0] + 30 ? 'Below ground, in the bedrock' : 'Below ground') : inside ? 'Inside the pyramid' : p.y > rings[rings.length - 1][1] * 1.4 || m > rings[0][0] * 4 ? `Above the ${side} side` : `Outside, ${side} side`;
+  // the nearest named part, if one is close
+  let near = null, best = Math.max(12, r * 0.15);
+  for (const o of ctx.labels) {
+    const u = o.userData;
+    if (!u.id || !u.anchors || !ctx.groups[u.id].visible) continue;
+    for (const a of u.anchors) { const d = a.distanceTo(p); if (d < best) { best = d; near = ctx.byId[u.id].name; } }
+  }
+  const h = Math.round(p.y);
+  heightEl.textContent = (Math.abs(h) < 1 ? 'At ground level' : h > 0 ? `${h} m above the base` : `${-h} m below the base`) + (near ? ` \u00b7 near ${near}` : '');
+}
+// Top bar: drop the title, then the dates, until every pyramid fits
+const topbar = document.querySelector('.topbar');
+function fitTopbar() {
+  topbar.classList.remove('tight1', 'tight2', 'tight3');
+  for (const c of ['tight1', 'tight2', 'tight3']) {
+    if (switcher.scrollWidth <= switcher.clientWidth + 1) break;
+    topbar.classList.add(c);
+  }
+}
+
 // Resize and loop
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h); labelRenderer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  fitTopbar();
 }
+document.fonts?.ready.then(fitTopbar);
 addEventListener('resize', resize);
 resize();
 
@@ -1580,4 +1832,5 @@ renderer.setAnimationLoop(now => {
   renderer.render(scene, camera);
   layoutLabels();
   labelRenderer.render(scene, camera);
+  if (now - (updateOrient.t ?? 0) > 150) { updateOrient.t = now; updateOrient(); }
 });

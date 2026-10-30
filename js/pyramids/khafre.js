@@ -10,14 +10,15 @@ export default function khafre(api) {
   const upEnd = upEntrance.clone().add(V(0, -11.54, 11.54 / Math.tan(upA)));
   const BC = { x0: AX + 0.55 - 14.15, x1: AX + 0.55, y0: 0, s0: -2.5, s1: 2.5 };
   const lowEntrance = V(AX, 0, -B - 0.5);
-  const lowBottom = lowEntrance.clone().add(V(0, -9, 9 / Math.tan(lowA)));
-  const ascFoot = V(AX, -9, lowBottom.z + 20);
-  const ascTop = V(AX, 0, ascFoot.z + 9 / Math.tan(22 * D));
+  const LD = 30 * Math.sin(lowA);   // the lower passage descends about 30 m before levelling out
+  const lowBottom = lowEntrance.clone().add(V(0, -LD, LD / Math.tan(lowA)));
+  const ascFoot = V(AX, -LD, lowBottom.z + 20);
+  const ascTop = V(AX, 0, ascFoot.z + LD / Math.tan(22 * D));
 
   return {
     id: 'khafre', king: 'Khafre', reign: [2558, 2532], year: 2540, lat: 29.97611, lon: 31.13083,
     short: 'Khafre', site: 'Giza', date: 'c. 2540 BC', title: 'The Pyramid of Khafre',
-    rings: [[B, 0], [0, H]], today: 136.4, lowest: -11, start: 'burial',
+    rings: [[B, 0], [0, H]], today: 136.4, lowest: -13, start: 'burial',
     tour: () => [
       { id: 'pyramid', path: [V(AX, 1.65, -B - 55)], look: V(AX, 12, upEntrance.z), say: 'Khafre\u2019s pyramid has two entrances on the north side: one in the face about 11.5 m up, and one in the pavement below it.' },
       { id: 'upper', path: [V(AX, 10, upEntrance.z - 8), up(upEntrance, 1.0), up(upEntrance.clone().lerp(upEnd, 0.6), 1.0)], look: up(upEnd, 1.0), say: 'The upper passage, lined with granite, slopes down to bedrock level. A granite portcullis once blocked its lower end.' },
@@ -55,11 +56,11 @@ export default function khafre(api) {
       { id: 'lower', group: 'Lower system', name: 'Lower entrance and passage', color: 'rock', conf: 'approx', major: true,
         why: 'It may belong to an earlier plan, when the pyramid was meant to stand further north.',
         text: 'A second entrance at the foot of the north face, cut entirely in the bedrock. Its passage descends, runs level past a portcullis, then climbs a ramp to join the horizontal passage of the upper system.',
-        facts: [['Entrance', 'At ground level'], ['Material', 'Cut in bedrock'], ['Route', 'Approximate']] },
+        facts: [['Entrance', 'At ground level'], ['Slope', 'c. 21° 40′'], ['Sloping length', 'c. 30 m'], ['Height', 'c. 1.19 m'], ['Material', 'Cut in bedrock']] },
       { id: 'side', group: 'Lower system', name: 'Subsidiary chamber', color: 'rock', conf: 'approx', major: true,
         why: 'Its purpose is still debated, so it remains one of the open questions about this pyramid.',
         text: 'A side room opening west off the lower passage, about as long as Khufu’s King’s Chamber (Petrie). Its purpose is unclear; it may have stored burial goods, or it may be left over from an earlier plan.',
-        facts: [['Length', 'c. 10.4 m'], ['Roof', 'Gabled'], ['Purpose', 'Unknown']] },
+        facts: [['Size', 'c. 10.41 × 3.12 m'], ['Roof', 'Gabled'], ['Purpose', 'Unknown']] },
       { id: 'belzoni', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'approx', at: V(5, 3.3, BC.s1 - 0.03), plaque: { file: 'khafre-belzoni.jpg', aspect: 1.6, facing: 'z-', w: 2.4 }, major: true, name: 'Belzoni\u2019s name',
         text: 'Giovanni Belzoni wrote his name and the date in large letters on a wall of the burial chamber when he entered in 1818. It is modern graffiti. No ancient inscriptions have been found inside this pyramid.',
         why: 'It records the first modern entry into the burial chamber.',
@@ -68,7 +69,6 @@ export default function khafre(api) {
     ],
     build() {
       // Upper system
-      room('upper', AX - 0.8, AX + 0.8, upEntrance.y - 0.2, upEntrance.y + 1.6, upEntrance.z - 0.5, upEntrance.z + 1.2);
       passage('upper', upEntrance, upEnd, 1.05, 1.2);
       room('upper', AX - 0.75, AX + 0.75, 0, 1.6, upEnd.z + 0.6, upEnd.z + 1.0, extraMat(COL.granite, 'granite'));
       passage('horizontal', upEnd, V(AX, 0, BC.s0), 1.05, 1.75);
@@ -79,14 +79,14 @@ export default function khafre(api) {
       passage('lower', lowEntrance, lowBottom, 1.05, 1.2);
       passage('lower', lowBottom, ascFoot, 1.05, 1.2);
       passage('lower', ascFoot, ascTop, 1.05, 1.2);
-      room('lower', AX - 0.75, AX + 0.75, -9, -7.2, lowBottom.z + 3, lowBottom.z + 3.4, extraMat(COL.granite, 'granite'));
+      room('lower', AX - 0.75, AX + 0.75, -LD, -LD + 1.8, lowBottom.z + 3, lowBottom.z + 3.4, extraMat(COL.granite, 'granite'));
       const sideS = lowBottom.z + 8;
-      passage('side', V(AX, -9, sideS), V(9.6, -9, sideS), 1.0, 1.4);
-      gabledRoom('side', 9.6 - 10.41, 9.6, -9, 1.8, 2.61, sideS - 1.56, sideS + 1.56);
+      passage('side', V(AX, -LD, sideS), V(9.6, -LD, sideS), 1.0, 1.4);
+      gabledRoom('side', 9.6 - 10.41, 9.6, -LD, 1.8, 2.61, sideS - 1.56, sideS + 1.56);
 
       person(BC.x0 + 4, 0, 0.6, -0.5);
       person(AX - 3, 0, -0.8, 0.4);
-      person(4, -9, sideS, 1.2);
+      person(4, -LD, sideS, 1.2);
       person(AX + 4, 0, -B - 6, Math.PI);
     },
   };

@@ -50,7 +50,7 @@ export default function khufu(api) {
         why: 'An early example of builders steering weight around an opening, the same idea used on a much larger scale above the King\u2019s Chamber.',
         text: 'Two pairs of huge limestone blocks leaning against each other above the entrance. They carry the weight of the masonry away from the passage roof. Shown here in simplified form.',
         facts: [['Layout', '2 gabled pairs'], ['Material', 'Limestone']] },
-      { id: 'robbers', group: 'Exterior', name: 'Robbers’ tunnel', color: 'shaft', conf: 'approx',
+      { id: 'robbers', group: 'Exterior', name: 'Robbers’ tunnel', color: 'later', conf: 'approx',
         why: 'It reached the hidden ascending passage, whose entrance had been sealed and disguised. Without it, the upper chambers might have stayed unknown much longer.',
         text: 'A rough tunnel forced through the core masonry, traditionally credited to Caliph al-Ma’mun around AD 820. It meets the ascending passage beside the granite plugs, which the diggers went around. It is the tourist entrance today.',
         facts: [['Starts at', 'c. 7 m above base'], ['Length', 'c. 30 m'], ['Route', 'Simplified']] },
@@ -147,8 +147,8 @@ export default function khufu(api) {
       room('subterranean', -6.0, 8.1, -30.38, -26.82, SC.s0, SC.s1);
       passage('subterranean', V(0.5, -30.0, SC.s1), V(0.5, -30.0, SC.s1 + 16.4), 0.75, 0.75);
 
-      // Entrance marker and chevrons
-      room('entrance', AX - 0.8, AX + 0.8, entrance.y - 0.2, entrance.y + 1.6, entrance.z - 0.5, entrance.z + 1.2);
+      // Entrance opening in the face, and the chevrons above it
+      api.doorway('entrance', entrance, descDir.clone().negate(), 1.05, 1.2, frame(entrance, descEnd).n);
       [[0, 19.2], [1, 21.4]].forEach(([i, ry]) => {
         const s = -(B - ry / K) + 1.5 + i * 1.0;
         for (const side of [-1, 1]) {

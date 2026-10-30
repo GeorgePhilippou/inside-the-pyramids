@@ -10,6 +10,8 @@ See-through 3D models of six Egyptian pyramids (the Bent and Red pyramids at Dah
 - Human figures (1.75 m) for scale, inscriptions and builders' marks, and neighbouring monuments in 3D.
 - **Stone look** with textured stone, and **walk mode** at human eye height with a side-view minimap.
 - **Satellite map** with annotated sites (Esri World Imagery).
+- Labels name whatever is near you as you zoom in, and a compass card says where you are (side, height, nearest feature), with a colour key.
+- Entrances show as real openings in the outer face, cut into the stepped core in the "Today" look.
 - **Pyramid Texts, wall by wall**: click any inscribed wall in the Pyramid of Unas to read what its spells are about; the antechamber walls show photographs of the real texts.
 
 Each feature is tagged *Surveyed*, *Approximate* or *Uncertain* according to how sure the published figures are. Photo viewpoints are estimated from the photos.
