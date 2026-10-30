@@ -52,6 +52,10 @@ sun.shadow.mapSize.set(lowPower ? 2048 : 4096, lowPower ? 2048 : 4096);
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.6;
 scene.add(sun, sun.target);
+// soft light from the north-east sky, so the faces turned away from the sun stay readable
+const fill = new THREE.DirectionalLight(0xdde6f2, 0);
+fill.position.set(160, 140, -260);
+scene.add(fill);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = lowPower ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 const groundXray = new THREE.MeshBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide });
@@ -205,6 +209,7 @@ function applyLook() {
   for (const grp of [ctx.ext.built, ctx.ext.today]) if (grp) grp.visible = solidVisible(grp.userData.solid, stone, grp.userData.hasToday);
   for (const m of ctx.extra) { m.map = stone ? TEX[m.userData.key] : null; m.color.copy(stone ? new THREE.Color(0xdedede) : m.userData.col); m.needsUpdate = true; }
   sun.castShadow = stone;
+  fill.intensity = stone ? 0.75 : 0;
   syncLook();
   ground.material = stone ? groundStone : groundXray;
   grid.visible = !stone;
@@ -213,7 +218,7 @@ function applyLook() {
   scene.background = stone ? SKY : PAPER;
   scene.fog.color.copy(stone ? HORIZON : PAPER);
   ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, o.userData.hasToday); });
-  for (const g of Object.values(ctx.groups)) for (const o of g.children) if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, !!ctx.ext.today);
+  for (const g of Object.values(ctx.groups)) for (const o of g.children) if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, !!ctx.ext.today) && (!o.userData.cap || toggles.cut);
   syncRecesses(true);
   document.getElementById('opacity').disabled = stone;
   setEmissive();
@@ -235,6 +240,7 @@ function exteriorMats() {
   return m;
 }
 const MAIN_MATS = exteriorMats(), NEIGHBOUR_MATS = exteriorMats();   // neighbours are never cut away
+const CAP_MATS = { core: new THREE.MeshStandardMaterial({ map: TEX.core, color: 0xe8dcc4, roughness: 1, side: THREE.DoubleSide }), rock: new THREE.MeshStandardMaterial({ map: TEX.rock, color: 0xcbb89a, roughness: 1, side: THREE.DoubleSide }) };
 // How each pyramid looks today. Heights are published; the stepped core is drawn with typical course heights.
 const TODAY = {
   khufu: { top: 138.5, courses: [1.45, 0.55] },
@@ -666,8 +672,26 @@ function buildShell(def) {
     t.computeLineDistances();
     g.add(t);
   }
-  // bedrock outline below ground
+  // Cut faces for the cut-away: the pyramid's cross-section on the cutting plane (as built, and as the
+  // weathered core today), and the bedrock below ground, so the cut shows solid stone rather than a hollow shell
   const depth = Math.max(20, -def.lowest + 12);
+  const section = (pts, mat, solid) => {
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y))));
+    geo.rotateY(Math.PI / 2); geo.translate(-0.02, 0, 0); worldUV(geo); geo.userData.uv = true;
+    const m = new THREE.Mesh(geo, mat); m.receiveShadow = true;
+    m.userData.solid = solid; m.userData.cap = true;
+    g.add(m);
+  };
+  const outline = rs => [...rs.map(([r, y]) => [-r, y]), ...[...rs].reverse().map(([r, y]) => [r, y])];
+  section(outline(rings), CAP_MATS.core, def.id in TODAY ? 'built' : true);
+  const T = TODAY[def.id];
+  if (T && !T.smooth) {
+    const top = T.top, rs = [...rings.filter(([, y]) => y < top).map(([r, y]) => [Math.max(0.5, r - 1), y]), [Math.max(0.5, halfAt(rings, top) - 1), top]];
+    section(outline(rs), CAP_MATS.core, 'today');
+  } else if (T) section(outline(rings), CAP_MATS.core, 'today');
+  const w = rings[0][0] + 40;
+  section([[-w, -depth], [w, -depth], [w, 0], [-w, 0]], CAP_MATS.rock, true);
+  // bedrock outline below ground
   const bed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(rings[0][0] * 2 + 60, depth, rings[0][0] * 2 + 60)), new THREE.LineBasicMaterial({ color: COL.rock, transparent: true, opacity: 0.35 }));
   bed.position.y = -depth / 2;
   g.add(bed);
@@ -958,6 +982,8 @@ function applyToggles() {
   const cutMats = new Set([shellMat, shellStone, doorMat, doorRimMat, recessMat, ...Object.values(MAIN_MATS)]);
   ctx.groups.pyramid.traverse(o => { if (o.material) cutMats.add(o.material); });
   for (const m of cutMats) if (m.clippingPlanes?.length !== planes.length) { m.clippingPlanes = planes; m.needsUpdate = true; }
+  const seeBelow = toggles.cut && toggles.stone;
+  if (groundStone.transparent !== seeBelow) { groundStone.transparent = seeBelow; groundStone.opacity = seeBelow ? 0.5 : 1; groundStone.depthWrite = !seeBelow; groundStone.needsUpdate = true; }
   refreshLabels();
 }
 function toggle(btn, key) {
@@ -1369,16 +1395,41 @@ function initSatMap() {
   imagery.on('tileerror', () => { if (++fails === 4) showMapTab('diagram', 'Satellite imagery could not load here, so the diagram is shown instead.'); });
 
   const pin = (cls, title, sub) => L.divIcon({ className: 'pin-wrap', html: `<span class="pin ${cls}"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>`, iconSize: null, iconAnchor: [0, 0] });
+  const items = [];
   for (const p of PYRAMIDS) {
     const r = p.rings[0][0], dLa = r / M_LAT, dLo = r / mLon(p.lat);
     L.rectangle([[p.lat - dLa, p.lon - dLo], [p.lat + dLa, p.lon + dLo]], { color: '#c96442', weight: 2, fill: false, interactive: false }).addTo(satMap);
-    L.marker([p.lat + dLa, p.lon], { icon: pin('ours', p.short, p.date), riseOnHover: true }).addTo(satMap)   // pin sits on the north edge so the pyramid stays visible
+    const m = L.marker([p.lat + dLa, p.lon], { icon: pin('ours', p.short, p.date), riseOnHover: true })   // pin sits on the north edge so the pyramid stays visible
       .bindPopup(`<div class="pop"><div class="eyebrow">${p.site} · ${p.date}</div><b>${p.title}</b><p>${p.features[0].text.split('. ')[0]}.</p><button type="button" class="text-btn" data-id="${p.id}">Open in 3D</button></div>`);
+    items.push({ m, site: p.site, name: p.short, ours: true });
   }
   for (const c of SAT_CONTEXT) {
-    L.marker([c.lat, c.lon], { icon: pin('other', c.short, c.year ? `c. ${c.year} BC` : '') }).addTo(satMap)
+    const m = L.marker([c.lat, c.lon], { icon: pin('other', c.short, c.year ? `c. ${c.year} BC` : '') })
       .bindPopup(`<div class="pop"><div class="eyebrow">${c.place}${c.year ? ` · c. ${c.year} BC` : ''}</div><b>${c.name}</b><p>${c.note}</p></div>`);
+    items.push({ m, site: c.place, name: c.short, ours: false });
   }
+  // Pins that would overlap on screen merge into one pin per site; clicking it zooms in until they separate
+  let groups = [];
+  const regroup = () => {
+    for (const g of groups) g.remove();
+    groups = [];
+    const pts = items.map(it => satMap.latLngToLayerPoint(it.m.getLatLng())), used = new Set();
+    items.forEach((it, i) => {
+      if (used.has(i)) return;
+      const near = [i];
+      items.forEach((jt, j) => { if (j > i && !used.has(j) && jt.site === it.site && pts[i].distanceTo(pts[j]) < 64) near.push(j); });
+      near.forEach(j => used.add(j));
+      if (near.length === 1) { if (!satMap.hasLayer(it.m)) it.m.addTo(satMap); return; }
+      const list = near.map(j => items[j]);
+      list.forEach(x => x.m.remove());
+            const ll = L.latLngBounds(list.map(x => x.m.getLatLng()));
+      const g = L.marker(ll.getCenter(), { icon: pin(list.some(x => x.ours) ? 'ours group' : 'other group', it.site, list.map(x => x.name).join(', ')), riseOnHover: true }).addTo(satMap);
+      g.on('click', () => satMap.flyToBounds(ll, { padding: [120, 120], maxZoom: 17 }));
+      groups.push(g);
+    });
+  };
+  satMap.on('zoomend', regroup);
+  regroup();
   setTimeout(() => satMap.invalidateSize(), 0);
 }
 const SITE_BOUNDS = {
@@ -1493,7 +1544,11 @@ walkBtn.addEventListener('click', () => {
   if (walk.on) return stopWalk();
   if (tour.on) stopTour();
   setMode('model');
-  const s = outsideStart(); startWalk(s.p, s.look);
+  // start in whatever is selected, if you can stand in it; otherwise outside the north face
+  const id = ctx.selected;
+  fillStartPoints();
+  if (id && [...startSel.options].some(o => o.value === id)) { walkToFeature(id, ctx.byId[id].photos?.[0]); startSel.value = id; }
+  else { const s = outsideStart(); startWalk(s.p, s.look); }
 });
 document.getElementById('walk-exit').addEventListener('click', stopWalk);
 
@@ -1607,6 +1662,13 @@ function labelAnchors(id) {
   });
   return pts;
 }
+// How big a feature looks: the size of a cube with the same volume, so thin shafts that spread far
+// do not count as large and push the main chambers' labels aside
+function labelSize(id, r) {
+  let vol = 0; const sz = new THREE.Vector3();
+  ctx.groups[id].traverse(o => { if (o.isMesh && o.userData.solid !== 'today') { o.geometry.computeBoundingBox(); o.geometry.boundingBox.getSize(sz); vol += Math.max(sz.x, 0.05) * Math.max(sz.y, 0.05) * Math.max(sz.z, 0.05); } });
+  return Math.min(r, Math.max(0.5, Math.cbrt(vol)));
+}
 const _la = new THREE.Vector3();
 const onScreen = (p, m) => { _la.copy(p).project(camera); return _la.z < 1 && Math.abs(_la.x) < m && Math.abs(_la.y) < m; };
 function placeAnchor(o, u, whole) {
@@ -1624,6 +1686,7 @@ function placeAnchor(o, u, whole) {
   u.ai = i;
   o.position.copy(u.anchors[i]);
 }
+const _occ = new THREE.Raycaster();
 const overlaps = (r, list) => list.some(q => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
 function layoutLabels() {
   const W = renderer.domElement.clientWidth, H = renderer.domElement.clientHeight;
@@ -1633,7 +1696,7 @@ function layoutLabels() {
     if (!o.visible) continue;
     const u = o.userData, el = o.element;
     if (u.r === undefined) {
-      if (u.id) { _lb.setFromObject(ctx.groups[u.id]).getBoundingSphere(_ls); u.r = _ls.radius; u.c = _ls.center.clone(); u.anchors = [o.position.clone(), ...labelAnchors(u.id)]; } else u.r = 0;
+      if (u.id) { _lb.setFromObject(ctx.groups[u.id]).getBoundingSphere(_ls); u.r = _ls.radius; u.c = _ls.center.clone(); u.anchors = [o.position.clone(), ...labelAnchors(u.id)]; u.re = labelSize(u.id, u.r); } else u.r = 0;
     }
     if (!u.w && el.offsetWidth && !el.classList.contains('dot')) { u.w = el.offsetWidth; u.h = el.offsetHeight; }
     const dist = u.c ? Math.max(0.5, u.c.distanceTo(camera.position) - u.r * 0.5) : o.getWorldPosition(_lv).distanceTo(camera.position);
@@ -1642,9 +1705,10 @@ function layoutLabels() {
     _lv.project(camera);
     if (_lv.z > 1 || Math.abs(_lv.x) > 1.1 || Math.abs(_lv.y) > 1.1) continue;
     const sel = !!u.id && u.id === ctx.selected;
-    const px = u.r ? u.r / dist * focal : 0;              // the feature's size on screen, in pixels
+    const px = u.r ? u.re / dist * focal : 0;             // the feature's size on screen, in pixels
     const f = u.id && ctx.byId[u.id];
     const pr = sel ? 1e6 : u.quiet ? 5 : u.surround ? 60 : (u.major ? (f.scan || f.mark ? 70 : 100) : 0) + Math.min(px, 60);
+    u.pos = o.getWorldPosition(new THREE.Vector3());
     items.push({ el, u, sel, px, pr, x: (_lv.x + 1) / 2 * W, y: (1 - _lv.y) / 2 * H });
   }
   items.sort((a, b) => b.pr - a.pr);
@@ -1658,16 +1722,33 @@ function layoutLabels() {
       .map(r => ({ x0: r.left - host.left, x1: r.right - host.left, y0: r.top - host.top, y1: r.bottom - host.top }));
   }
   const placed = [...layoutLabels.ui], dots = [];
+  const solid = toggles.stone && !toggles.cut && !indoors() ? [ctx.ext.built, ctx.ext.today].filter(g => g?.visible) : null;
+  if (solid && now - (layoutLabels.tb ?? 0) > 200) layoutLabels.tb = now;
   for (const { el, u, sel, px, x, y } of items) {
+    // behind solid stone? checked a few times a second
+    if (!solid) u.behind = false;
+    else if (layoutLabels.tb === now && (u.quiet || u.surround || sel)) {
+      const p = u.pos, d = p.distanceTo(camera.position);
+      _occ.set(camera.position, p.clone().sub(camera.position).normalize()); _occ.far = d - 1;
+      u.behind = _occ.intersectObjects(solid, true).length > 0;
+    }
+    el.classList.toggle('behind', !!(u.behind && sel));
+    if (u.behind && !sel) { el.classList.add('gone'); el.classList.remove('dot'); continue; }
     const w = (u.w || 90) + 6, h = (u.h || 22) + 4;
-    const rect = { x0: x - w / 2, x1: x + w / 2, y0: y - 14 - h / 2, y1: y - 14 + h / 2 };
     const wantsFull = sel || u.quiet || u.surround || u.major || px > 28;
-    let mode = 'gone';
-    if (wantsFull && !overlaps(rect, placed)) { mode = 'full'; placed.push(rect); }
-    else if (!u.quiet && (u.major || u.surround || px > 8)) {
+    let mode = 'gone', off = [0, -14];
+    if (wantsFull) {
+      // above the point first; if that is taken, beside or below it, before giving up to a dot
+      for (const [dx, dy] of u.quiet ? [[0, 0]] : [[0, -14], [0, 16], [-(w / 2 + 12), 0], [w / 2 + 12, 0]]) {
+        const rect = { x0: x + dx - w / 2, x1: x + dx + w / 2, y0: y + dy - h / 2, y1: y + dy + h / 2 };
+        if (!overlaps(rect, placed)) { mode = 'full'; off = [dx, dy]; placed.push(rect); break; }
+      }
+    }
+    if (mode === 'gone' && !u.quiet && (u.major || u.surround || px > 8)) {
       const d = { x0: x - 8, x1: x + 8, y0: y - 22, y1: y - 6 };
       if (!overlaps(d, placed) && !overlaps(d, dots)) { mode = 'dot'; dots.push(d); }
     }
+    el.style.translate = mode === 'full' ? `${off[0]}px ${off[1]}px` : '0 -14px';
     el.classList.toggle('dot', mode === 'dot');
     el.classList.toggle('gone', mode === 'gone');
   }
