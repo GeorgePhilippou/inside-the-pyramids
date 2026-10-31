@@ -97,6 +97,13 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 | `photos/djoser-serdab.jpg` | Jon Bodsworth | Copyrighted free use | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Djoser_Serdap_1.jpg) |
 | `photos/sphinx-exterior.jpg` | Petar Milošević | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Great_Sphinx_(%D8%A3%D8%A8%D9%88_%D8%A7%D9%84%D9%87%D9%88%D9%84).jpg) |
 | `photos/sphinx-stela.jpg` | HoremWeb | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dream-stela.jpg) |
+| `photos/tut-north.jpg` | ولاء (Wala) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KV62,_Egypt_03.jpg) |
+| `photos/tut-west.jpg` | Romagy | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tutankhamun_KV62_burial_chamber_and_sarcophagus.jpg) |
+| `photos/tut-east.jpg` | Romagy | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tutankhamun_KV62_burial_chamber_procession.jpg) |
+| `photos/seti-corridor.jpg` | Carole Raddato | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KV17,_the_tomb_of_Pharaoh_Seti_I_of_the_Nineteenth_Dynasty,_Corridor_D_decorated_with_the_fourth_hour_of_the_Amduat,_Valley_of_the_Kings,_Egypt_(49846343896).jpg) |
+| `photos/seti-hall.jpg` | Carole Raddato | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KV17,_the_tomb_of_Pharaoh_Seti_I_of_the_Nineteenth_Dynasty,_Pillared_Chamber_F,_left_pillar_Seti_before_Hathor_as_Goddess_of_the_West,_right_pillar_Seti_before_Isis,_Valley_of_the_Kings,_Egypt_(49846646197).jpg) |
+| `photos/seti-burial.jpg` | Carole Raddato | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KV17,_the_tomb_of_Pharaoh_Seti_I_of_the_Nineteenth_Dynasty,_Burial_chamber_J,_Valley_of_the_Kings,_Egypt_(49846644117).jpg) |
+| `photos/seti-ceiling.jpg` | Carole Raddato | CC BY-SA 2.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KV17,_the_tomb_of_Pharaoh_Seti_I_of_the_of_the_burial_chamber,_Nineteenth_Dynasty,_astronomical_vaulted_ceiling_Valley_of_the_Kings,_Egypt_(49845803483).jpg) |
 
 ## Publishing a change
 
