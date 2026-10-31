@@ -2048,10 +2048,10 @@ document.getElementById('tour-next').addEventListener('click', () => tour.i < to
 document.getElementById('tour-back').addEventListener('click', () => tour.i > 0 && goStop(tour.i - 1));
 
 // ---------- Where you are: compass, position in words, colour key ----------
-const KEY_TEXT = { paint: 'Carved and painted walls', stone: 'Stone sarcophagus', stage: 'Earlier building stages', faience: 'Blue faience tiles', lime: 'Built of limestone', granite: 'Granite', rock: 'Cut into the bedrock', shaft: 'Shafts and narrow tunnels', later: 'Dug later by robbers', scan: 'Found by scans, not entered', mark: 'Inscriptions and marks', texts: 'Pyramid Texts' };
+const KEY_TEXT = { paint: 'Carved and painted walls', stage: 'Earlier building stages', faience: 'Blue faience tiles', lime: 'Built of limestone', granite: 'Granite and other hard stone', rock: 'Cut into the bedrock', shaft: 'Shafts and narrow tunnels', later: 'Dug later by robbers', scan: 'Found by scans, not entered', mark: 'Inscriptions and marks', texts: 'Pyramid Texts' };
 const keyEl = document.getElementById('key'), keyBtn = document.getElementById('btn-key');
 function buildKey() {
-  const used = new Set(ctx.def.features.filter(f => f.id !== 'pyramid').map(f => f.color));
+  const used = new Set(ctx.def.features.filter(f => f.id !== 'pyramid').map(f => f.color === 'stone' ? 'granite' : f.color));
   keyEl.innerHTML = Object.entries(KEY_TEXT).filter(([c]) => used.has(c)).map(([c, t]) => `<div><i style="background:var(--${c})"></i>${t}</div>`).join('')
     + (ctx.doors.length ? '<div><i class="door"></i>Opening in the outer face</div>' : '')
     + '<div><i style="background:var(--human)"></i>Person, 1.75 m tall</div>'
