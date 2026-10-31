@@ -9,7 +9,9 @@ export default function sphinx(api) {
 
   const L2 = 73 / 2, W2 = 19 / 2, H = 20;
   const backY = 12.5;                                   // top of the back in the stand-in shape
-  const SCAN = { back5: 8.85, back8: 8.2, head: 19.0, headX: 19.9, chest: 23.9, side: 7.6 };   // measured on the scan (m)
+  // Measured on the scanned surface, in model metres: the Dream Stela slab, the top of the head, the back just behind
+  // the head, the notch at the waist, and the north edge of the body
+  const SCAN = { stela: [43.5, 44.4, -4.9, 0.9, 3.3], headX: 25, headZ: -1.3, head: 21.0, perringX: 16, back: 10.8, waistX: -14, waistTop: 10, side: 9.6 };
   const rb = (w, h, d, x, y, z, r = 1.2) => {
     const { RoundedBoxGeometry } = api;
     const g = new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2.2, h / 2.2, d / 2.2));
@@ -42,21 +44,21 @@ export default function sphinx(api) {
     short: 'Sphinx', site: 'Giza', date: 'c. 2540 BC', title: 'The Great Sphinx',
     rings: [[L2, 0], [L2, H]], zr: W2 / L2, lowest: -9, start: 'rump', shape,
     // the scan: x along the body, scaled to 73 m long and 20 m high (the bronze exaggerates height about 20%)
-    scan: { url: 'models/sphinx.glb', centre: [0.70, 0.10, -0.05], rotY: -Math.PI / 2, scale: [11.6, 9.6, 11.6], keepAbove: -0.3, tint: [2.3, 1.9, 1.38] },   // the cast is dark bronze; tinted to limestone
-    profile: [[-L2, 0], [-35, 6], [-30, 8.5], [-10, 8.3], [10, 8.6], [15.5, 12], [16.5, 18], [19, 19], [22, 19], [23.5, 16], [23.9, 9], [24, 2.6], [L2, 2.6], [L2, 0]],
+    scan: { url: 'models/sphinx.glb', centre: [0.66, 0.0, 0.316], rotY: -Math.PI / 2, scale: [12.6, 10.1, 12.6], keepAbove: -0.3, tint: [2.3, 1.9, 1.38] },   // the cast is dark bronze; tinted to limestone
+    profile: [[-36, 0], [-36, 5], [-34, 8], [-30, 9.5], [-24, 10.4], [-17, 10], [-14, 5], [-12, 8.5], [-8, 9.7], [14, 10.3], [17, 12], [19, 18], [22, 21], [28, 21], [30, 17], [32, 8.5], [34, 7], [36, 4], [36, 0]],
     tour: () => [
       { id: 'pyramid', path: [V(L2 + 45, 1.65, 12)], look: V(10, 12, 0), say: 'The Great Sphinx, carved from the living rock of the Giza plateau. A lion’s body with a king’s head, probably Khafre’s, facing the sunrise.' },
-      { id: 'stela', path: [V(L2 + 6, 1.65, 0), V(29, 1.65, 0)], look: V(24.2, 2.2, 0), say: 'Between the paws stands the Dream Stela, set up about 1,100 years later by Thutmose IV. It tells how the Sphinx promised him the throne if he cleared away the sand.' },
+      { id: 'stela', path: [V(54, 1.65, 4), V(48.5, 1.65, 0)], look: V(44, 1.8, -2), say: 'Between the paws stands the Dream Stela, set up about 1,100 years later by Thutmose IV. It tells how the Sphinx promised him the throne if he cleared away the sand.' },
       { id: 'rump', path: [V(-22, 1.65, -W2 - 6), V(-30, 1.65, -W2 - 3)], look: up(rump, 1.0), say: 'Low on the north side of the rump, a short passage leads into the body. It climbs about 4 m to a small niche, and goes down about 5 m into the rock.' },
-      { id: 'perring', path: [V(4, SCAN.back5 + 4, -11)], look: V(5, SCAN.back5 - 2, 0), say: 'Behind the head, a hole drilled in 1837 by Colonel Vyse’s team, who hoped to find chambers. The rods stuck at about 8 m. Nothing was found.' },
-      { id: 'fissure', path: [V(-8, SCAN.back8 + 5, -15)], look: V(-8, 5, 0), say: 'A natural crack runs right through the body at the waist, up to 2 m wide at the top.' },
-      { id: 'cavity', path: [V(42, 7, -22)], look: V(31, -4, 0), say: 'A seismic survey in the early 1990s reported a cavity in the rock under the front paws. No one has entered it, and what it is remains unknown.' },
+      { id: 'perring', path: [V(13, SCAN.back + 4, -12)], look: V(SCAN.perringX, SCAN.back - 2, 0), say: 'Behind the head, a hole drilled in 1837 by Colonel Vyse’s team, who hoped to find chambers. The rods stuck at about 8 m. Nothing was found.' },
+      { id: 'fissure', path: [V(SCAN.waistX, SCAN.waistTop + 5, -16)], look: V(SCAN.waistX, 5, 0), say: 'A natural crack runs right through the body at the waist, up to 2 m wide at the top.' },
+      { id: 'cavity', path: [V(52, 7, -22)], look: V(39, -4, 0), say: 'A seismic survey in the early 1990s reported a cavity in the rock under the front paws. No one has entered it, and what it is remains unknown.' },
     ],
     stats: [['Length', '73 m'], ['Height', '20 m']],
     sources: 'M. Lehner, <i>Archaeology of an Image: The Great Sphinx of Giza</i> (1991); M. Lehner &amp; Z. Hawass, <i>Giza and the Pyramids</i> (2017); S. Hassan, <i>The Sphinx</i> (1949). Overall size is published. The sculpted body is simplified, and the holes and passages are placed from published descriptions.',
     features: [
       { id: 'pyramid', group: 'Exterior', name: 'The Sphinx', color: 'sand', conf: 'surveyed',
-        photos: () => [ph('sphinx-exterior.jpg', 'The head of the Sphinx in profile against a blue sky', 'The head in profile, wearing the striped nemes headdress, seen from the north.', 'Petar Milošević', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Great_Sphinx_(%D8%A3%D8%A8%D9%88_%D8%A7%D9%84%D9%87%D9%88%D9%84).jpg', V(14, 11, -34), V(14, 15.5, 0))],
+        photos: () => [ph('sphinx-exterior.jpg', 'The head of the Sphinx in profile against a blue sky', 'The head in profile, wearing the striped nemes headdress, seen from the north.', 'Petar Milošević', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Great_Sphinx_(%D8%A3%D8%A8%D9%88_%D8%A7%D9%84%D9%87%D9%88%D9%84).jpg', V(25, 12, -38), V(25, 16, 0))],
         why: 'It is the largest statue of the ancient world carved from a single mass of rock, and it is still mostly solid stone.',
         text: 'A lion with a human head wearing the royal nemes headdress, carved out of the bedrock where builders had quarried stone. It faces due east. Most scholars think it shows King Khafre. Apart from a few small holes and passages, it is solid rock. The 3D shape is a scan of a detailed bronze model of the Sphinx and its enclosure by the sculptor Bert W. Longworth, scaled to the Sphinx\u2019s published length and height.',
         facts: [['Length', '73 m'], ['Width', '19 m'], ['Height', '20 m'], ['Faces', 'East'], ['3D shape', 'Scan of a bronze model by Bert W. Longworth \u00b7 The Watt Institution \u00b7 CC BY']] },
@@ -85,7 +87,7 @@ export default function sphinx(api) {
         text: 'A seismic survey of the floor around the Sphinx in the early 1990s reported a cavity in the rock beneath the front paws. Its size, shape and depth are not certain, and it may be natural. The box marks the general zone only.',
         facts: [['Found', 'Seismic survey, early 1990s'], ['Entered', 'Never'], ['Position', 'Uncertain']] },
       { id: 'stela', group: 'Inscriptions and marks', name: 'Dream Stela', color: 'mark', mark: true, conf: 'approx', major: true,
-        photos: () => [ph('sphinx-stela.jpg', 'A tall granite slab with a rounded top standing between the paws', 'The Dream Stela standing against the chest, seen from beside the north paw.', 'HoremWeb', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Dream-stela.jpg', V(21, 7, -9), V(14.8, 1.8, 0))],
+        photos: () => [ph('sphinx-stela.jpg', 'A tall granite slab with a rounded top standing between the paws', 'The Dream Stela standing against the chest, seen from beside the north paw.', 'HoremWeb', 'CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Dream-stela.jpg', V(39, 6, -9), V(44, 1.8, -2))],
         why: 'It shows the Sphinx was already ancient and revered, and half buried in sand, by the New Kingdom.',
         text: 'A granite slab set up between the paws by King Thutmose IV around 1400 BC. Its text tells how, as a prince, he fell asleep in the Sphinx’s shadow and dreamed it promised him the throne if he cleared away the sand burying it. A small space behind it is now covered with a modern roof.',
         facts: [['Set up', 'c. 1400 BC, Thutmose IV'], ['Height', 'c. 3.6 m'], ['Material', 'Granite']] },
@@ -93,13 +95,13 @@ export default function sphinx(api) {
     build() {
       const M = api.ctx.mats;
       // Hole in the head, Perring's Hole behind it
-      room('head', SCAN.headX - 0.4, SCAN.headX + 0.4, SCAN.head - 2.0, SCAN.head + 0.05, -0.4, 0.4);
-      room('perring', 4.7, 5.3, SCAN.back5 - 8.2, SCAN.back5 + 0.05, -0.3, 0.3);
+      room('head', SCAN.headX - 0.4, SCAN.headX + 0.4, SCAN.head - 2.0, SCAN.head + 0.05, SCAN.headZ - 0.4, SCAN.headZ + 0.4);
+      room('perring', SCAN.perringX - 0.3, SCAN.perringX + 0.3, SCAN.back - 8.2, SCAN.back + 0.05, -0.3, 0.3);
       // Waist fissure: a tapering crack through the body
       { const sh = new THREE.Shape();
-        sh.moveTo(-1, SCAN.back8); sh.lineTo(1, SCAN.back8); sh.lineTo(0.1, 1); sh.lineTo(-0.1, 1); sh.closePath();
+        sh.moveTo(-1, SCAN.waistTop); sh.lineTo(1, SCAN.waistTop); sh.lineTo(0.1, 1); sh.lineTo(-0.1, 1); sh.closePath();
         const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 15.5, bevelEnabled: false }), M.fissure);
-        m.position.set(-8, 0, -7.75); put('fissure', m);
+        m.position.set(SCAN.waistX, 0, -8); put('fissure', m);
         M.fissure.opacity = 0.28; }   // a thin crack: faint, so it does not hide the body
       // Rump passage: in from the north side, then up to a niche and down into the rock
       const inner = rump.clone().add(V(0, 0, 2));
@@ -108,15 +110,15 @@ export default function sphinx(api) {
       room('rump', -31.1, -30.1, 2.4, 4.2, -SCAN.side + 1.4, -SCAN.side + 2.4);   // niche, 1 × 1.8 m
       route('rump', [inner.clone().add(V(0, -0.2, 0)), inner.clone().add(V(2.8, -5, -2.8))], 1.07, 1.4);
       // Keyhole Shaft on the enclosure floor, opposite the northern hind paw
-      room('keyhole', -24.7, -23.3, -2, 0.02, -W2 - 5.5, -W2 - 4.4);
+      room('keyhole', -26.7, -25.3, -2, 0.02, -SCAN.side - 5.5, -SCAN.side - 4.4);
       // Reported cavity under the front paws (zone only)
-      room('cavity', 26, 36, -8, -3, -5, 5);
+      room('cavity', 34, 44, -8, -3, -5, 5);
       // Dream Stela between the paws, against the chest
-      room('stela', SCAN.chest, SCAN.chest + 0.7, 0, 3.6, -1.1, 1.1);
+      { const [x0, x1, z0, z1, top] = SCAN.stela; room('stela', x0, x1, 0, top, z0, z1); }   // matches the slab in the scan
 
-      person(L2 + 4, 0, -2.5, -Math.PI / 2);
+      person(40, 0, 3.5, -Math.PI / 2);
       person(-30.5, 0, -W2 - 2, 0);
-      person(29, 0, 0.2, -Math.PI / 2);
+      person(47, 0, -1, -Math.PI / 2);
     },
   };
 }
