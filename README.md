@@ -1,8 +1,8 @@
-# Inside the Pyramids
+# Inside Ancient Egypt
 
-See-through 3D models of seven Egyptian pyramids, the Great Sphinx and two royal tombs: Djoser's Step Pyramid and Unas at Saqqara, the Bent and Red pyramids at Dahshur, Khufu, Khafre, the Sphinx and Menkaure at Giza, and the tombs of Tutankhamun (KV 62) and Seti I (KV 17) in the Valley of the Kings. Every known passage and chamber is drawn to published survey figures; the two tombs use the Theban Mapping Project survey.
+See-through 3D models of seven Egyptian pyramids, the Great Sphinx and two royal tombs: Djoser's Step Pyramid and Unas at Saqqara, the Bent and Red pyramids at Dahshur, Khufu, Khafre, the Sphinx and Menkaure at Giza, and the Valley of the Kings: all 49 tombs with a surveyed position, plus detailed models of Tutankhamun's (KV 62) and Seti I's (KV 17). Every known passage and chamber is drawn to published survey figures; the tombs use the Theban Mapping Project survey.
 
-- A **monument picker** shows all ten side by side at the same scale, grouped by site, with arrows to step through them in date order.
+- A **monument picker** shows every monument side by side at the same scale, grouped by site, with arrows to step through them in date order.
 - Click any passage or chamber to see a photo, fly the camera to where it was taken, and read why it matters.
 - **Guided tours** walk you through each pyramid's real route, stop by stop.
 - Links can open a single feature, for example `#khufu/king` or `#unas/ptAE`.
@@ -108,3 +108,7 @@ All photos are from Wikimedia Commons, resized for the web. Their original licen
 ## Publishing a change
 
 Run `scripts/stamp.sh` before committing a change to `css/` or `js/`. It stamps `index.html` with a version taken from the code, so browsers load the new scripts and styles together instead of mixing in cached old copies.
+
+## Valley of the Kings data
+
+`js/data/kv-raw.json` holds the Theban Mapping Project survey of each tomb (position, entrance height, and the size and relative bearing of every room). `scripts/build-valley-data.py` turns it, with AWS Terrain Tiles (SRTM) elevation tiles, into `js/data/valley-data.js`. The survey grid runs 27.5° off true north; that rotation and shift were fitted to the elevation data (entrance heights agree to about 6 m) and checked against published tomb coordinates (about 10 m). Tomb layouts in the valley scene are schematic: room sizes are surveyed, but where side rooms sit and how steeply corridors slope are not published.

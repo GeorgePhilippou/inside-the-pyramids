@@ -1,12 +1,17 @@
 // The tomb of Seti I, KV 17, Valley of the Kings (c. 1279 BC).
 // Model units are metres: origin at the top of the entrance, +x east, +y up, +z south.
-// Built along its own axis (running toward -x), then turned to its true bearing of 218.68° (south-west).
+// Built along its own axis (running toward -x), then turned to its true bearing: 218.68° on the survey grid,
+// which runs 27.5° off true north, so about 246° (west-south-west).
 // Room and corridor sizes are the Theban Mapping Project survey. Floor levels and the slope of the
 // unexcavated tunnel K are not published room by room, so depths are approximate.
+import { VALLEY, TOMBS } from '../data/valley-data.js';
+import { groundAround } from '../data/ground.js';
+
 export default function seti(api) {
   const { THREE, V, D, up, ph, COL, passage, room, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat } = api;
 
-  const PHI = (270 - 218.68) * D, c = Math.cos(PHI), s = Math.sin(PHI);
+  const rec = TOMBS.find(t => t.kv === 17);
+  const PHI = (270 - (218.68 + VALLEY.bearingFix)) * D, c = Math.cos(PHI), s = Math.sin(PHI);
   const W = (x, y, z) => V(x * c + z * s, y, -x * s + z * c);             // tomb axis -> world
   const L = (x, z) => [x * c - z * s, x * s + z * c];                       // world -> tomb axis
   // Floors along the tomb (approximate), from the top of the entrance
@@ -16,23 +21,17 @@ export default function seti(api) {
   const Jup = -92.0;                                                        // where the raised pillared part of J ends
   const kA = V(-96.6, f.Jlow, gz - 1.2), kDir = V(-Math.cos(7.51 * D), -0.2, -Math.sin(7.51 * D)).normalize();
   const kB = kA.clone().addScaledVector(kDir, 174);
-  const ridge = xl => Math.min(72, Math.max(0, (-6 - xl) * 0.62));
-  const terrain = (() => {
-    const pts = [[45, -90], [45, 90], [-300, 90], [-300, -90]].map(([x, z]) => W(x, 0, z));
-    const xs = pts.map(p => p.x), zs = pts.map(p => p.z);
-    return {
-      size: [Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)], center: [(Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...zs) + Math.min(...zs)) / 2], step: 3,
-      h: (x, z) => { const [xl, zl] = L(x, z), r = ridge(xl); return r > 0 ? r * (1 - 0.3 * (zl / 90) ** 2) + 1.6 * Math.sin(xl * 0.09) * Math.cos(zl * 0.11) * Math.min(1, r / 6) : 0; },
-      holes: [[[0.3, -1.4], [0.3, 1.4], [-15.81, 1.4], [-15.81, -1.4]].map(([x, z]) => { const p = W(x, 0, z); return [p.x, p.z]; })],
-    };
-  })();
+  const terrain = {
+    size: [420, 420], center: W(-120, 0, 0).toArray().filter((_, k) => k !== 1), step: 3, dem: true, h: groundAround(rec.pos),
+    holes: [[[0.3, -1.4], [0.3, 1.4], [-15.81, 1.4], [-15.81, -1.4]].map(([x, z]) => { const p = W(x, 0, z); return [p.x, p.z]; })],
+  };
   const wp = (x, y, z) => W(x, y, z);
 
   return {
-    id: 'seti', kind: 'tomb', king: 'Seti I', reign: [1294, 1279], year: 1279, lat: 25.740294, lon: 32.602051, entranceY: 7.47,
+    id: 'seti', kind: 'tomb', king: 'Seti I', reign: [1294, 1279], year: 1279, lat: VALLEY.lat0 - rec.pos[2] / 110850, lon: VALLEY.lon0 + rec.pos[0] / (111320 * Math.cos(VALLEY.lat0 * D)), entranceY: rec.pos[1],
     short: 'Seti I', site: 'Valley of the Kings', date: 'c. 1279 BC', title: 'The tomb of Seti I (KV 17)',
-    rings: [[60, 0], [60, 0.01]], terrain, rotateY: PHI, cut: W(0, 0, 1).toArray(), lowest: kB.y - 2, start: 'burial',   // the cut runs along the tomb's axis
-    overview: { t: W(-60, -16, 0).toArray(), p: W(-30, 70, -150).toArray() },
+    rings: [[60, 0], [60, 0.01]], terrain, rotateY: PHI, cut: W(0, 0, 1).toArray(), lowest: kB.y - 2, start: 'burial', groundY: -90,   // the cut runs along the tomb's axis
+    overview: { t: W(-60, -16, 0).toArray(), p: (q => [q.x, terrain.h(q.x, q.z) + 55, q.z])(W(-30, 0, -150)) },   // above the real hillside
     profile: [[0, 0], [-15.8, f.B], [-27.4, f.C], [-36.2, f.D], [-46.3, f.E], [-60.5, f.E], [-70.5, f.H], [-83.1, f.I], [-92, f.I], [-92, f.Jlow], [-98.4, f.Jlow], [-98.4, f.Jlow + 6.05], [-84, f.I + 3.6], [-60.5, f.E + 3.2], [-46.3, f.E + 2.8], [-16.8, f.B + 2.6], [-12, 0]],
     tour: () => [
       { id: 'pyramid', path: [wp(18, 1.65, 10)], look: wp(-10, -2, 0), say: 'Seti I’s tomb is the longest and most completely decorated in the valley. Giovanni Belzoni found it on 16 October 1817.' },
@@ -50,8 +49,8 @@ export default function seti(api) {
     features: [
       { id: 'pyramid', group: 'Outside', name: 'The hillside', color: 'sand', conf: 'approx',
         why: 'It is the first royal tomb decorated from end to end, and it set the pattern for the rest of the 19th Dynasty.',
-        text: 'The tomb is cut into the foot of a sloping hill in the south-east branch of the valley. It is 137 m long, the longest and deepest tomb in the Valley of the Kings, and almost every wall is carved and painted. The hill shape here is approximate.',
-        facts: [['Found', '16 October 1817, Belzoni'], ['Total length', '137.19 m (tunnel K extra)'], ['Floor area', '649 m²'], ['Axis', '218.68° (south-west)']] },
+        text: 'The tomb is cut into the foot of a sloping hill in the south-east branch of the valley. It is 137 m long, the longest and deepest tomb in the Valley of the Kings, and almost every wall is carved and painted. The ground comes from satellite elevation data and is approximate.',
+        facts: [['Found', '16 October 1817, Belzoni'], ['Total length', '137.19 m (tunnel K extra)'], ['Floor area', '649 m²'], ['Axis', 'c. 246° (west-south-west)']] },
       { id: 'entry', group: 'Upper corridors', name: 'Entrance stairway', color: 'rock', conf: 'surveyed',
         why: 'The open stairway is the only undecorated part before the burial chamber.',
         text: 'Twenty-six ancient steps cut into the slope, now preceded by modern steps and retaining walls.',

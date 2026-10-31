@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Inside the Pyramids">
-<meta property="og:description" content="Explore Egypt’s pyramids and the Great Sphinx in 3D: every known passage and chamber, real photos, the Pyramid Texts, a timeline and a satellite map.">
+<meta property="og:title" content="Inside Ancient Egypt">
+<meta property="og:description" content="Explore Egypt’s pyramids, the Great Sphinx and the royal tombs of the Valley of the Kings in 3D: every known passage and chamber, real photos, a timeline and a satellite map.">
 <meta property="og:image" content="https://georgephilippou.github.io/inside-the-pyramids/preview.jpg">
 <meta property="og:image:width" content="800">
 <meta property="og:image:height" content="420">
@@ -13,12 +13,12 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#f0eee6">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f0eee6'/%3E%3Cpath d='M16 5 3 27h26z' fill='%23c96442'/%3E%3Cpath d='M16 5 21 27h8z' fill='%239c4a30'/%3E%3C/svg%3E">
-<meta name="description" content="See-through 3D models of seven Egyptian pyramids and the Great Sphinx with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
-<title>Inside the Pyramids</title>
+<meta name="description" content="See-through 3D models of seven Egyptian pyramids, the Great Sphinx and the tombs of the Valley of the Kings, with their passages and chambers drawn to published survey figures, photos, a timeline and a map.">
+<title>Inside Ancient Egypt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/style.css?v=57805205">
+<link rel="stylesheet" href="css/style.css?v=8b8871ae">
 </head>
 <body>
 <div id="scene"></div>
@@ -41,7 +41,7 @@
     <button class="icon-btn" id="btn-contents" type="button" aria-expanded="true" aria-controls="contents" aria-label="Show or hide contents">
       <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
     </button>
-    <b>Inside the Pyramids</b>
+    <b>Inside Ancient Egypt</b>
   </div>
   <div class="pick-wrap">
     <button class="icon-btn" id="pick-prev" type="button" aria-label="Previous: older monument"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -157,8 +157,8 @@
 <div class="welcome-back" id="welcome" hidden>
   <section class="welcome card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="eyebrow">Welcome</div>
-    <h2 id="welcome-title">Inside the Pyramids</h2>
-    <p>Explore Egypt’s pyramids and the Great Sphinx in 3D, from Djoser’s Step Pyramid, the first, to the Pyramid of Unas, with every known passage and chamber drawn from published surveys.</p>
+    <h2 id="welcome-title">Inside Ancient Egypt</h2>
+    <p>Explore ancient Egypt’s royal monuments in 3D: the pyramids from Djoser’s Step Pyramid to Unas, the Great Sphinx, and the tombs of the Valley of the Kings, with every known passage and chamber drawn from published surveys.</p>
     <ul class="tries">
       <li><b>Click any chamber or name</b> to see photos, measurements and why it matters.</li>
       <li><b>Take the Tour</b> to be walked through the passages, or <b>Walk</b> on your own at human height.</li>
@@ -191,19 +191,22 @@
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=57805205",
-  "./js/pyramids/red.js": "./js/pyramids/red.js?v=57805205",
-  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=57805205",
-  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=57805205",
-  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=57805205",
-  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=57805205",
-  "./js/pyramids/djoser.js": "./js/pyramids/djoser.js?v=57805205",
-  "./js/pyramids/sphinx.js": "./js/pyramids/sphinx.js?v=57805205",
-  "./js/pyramids/tut.js": "./js/pyramids/tut.js?v=57805205",
-  "./js/pyramids/seti.js": "./js/pyramids/seti.js?v=57805205"
+  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=8b8871ae",
+  "./js/pyramids/red.js": "./js/pyramids/red.js?v=8b8871ae",
+  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=8b8871ae",
+  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=8b8871ae",
+  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=8b8871ae",
+  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=8b8871ae",
+  "./js/pyramids/djoser.js": "./js/pyramids/djoser.js?v=8b8871ae",
+  "./js/pyramids/sphinx.js": "./js/pyramids/sphinx.js?v=8b8871ae",
+  "./js/pyramids/tut.js": "./js/pyramids/tut.js?v=8b8871ae",
+  "./js/pyramids/seti.js": "./js/pyramids/seti.js?v=8b8871ae",
+  "./js/pyramids/valley.js": "./js/pyramids/valley.js?v=8b8871ae",
+  "./js/data/valley-data.js": "./js/data/valley-data.js?v=8b8871ae",
+  "./js/data/ground.js": "./js/data/ground.js?v=8b8871ae"
 } }
 </script>
-<script type="module" src="js/viewer.js?v=57805205"></script>
+<script type="module" src="js/viewer.js?v=8b8871ae"></script>
 
 </body>
 </html>

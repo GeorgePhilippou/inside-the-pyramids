@@ -13,6 +13,7 @@ import djoser from './pyramids/djoser.js';
 import sphinx from './pyramids/sphinx.js';
 import tut from './pyramids/tut.js';
 import seti from './pyramids/seti.js';
+import valley from './pyramids/valley.js';
 
 // All models: metres, origin at the centre of the base. +x = east, +y = up, +z = south.
 const D = Math.PI / 180;
@@ -73,6 +74,8 @@ grid.material.transparent = true; grid.material.opacity = 0.9;
 scene.add(grid);
 const humanMat = new THREE.MeshStandardMaterial({ color: COL.human, emissive: COL.human, emissiveIntensity: 0.25, roughness: 0.6 });
 const shellMat = new THREE.MeshBasicMaterial({ color: COL.sand, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+// real terrain in the see-through look: lit, so hills and wadis show their shape
+const terrainXray = new THREE.MeshLambertMaterial({ color: COL.sand, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide });
 const clip = new THREE.Plane(V(-1, 0, 0), 0);
 
 // ---------- Stone look: textures drawn once on canvases, so there are no image files to load ----------
@@ -245,7 +248,7 @@ function applyLook() {
   }
   for (const lm of Object.values(ctx.lineMats)) lm.visible = !stone;
   ctx.groups.pyramid.traverse(o => { if (o.isLine || o.isLineSegments) o.visible = !stone; });
-  ctx.shell.material = shellMat;
+  ctx.shell.material = ctx.def.terrain?.dem ? terrainXray : shellMat;
   ctx.shell.visible = !stone;
   for (const grp of [ctx.ext.built, ctx.ext.today]) if (grp) grp.visible = solidVisible(grp.userData.solid, stone, grp.userData.hasToday);
   for (const m of ctx.extra) { m.map = stone ? TEX[m.userData.key] : null; m.color.copy(stone ? new THREE.Color(0xdedede) : m.userData.col); m.needsUpdate = true; }
@@ -278,6 +281,7 @@ function exteriorMats() {
     weathered: new THREE.MeshStandardMaterial({ map: TEX.casing, roughness: 0.95, side: THREE.DoubleSide }),
     oldCasing: new THREE.MeshStandardMaterial({ map: TEX.tura, color: '#d6c39d', roughness: 0.85, side: THREE.DoubleSide }),
     bedrock: new THREE.MeshStandardMaterial({ map: TEX.sphinx, roughness: 1, side: THREE.DoubleSide }),
+    hillside: new THREE.MeshStandardMaterial({ map: TEX.rock, color: '#e3cfae', roughness: 1, side: THREE.DoubleSide }),
   };
   for (const x of Object.values(m)) x.clipShadows = true;
   return m;
@@ -311,8 +315,8 @@ function terrainGeo(def) {
   const at = (i, k) => i * (nz + 1) + k, y = n => pos[3 * n + 1];
   for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
     const a = at(i, k), b = at(i + 1, k), c = at(i + 1, k + 1), e = at(i, k + 1);
-    if (Math.max(y(a), y(b), y(c), y(e)) < 0.02) continue;
-    if (inHole(def, (pos[3 * a] + pos[3 * c]) / 2, (pos[3 * a + 2] + pos[3 * c + 2]) / 2)) continue;
+    if (!T.dem && Math.max(y(a), y(b), y(c), y(e)) < 0.02) continue;
+    if ([a, b, c, e].some(n => inHole(def, pos[3 * n], pos[3 * n + 2])) || inHole(def, (pos[3 * a] + pos[3 * c]) / 2, (pos[3 * a + 2] + pos[3 * c + 2]) / 2)) continue;
     idx.push(a, e, c, a, c, b);
   }
   const g = new THREE.BufferGeometry();
@@ -375,7 +379,7 @@ function exteriorGroups(def, neighbour = false, holes = []) {
   const M = neighbour ? NEIGHBOUR_MATS : MAIN_MATS, built = new THREE.Group(), today = new THREE.Group();
   const add = (grp, geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; grp.add(m); };
   const top = def.rings[def.rings.length - 1][1];
-  if (def.shape || def.terrain) { add(built, customGeo(def), M.bedrock); built.userData.solid = 'built'; return { built, today: null }; }
+  if (def.shape || def.terrain) { add(built, customGeo(def), def.terrain?.dem ? M.hillside : M.bedrock); built.userData.solid = 'built'; return { built, today: null }; }
   if (def.id === 'menkaure') { add(built, frustumGeo(def.rings, 0, 20), M.granite); add(built, frustumGeo(def.rings, 20, top), M.tura); }   // lowest 16 courses were granite
   else add(built, makeShellGeo(def.rings, def.zr), M.tura);
   const t = TODAY[def.id];
@@ -808,8 +812,8 @@ function buildShell(def) {
 
 
 // Each pyramid's data lives in its own file and is built with these shared helpers
-const api = { THREE, RoundedBoxGeometry, V, D, up, ph, COL, passage, room, doorway, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
-const PYRAMIDS = [djoser, bent, red, khufu, khafre, sphinx, menkaure, unas, tut, seti].map(make => make(api));   // oldest first
+const api = { THREE, RoundedBoxGeometry, mergeGeometries, V, D, up, ph, COL, passage, room, doorway, gabledRoom, corbelRoom, route, person, frame, put, halfAt, wallImage, extraMat, get ctx() { return ctx; } };
+const PYRAMIDS = [djoser, bent, red, khufu, khafre, sphinx, menkaure, unas, valley, tut, seti].map(make => make(api));   // oldest first
 const KHUFU = PYRAMIDS.find(p => p.id === 'khufu');
 
 // ======================================================================
@@ -845,6 +849,7 @@ function load(def, fly) {
     ctx.mats[f.id] = xray(new THREE.MeshStandardMaterial({ color: COL[f.color], emissive: COL[f.color], emissiveIntensity: 0.12, roughness: 0.8, transparent: true, opacity: f.scan ? 0.45 : f.mark ? 0.95 : 0.62, depthWrite: false, side: THREE.DoubleSide }));
   }
   ground.geometry = groundGeo(def);
+  ground.position.y = def.groundY ?? 0;   // under real terrain the flat ground sits below the lowest valley floor
   clip.normal.set(...(def.cut ?? [-1, 0, 0])).normalize();   // the cut-away runs along each site's own plane
   buildShell(def);
   def.build();
@@ -927,7 +932,8 @@ function select(id, fly, photo = 0) {
     </figure>` : ''}
     <p>${f.text}</p>
     ${f.why ? `<div class="why"><b>Why it matters</b><p>${f.why}</p></div>` : ''}
-    <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    ${f.link ? `<button type="button" class="text-btn open-link" data-open="${f.link}"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8"/></svg>Open the detailed model</button>` : ''}`;
   for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', b.dataset.id === id);
   setEmissive();
   for (const o of ctx.labels) o.element.classList.toggle('on', o.userData.id === id);
@@ -937,6 +943,8 @@ function select(id, fly, photo = 0) {
   if (fly) { if (walk.on) walkToFeature(id, vp); else if (vp) flyTo(V(...vp.look), V(...vp.cam)); else flyToFeature(id); }
 }
 info.addEventListener('click', e => {
+  const o = e.target.closest('[data-open]');
+  if (o) return switchTo(PYRAMIDS.find(p => p.id === o.dataset.open));
   const t = e.target.closest('[data-photo]');
   if (!t) return;
   const i = +t.dataset.photo, ph = ctx.byId[ctx.selected].photos[i];
@@ -1082,7 +1090,7 @@ function applyToggles() {
   applyLook();
   // Cut away the east half of the outer pyramid. Changing the number of clipping planes needs a shader rebuild.
   const planes = toggles.cut ? [clip] : [];
-  const cutMats = new Set([shellMat, shellStone, doorMat, doorRimMat, recessMat, ...Object.values(MAIN_MATS)]);
+  const cutMats = new Set([shellMat, terrainXray, shellStone, doorMat, doorRimMat, recessMat, ...Object.values(MAIN_MATS)]);
   ctx.groups.pyramid.traverse(o => { if (o.material) cutMats.add(o.material); });
   for (const m of cutMats) if (m.clippingPlanes?.length !== planes.length) { m.clippingPlanes = planes; m.needsUpdate = true; }
   const seeBelow = toggles.cut && toggles.stone;
@@ -1109,10 +1117,10 @@ op.addEventListener('input', () => { shellMat.opacity = op.value / 100; });
 const pickBtn = document.getElementById('pick-btn'), picker = document.getElementById('picker');
 const SITES = ['Saqqara', 'Dahshur', 'Giza', 'Valley of the Kings'];
 function scaleStrip(current) {
-  const gap = 44, base = 150, pad = 8, deep = -Math.min(0, ...PYRAMIDS.flatMap(d => profilePts(d).map(p => p[1]))), foot = 78 + deep;
+  const gap = 44, base = 150, pad = 8, deep = -Math.min(0, ...PYRAMIDS.filter(d => !d.collection).flatMap(d => profilePts(d).map(p => p[1]))), foot = 78 + deep;
   let x = pad;
   scaleStrip.era = false;
-  const parts = PYRAMIDS.map(def => {
+  const parts = PYRAMIDS.filter(def => !def.collection).map(def => {
     const pts = profilePts(def), minX = Math.min(...pts.map(p => p[0])), maxX = Math.max(...pts.map(p => p[0]));
     // leave room for the name under small or narrow monuments, and a wider gap before the New Kingdom tombs
     if (def.terrain && !scaleStrip.era) { scaleStrip.era = true; x += gap * 2; }
@@ -1331,7 +1339,7 @@ function buildSurroundings(def) {
     const at = localPos(def, p.lat, p.lon);
     if (at.length() > 3500) continue;
     if (p.terrain || def.terrain) {
-      if (p.terrain && def.terrain) surroundLabel(`${p.short} →`, at.clone().setY((p.entranceY ?? 0) - (def.entranceY ?? 0) + 8), () => switchTo(p));
+      if (p.terrain && def.terrain && !p.collection && !def.collection) surroundLabel(`${p.short} →`, at.clone().setY((p.entranceY ?? 0) - (def.entranceY ?? 0) + 8), () => switchTo(p));
       continue;
     }
     const outline = p.shape ? new THREE.LineSegments(new THREE.EdgesGeometry(shapeGeo(p), 40), surroundMat) : outlinePyramid(p.rings, at, p.zr);
@@ -1374,7 +1382,7 @@ function profileSVG(def, w = 26, h = 16) {
 function fmtReign(d) { return `c. ${d.reign[0]}–${d.reign[1]} BC`; }
 
 // Chronology: I. Shaw (ed.), The Oxford History of Ancient Egypt (2000). Other chronologies shift these by a few decades.
-const DYNASTIES = [['3rd Dynasty', 2686, 2613], ['4th Dynasty', 2613, 2494], ['5th Dynasty', 2494, 2345], ['6th Dynasty', 2345, 2181], ['18th Dynasty', 1550, 1295], ['19th Dynasty', 1295, 1186]];
+const DYNASTIES = [['3rd Dynasty', 2686, 2613], ['4th Dynasty', 2613, 2494], ['5th Dynasty', 2494, 2345], ['6th Dynasty', 2345, 2181], ['18th Dynasty', 1550, 1295], ['19th Dynasty', 1295, 1186], ['20th Dynasty', 1186, 1069]];
 const KINGS = [['Djoser', 2667, 2648], ['Sneferu', 2613, 2589], ['Khufu', 2589, 2566], ['Djedefre', 2566, 2558], ['Khafre', 2558, 2532], ['Menkaure', 2532, 2503], ['Unas', 2375, 2345], ['Tutankhamun', 1336, 1327], ['Seti I', 1294, 1279]];
 const CONTEXT = [
   { name: 'Meidum pyramid', short: 'Meidum', place: 'Meidum', year: 2610, lat: 29.38806, lon: 31.15694, note: 'Probably begun for Huni and finished by Sneferu; its outer layers later collapsed.' },
@@ -1382,7 +1390,7 @@ const CONTEXT = [
 
 function renderTimeline() {
   // Two stretches of time, 2700–2300 BC and 1400–1250 BC, with the 900 years between them left out
-  const SEG = [[2700, 2300, 40, 880], [1400, 1250, 960, 1200]];
+  const SEG = [[2700, 2300, 40, 880], [1550, 1050, 960, 1200]];
   const seg = yr => yr > 1800 ? SEG[0] : SEG[1];
   const W = 1240, x = yr => { const [a, b, x0, x1] = seg(yr); return x0 + (a - yr) * (x1 - x0) / (a - b); };
   const band = DYNASTIES.map(([n, a, b], i) => {
@@ -1390,7 +1398,7 @@ function renderTimeline() {
     return `<rect x="${x0}" y="8" width="${x1 - x0}" height="26" class="${i % 2 ? 'dyn b' : 'dyn'}"/><text x="${(x0 + x1) / 2}" y="25" class="dyn-t">${n}</text>`;
   }).join('');
   const kings = KINGS.map(([n, a, b]) => `<rect x="${x(a)}" y="66" width="${x(b) - x(a)}" height="18" rx="3" class="reign${PYRAMIDS.some(p => p.king === n) ? ' ours' : ''}"/><text x="${(x(a) + x(b)) / 2}" y="${x(b) - x(a) < 40 ? 60 : 100}" class="king-t">${n}</text>`).join('');
-  const items = [...CONTEXT.map(c => ({ ...c, ctx: true })), ...PYRAMIDS.map(p => ({ name: p.short, year: p.year, def: p }))].sort((a, b) => b.year - a.year);
+  const items = [...CONTEXT.map(c => ({ ...c, ctx: true })), ...PYRAMIDS.filter(p => !p.collection).map(p => ({ name: p.short, year: p.year, def: p }))].sort((a, b) => b.year - a.year);
   const seen = {};
   const marks = items.map((it, i) => {
     const cx = x(it.year) + (seen[it.year] = (seen[it.year] ?? -1) + 1) * 30, ly = i % 2 ? 196 : 176;
@@ -1402,9 +1410,9 @@ function renderTimeline() {
   let axis = '';
   for (const [a, b, x0, x1] of SEG) {
     axis += `<line x1="${x0}" y1="226" x2="${x1}" y2="226" class="axis"/>`;
-    for (let yr = a; yr >= b; yr -= 50) axis += `<line x1="${x(yr)}" y1="226" x2="${x(yr)}" y2="232" class="tick"/><text x="${x(yr)}" y="248" class="ax-t">${yr} BC</text>`;
+    for (let yr = a; yr >= b; yr -= a < 2000 ? 100 : 50) axis += `<line x1="${x(yr)}" y1="226" x2="${x(yr)}" y2="232" class="tick"/><text x="${x(yr)}" y="248" class="ax-t">${yr} BC</text>`;
   }
-  axis += `<text x="920" y="212" class="ax-t gap-t">900 years later</text>`;
+  axis += `<text x="920" y="212" class="ax-t gap-t">750 years left out</text>`;
   const svg = `<svg class="timeline" viewBox="0 0 ${W} 262" role="img" aria-label="Timeline: Old Kingdom pyramids, 2700 to 2300 BC, and New Kingdom tombs, 1400 to 1250 BC">
     ${band}${kings}${axis}${marks}</svg>`;
   const cards = PYRAMIDS.map(p => `<button type="button" class="pcard" data-id="${p.id}">
@@ -1413,7 +1421,7 @@ function renderTimeline() {
       <span>${p.site} · King ${p.king}</span><span class="muted">Reign ${fmtReign(p)}</span></button>`).join('');
   const el = document.getElementById('timeline-view');
   el.innerHTML = `<header class="view-head"><div><div class="eyebrow">Old Kingdom and New Kingdom</div><h2>When they were built</h2>
-      <p>Djoser’s Step Pyramid, the first, came about 50 years before the others. Five pyramids and the Sphinx were then built in under a century by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson. Unas came about 150 years later, the first with texts carved inside. Some 900 years after that, New Kingdom kings no longer built pyramids: they were buried in tombs cut into the Valley of the Kings, near Thebes (modern Luxor).</p></div></header>
+      <p>Djoser’s Step Pyramid, the first, came about 50 years before the others. Five pyramids and the Sphinx were then built in under a century by three generations of one family: Sneferu, his son Khufu, and Khufu’s sons and grandson. Unas came about 150 years later, the first with texts carved inside. About 800 years after that, New Kingdom kings no longer built pyramids: they were buried in tombs cut into the Valley of the Kings, near Thebes (modern Luxor).</p></div></header>
     <div class="scroll-x">${svg}</div>
     <div class="pcards">${cards}</div>
     <div class="ctx-list">${CONTEXT.map(c => `<div><b>${c.name}</b> · ${c.place}, c. ${c.year} BC<br><span class="muted">${c.note}</span></div>`).join('')}</div>
@@ -1591,6 +1599,7 @@ const hud = document.getElementById('walkhud'), walkBtn = document.getElementByI
 
 function walkables() {
   const list = [ground];
+  if (ctx.def.terrain?.dem) ctx.ext.built.traverse(o => { if (o.isMesh) list.push(o); });   // walk on the real hillside
   for (const o of ctx.pickables) {
     if (!o.isMesh || !visible(o)) continue;
     const f = ctx.byId[o.userData.fid];
@@ -1608,7 +1617,7 @@ function headroom(x, feet, z) {
   return h ? h.distance + 0.2 : Infinity;
 }
 const inFootprint = (x, z) => {
-  if (ctx.def.terrain) return ctx.def.terrain.h(x, z) > 1.2 && !inHole(ctx.def, x, z);   // inside the hillside
+  if (ctx.def.terrain) return !ctx.def.terrain.dem && ctx.def.terrain.h(x, z) > 1.2 && !inHole(ctx.def, x, z);   // inside the hillside
   const r = halfAt(ctx.def.rings, 0); return Math.abs(x) < r && Math.abs(z) < r * (ctx.def.zr ?? 1);
 };
 const lookDir = () => V(-Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
@@ -2018,7 +2027,7 @@ function updateOrient() {
   const m = Math.max(Math.abs(p.x), Math.abs(p.z) / zr);
   const side = SIDES[Math.abs(p.x) > Math.abs(p.z) ? (p.x > 0 ? 'x+' : 'x-') : (p.z > 0 ? 'z+' : 'z-')];
   const inside = p.y >= 0 && m < r && !ctx.def.shape && !ctx.def.terrain;
-  whereEl.textContent = ctx.def.terrain ? (p.y < 0 ? 'Underground, in the tomb' : p.y < ctx.def.terrain.h(p.x, p.z) ? 'Inside the hillside' : 'In the valley') : p.y < 0 ? (m < rings[0][0] + 30 ? 'Below ground, in the bedrock' : 'Below ground') : inside ? `Inside the ${ctx.def.kind ?? 'pyramid'}` : p.y > rings[rings.length - 1][1] * 1.4 || m > rings[0][0] * 4 ? `Above the ${side} side` : `Outside, ${side} side`;
+  whereEl.textContent = ctx.def.terrain ? (p.y < ctx.def.terrain.h(p.x, p.z) - 0.5 ? (p.y < 0 ? 'Underground, in the tomb' : 'Inside the hillside') : 'In the valley') : p.y < 0 ? (m < rings[0][0] + 30 ? 'Below ground, in the bedrock' : 'Below ground') : inside ? `Inside the ${ctx.def.kind ?? 'pyramid'}` : p.y > rings[rings.length - 1][1] * 1.4 || m > rings[0][0] * 4 ? `Above the ${side} side` : `Outside, ${side} side`;
   // the nearest named part, if one is close
   let near = null, best = Math.max(12, r * 0.15);
   for (const o of ctx.labels) {
