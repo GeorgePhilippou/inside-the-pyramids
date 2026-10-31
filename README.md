@@ -118,6 +118,7 @@ Run `scripts/stamp.sh` before committing a change to `css/` or `js/`. It stamps 
 | File | What it is | By | Licence | Source |
 |---|---|---|---|---|
 | `models/sphinx.glb` | Scan of a bronze model of the Great Sphinx and its enclosure by Bert W. Longworth, cast by F. Rudier, Paris. Simplified, textures resized, tinted from bronze to limestone, and scaled to the Sphinx's published length (73 m) and height (20 m). | The Watt Institution | CC BY | [Sketchfab](https://sketchfab.com/3d-models/the-great-sphinx-of-giza-c126509af31142a9a0d116e264e7b629) |
+| `models/khufu.glb` | Photogrammetry of the Great Pyramid and the plateau around it, made from YouTube video. Simplified, textures resized, levelled by fitting a plane to each face, cropped to a strip around the base, and scaled to the 138.5 m summit. Shown in the "Today" look. | ianicolo | CC BY | [Sketchfab](https://sketchfab.com/3d-models/the-great-pyramid-of-giza-4a251113722f4d969b6cf2ca5f35c502) |
 | `models/unas-antechamber.glb` | Phone LiDAR scan of the antechamber of the Pyramid of Unas and the doorways off it. Simplified and textures resized. This adapted copy is shared under the same licence. | M. Teresa Soria Trastoy | CC BY-NC-SA | [Sketchfab](https://sketchfab.com/3d-models/inside-the-pyramid-of-unas-saqqara-egypt-c48ecd23a1eb40778dbc6efa52a299d2) |
 
 Both were reduced with [gltf-transform](https://gltf-transform.dev) (mesh simplification, 2048 px WebP textures, meshopt compression).

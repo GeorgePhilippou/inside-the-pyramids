@@ -445,6 +445,8 @@ function softBox(id, w, h, d, mat) {
 // the casing is gone, so the opening is cut back into the stepped core: the steps get a hole, and a short
 // dark recess sits behind it.
 const CORE_DEPTH = 2.2;   // how far in (horizontally) the opening sits in the stepped core
+// on a scanned pyramid the openings sit where the scanned face is (inset: horizontal metres inside the casing)
+const coreDepth = () => ctx.def.scan?.inset != null ? ctx.def.scan.inset + 0.6 : CORE_DEPTH;
 const doorMat = new THREE.MeshBasicMaterial({ color: 0x2b2117, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
 const recessMat = new THREE.MeshBasicMaterial({ color: 0x241b12, side: THREE.BackSide });
 const doorRimMat = new THREE.LineBasicMaterial({ color: 0x5a4527 });
@@ -500,7 +502,7 @@ function passage(id, a, b, w, h) {
     return put(id, m, true, m.userData.edgeGeo);
   }
   // trimmed at the face; where the core is stepped today, the last stretch is a separate piece that hides in that look
-  const cut = e => e && (e.stepped ? innerPlane(e, CORE_DEPTH + 0.3) : { p: e.q, n: e.n });
+  const cut = e => e && (e.stepped ? innerPlane(e, coreDepth() + 0.3) : { p: e.q, n: e.n });
   const m = cutBox(a, b, w, h, cut(ea), cut(eb));
   m.material = ctx.mats[id];
   put(id, m);
@@ -508,8 +510,8 @@ function passage(id, a, b, w, h) {
     if (!e) continue;
     ctx.faceEnds.push({ id, p: end, e, dir, w, h, n: f.n });
     if (!e.stepped) continue;
-    const reach = (CORE_DEPTH + 3) / Math.max(0.2, -dir.dot(e.hz));
-    const collar = cutBox(end.clone().addScaledVector(dir, -2), end.clone().addScaledVector(dir, reach), w, h, { p: e.q, n: e.n }, innerPlane(e, CORE_DEPTH + 0.3));
+    const reach = (coreDepth() + 3) / Math.max(0.2, -dir.dot(e.hz));
+    const collar = cutBox(end.clone().addScaledVector(dir, -2), end.clone().addScaledVector(dir, reach), w, h, { p: e.q, n: e.n }, innerPlane(e, coreDepth() + 0.3));
     collar.material = ctx.mats[id];
     put(id, collar);
     collar.userData.solid = 'door';
@@ -542,8 +544,8 @@ function doorway(id, p, dir, w, h, pn) {
   rim.position.copy(hole.position); rim.quaternion.copy(rot); face.add(rim);
   ctx.groups[id].add(face);
   if (!e.stepped) return;
-  const inward = dir.clone().negate(), reach = (CORE_DEPTH + 3) / Math.max(0.2, inward.dot(hz.clone().negate()));
-  const recess = cutBox(p.clone().addScaledVector(inward, -2), p.clone().addScaledVector(inward, reach), w + 0.1, h + 0.1, { p: fq.clone().addScaledVector(hz, 0.2), n }, innerPlane(e, CORE_DEPTH));
+  const inward = dir.clone().negate(), reach = (coreDepth() + 3) / Math.max(0.2, inward.dot(hz.clone().negate()));
+  const recess = cutBox(p.clone().addScaledVector(inward, -2), p.clone().addScaledVector(inward, reach), w + 0.1, h + 0.1, ctx.def.scan?.inset != null ? innerPlane(e, ctx.def.scan.inset - 0.4) : { p: fq.clone().addScaledVector(hz, 0.2), n }, innerPlane(e, coreDepth()));
   recess.material = recessMat;
   recess.userData.solid = 'today';
   ctx.groups[id].add(recess);
@@ -581,7 +583,9 @@ const gltfLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const scanCache = {};
 const loadScan = url => scanCache[url] ??= new Promise((res, rej) => gltfLoader.load(url, g => res(g.scene), undefined, rej));
 function placeScan(scene, s) {
-  const inner = scene.clone(true); inner.position.set(...s.centre.map(v => -v));
+  const inner = scene.clone(true);
+  if (s.up) inner.quaternion.setFromUnitVectors(V(...s.up).normalize(), V(0, 1, 0));   // level a scan that was captured tilted
+  inner.position.copy(V(...s.centre).applyQuaternion(inner.quaternion).negate());
   const turn = new THREE.Group(); turn.rotation.y = s.rotY ?? 0; turn.add(inner);
   const place = new THREE.Group(); place.scale.set(...(s.scale ?? [1, 1, 1])); place.position.set(...(s.at ?? [0, 0, 0])); place.add(turn);
   return place;
@@ -591,12 +595,15 @@ function addScans(def) {
   if (def.scan) loadScan(def.scan.url).then(scene => {
     if (ctx !== c) return;
     const base = def.scan.keepAbove != null ? [new THREE.Plane(V(0, 1, 0), -def.scan.keepAbove)] : [];
+    const r = def.scan.keepWithin;   // crop the scanned ground to a square around the monument
+    if (r) base.push(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([x, z]) => new THREE.Plane(V(-x, 0, -z), r)));
     // solid: the scan with its own texture
     const solid = placeScan(scene, def.scan);
     solid.traverse(o => { if (!o.isMesh) return;
       o.material = o.material.clone(); Object.assign(o.material, { metalness: 0, roughness: 1, side: THREE.DoubleSide }); o.material.clipShadows = true;
       if (def.scan.tint) o.material.color.setRGB(...def.scan.tint);   // e.g. warm a bronze cast to the colour of limestone
       o.material.userData.baseClip = base; o.material.clippingPlanes = base; o.castShadow = o.receiveShadow = true; });
+    if (def.scan.today) { ctx.ext.today.clear(); ctx.ext.today.add(solid); applyToggles(); return; }   // the scan is the weathered pyramid of today
     ctx.ext.built.clear(); ctx.ext.built.add(solid);
     // see-through: the same surface, faint and lit, so its shape still reads
     const glass = placeScan(scene, def.scan);

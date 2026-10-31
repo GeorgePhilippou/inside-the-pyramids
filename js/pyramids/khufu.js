@@ -22,6 +22,9 @@ export default function khufu(api) {
     id: 'khufu', king: 'Khufu', reign: [2589, 2566], year: 2570, lat: 29.97917, lon: 31.13417,
     short: 'Khufu', site: 'Giza', date: 'c. 2570 BC', title: 'The Great Pyramid of Khufu',
     rings: [[B, 0], [0, H]], today: 138.5, lowest: -30, start: 'king',
+    // Photogrammetry of the pyramid and the plateau around it. Levelled and centred by fitting a plane to each face
+    // (they come out at 51.8°), and scaled to the 138.5 m summit; its core faces sit about 1.8 m inside the lost casing.
+    scan: { url: 'models/khufu.glb', today: true, centre: [2.8575, -1.4538, 0.4399], up: [-0.0305, 0.9991, 0.0306], scale: [123.23, 123.23, 123.23], keepAbove: -0.3, inset: 2.3, keepWithin: B + 9, tint: [1.75, 1.65, 1.5] },
     tour: () => [
       { id: 'pyramid', path: [V(AX, 1.65, -B - 60)], look: V(AX, 17, entrance.z), say: 'We start on the north side. The original entrance is about 17 m up the face, a little east of the centre line.' },
       { id: 'entrance', path: [V(AX, 15, entrance.z - 9), up(entrance, 1.0)], look: up(entrance.clone().addScaledVector(descDir, 15), 1.0), say: 'The real entrance. From here a passage only 1.2 m high slopes steeply down into the pyramid.' },
@@ -39,7 +42,7 @@ export default function khufu(api) {
       { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
         why: 'It was the tallest building on Earth for about 3,800 years, and it is the only one of the Seven Wonders of the Ancient World still standing.',
         photos: () => [ph('khufu-exterior.jpg', 'The Great Pyramid seen from close to its base', 'The Great Pyramid from close to its base.', 'Jorge Láscar', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:The_Great_Pyramid_of_Giza_(14794652632).jpg', V(70, 1.7, -B - 55), V(-10, 45, 0))],
-        text: 'The largest of the Giza pyramids, built for King Khufu of the 4th Dynasty. Its sides face the cardinal directions to within a few arcminutes. The smooth white limestone casing that once covered it was mostly stripped in the Middle Ages.',
+        text: 'The largest of the Giza pyramids, built for King Khufu of the 4th Dynasty. Its sides face the cardinal directions to within a few arcminutes. The smooth white limestone casing that once covered it was mostly stripped in the Middle Ages. In the Today look the pyramid is a 3D scan (photogrammetry by ianicolo, CC BY); its faces sit about 2 m inside the lost casing, which is where the openings appear today.',
         facts: [['Base side', '230.3 m · 440 cubits'], ['Original height', 'c. 146.6 m · 280 cubits'], ['Height today', 'c. 138.5 m'], ['Face slope', '51° 50′ 40″'], ['Volume', 'c. 2.6 million m³']] },
       { id: 'entrance', group: 'Exterior', name: 'Original entrance', color: 'lime', conf: 'surveyed', major: true,
         why: 'Placing it high on the north face points the passage at the northern sky, where Egyptians placed the never-setting stars they linked to the king\u2019s afterlife.',
@@ -128,8 +131,8 @@ export default function khufu(api) {
         text: 'Red-painted marks left by the work gangs on blocks in the relieving chambers, found by Vyse and Perring in 1837. They include Khufu\u2019s name inside cartouches and gang names such as \u201cFriends of Khufu\u201d. They were painted during quarrying or building and were never meant to be seen.',
         why: 'They are the main physical evidence tying the pyramid to Khufu.',
         facts: [['Found', '1837'], ['Paint', 'Red ochre'], ['Names', 'Khufu, work gangs'], ['On the model', 'One cartouche, placed as an example']] },
-      { id: 'lepsius', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V(AX - 4.5, 26, -(B - 26 / K) - 0.3), plaque: { file: 'khufu-lepsius.jpg', aspect: 1.12, facing: 'z-', w: 0.9, crop: [0.624, 0.0875, 0.803, 0.205] }, name: 'Lepsius inscription',
-        photos: () => [ph('khufu-lepsius.jpg', 'Pencil drawing of the entrance with a small inscribed panel above it', 'The entrance in 1842, drawn by the Lepsius expedition, with the new inscription panel at top right.', 'Lepsius expedition artist', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Lepsius-inschrift-cheops-pyramide.jpeg', V(AX - 4.5, 25.6, -(B - 26 / K) - 3.2), V(AX - 4.5, 26, -(B - 26 / K)))],
+      { id: 'lepsius', group: 'Inscriptions and marks', color: 'mark', mark: true, conf: 'surveyed', at: V(AX - 4.5, 26, -(B - 26 / K) + 2.0), plaque: { file: 'khufu-lepsius.jpg', aspect: 1.12, facing: 'z-', w: 0.9, crop: [0.624, 0.0875, 0.803, 0.205] }, name: 'Lepsius inscription',
+        photos: () => [ph('khufu-lepsius.jpg', 'Pencil drawing of the entrance with a small inscribed panel above it', 'The entrance in 1842, drawn by the Lepsius expedition, with the new inscription panel at top right.', 'Lepsius expedition artist', 'Public domain', 'https://commons.wikimedia.org/wiki/File:Lepsius-inschrift-cheops-pyramide.jpeg', V(AX - 4.5, 25.6, -(B - 26 / K) - 1.2), V(AX - 4.5, 26, -(B - 26 / K)))],
         text: 'A hieroglyphic text carved above the entrance in 1842 by the Prussian expedition led by Karl Richard Lepsius, in honour of King Friedrich Wilhelm IV. It is modern, written in the ancient script.',
         why: 'It is the most visible hieroglyphic text on the pyramid, and a record of the birth of scientific Egyptology.',
         facts: [['Carved', '1842'], ['Script', 'Hieroglyphs (modern)'], ['Size on model', 'Estimated from the drawing']] },
@@ -150,7 +153,7 @@ export default function khufu(api) {
       // Entrance opening in the face, and the chevrons above it
       api.doorway('entrance', entrance, descDir.clone().negate(), 1.05, 1.2, frame(entrance, descEnd).n);
       [[0, 19.2], [1, 21.4]].forEach(([i, ry]) => {
-        const s = -(B - ry / K) + 1.5 + i * 1.0;
+        const s = -(B - ry / K) + 3.4 + i * 1.0;   // the outer pair is exposed today, flush with the stripped face
         for (const side of [-1, 1]) {
           const slab = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 2.4), M.chevrons);
           slab.position.set(AX + side * 1.25, ry - 1.1, s);
@@ -262,7 +265,7 @@ export default function khufu(api) {
         const sh = new THREE.Shape();
         sh.moveTo(-1.0, 0); sh.lineTo(1.0, 0); sh.lineTo(1.0, 1.45); sh.lineTo(0, 2.0); sh.lineTo(-1.0, 1.45); sh.closePath();
         const n = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 9, bevelEnabled: false }), M.nfc);
-        n.position.set(AX, 20.5, faceS + 1.5);
+        n.position.set(AX, 20.5, faceS + 4.4);   // directly behind the chevrons
         put('nfc', n);
       }
 
