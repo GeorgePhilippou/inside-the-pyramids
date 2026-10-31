@@ -29,8 +29,7 @@ const COL = { edge: C('edge'), grid1: C('grid1'), grid2: C('grid2'), sand: C('sa
 
 // ---------- Scene ----------
 const host = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });   // see-through: the starry page shows behind the scene
-renderer.setClearColor(0x000000, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 // Phones and tablets get lighter shadows; phones also a lower resolution
 const lowPower = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 820;
 const phone = Math.min(screen.width, screen.height) < 600;
@@ -262,9 +261,8 @@ function applyLook() {
   grid.visible = !stone;
   hemi.intensity = stone ? 0.9 : 1.1; sun.intensity = stone ? 2.4 : 1.4;
   sun.position.set(stone ? -220 : 200, 260, stone ? 180 : 120).normalize().multiplyScalar(900);   // low western sun gives each face its own shade
-  scene.background = stone ? SKY : null;
+  scene.background = stone ? SKY : PAPER;
   scene.fog.color.copy(stone ? HORIZON : PAPER);
-  document.body.classList.toggle('stone', stone);
   ctx.surround?.traverse(o => { if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, o.userData.hasToday); });
   for (const g of Object.values(ctx.groups)) for (const o of g.children) if (o.userData.solid !== undefined) o.visible = solidVisible(o.userData.solid, stone, !!ctx.ext.today) && (!o.userData.cap || toggles.cut);
   syncRecesses(true);
@@ -1451,15 +1449,7 @@ function buildSurroundings(def) {
 // ======================================================================
 function switchTo(def) {
   setMode('model');
-  if (ctx.def !== def) { load(def, true); showSiteTitle(def); }
-}
-// A brief title card with the site's name in a cartouche
-function showSiteTitle(def) {
-  const el = document.getElementById('site-title');
-  document.getElementById('site-title-name').textContent = def.short;
-  document.getElementById('site-title-sub').textContent = `${def.site} \u00b7 ${def.date}`;
-  el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  clearTimeout(showSiteTitle.t); showSiteTitle.t = setTimeout(() => { el.hidden = true; el.classList.remove('show'); }, 2300);
+  if (ctx.def !== def) load(def, true);
 }
 const modeButtons = [...document.querySelectorAll('.mode')];
 function setMode(m) {
