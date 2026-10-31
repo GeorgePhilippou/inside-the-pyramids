@@ -1,8 +1,8 @@
 # Inside the Pyramids
 
-See-through 3D models of seven Egyptian pyramids and the Great Sphinx: Djoser's Step Pyramid and Unas at Saqqara, the Bent and Red pyramids at Dahshur, and Khufu, Khafre, the Sphinx and Menkaure at Giza. Every known passage and chamber is drawn to published survey figures.
+See-through 3D models of seven Egyptian pyramids, the Great Sphinx and two royal tombs: Djoser's Step Pyramid and Unas at Saqqara, the Bent and Red pyramids at Dahshur, Khufu, Khafre, the Sphinx and Menkaure at Giza, and the tombs of Tutankhamun (KV 62) and Seti I (KV 17) in the Valley of the Kings. Every known passage and chamber is drawn to published survey figures; the two tombs use the Theban Mapping Project survey.
 
-- A **monument picker** shows all eight side by side at the same scale, grouped by site, with arrows to step through them in date order.
+- A **monument picker** shows all ten side by side at the same scale, grouped by site, with arrows to step through them in date order.
 - Click any passage or chamber to see a photo, fly the camera to where it was taken, and read why it matters.
 - **Guided tours** walk you through each pyramid's real route, stop by stop.
 - Links can open a single feature, for example `#khufu/king` or `#unas/ptAE`.

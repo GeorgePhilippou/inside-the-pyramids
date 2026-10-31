@@ -19,6 +19,8 @@
   --shaft: #5a6a86;
   --faience: #2e9a9a;      /* blue-green faience tiles */
   --stage: #8a9a5b;        /* earlier building stages */
+  --paint: #d8a031;        /* carved and painted tomb walls */
+  --stone: #8d7f74;        /* stone sarcophagi */
   --later: #8c6d8f;        /* dug later by robbers or explorers */
   --cedar: #85582c;
   --mark: #c96442;        /* inscriptions and marks */
@@ -209,7 +211,7 @@ svg.timeline { width: 100%; min-width: 760px; height: auto; display: block; font
 .tl-hit:hover .mk-t, .tl-hit:focus-visible .mk-t, .tl-hit:hover .map-t, .tl-hit:focus-visible .map-t { fill: var(--accent); }
 .tl-hit:hover .pm.ours, .tl-hit:focus-visible .pm.ours { color: var(--accent); }
 .tl-hit:hover .foot, .tl-hit:focus-visible .foot { fill: var(--accent-tint); stroke: var(--accent); }
-.pcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pcards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 @media (max-width: 860px) { .pcards { grid-template-columns: repeat(2, 1fr); } }
 .pcard { display: grid; gap: 3px; text-align: left; background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 14px; cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
 .pcard:hover { border-color: var(--accent); }
@@ -412,7 +414,7 @@ body.walking .orient, body.touring .orient, body:not([data-mode="model"]) .orien
 .picker {
   position: fixed; z-index: 8; left: 50%; transform: translateX(-50%);
   top: calc(var(--gap) * 2 + var(--bar-h) + env(safe-area-inset-top, 0px));
-  width: min(820px, calc(100% - 2 * var(--gap))); max-height: calc(100% - var(--bar-h) - 4 * var(--gap)); overflow-y: auto;
+  width: min(980px, calc(100% - 2 * var(--gap))); max-height: calc(100% - var(--bar-h) - 4 * var(--gap)); overflow-y: auto;
   padding: 16px 18px 18px; display: grid; gap: 14px;
 }
 .picker[hidden] { display: none; }
@@ -431,7 +433,7 @@ body.walking .orient, body.touring .orient, body:not([data-mode="model"]) .orien
 .strip-item .nm { font-size: 30px; font-weight: 600; fill: var(--ink); }
 .strip-item .dt, .strip-item .ht { font-size: 24px; fill: var(--muted); }
 .strip-item:focus-visible .hit { fill: rgba(201,100,66,.08); }
-.pick-groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.pick-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .pick-group h3 { margin: 0 0 6px; font: 600 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .pick-cards { display: grid; gap: 6px; }
 .pick-card { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; background: #fff; cursor: pointer; font: inherit; color: var(--ink); }
@@ -450,3 +452,4 @@ body.walking .orient, body.touring .orient, body:not([data-mode="model"]) .orien
   .pick-groups { grid-template-columns: 1fr; }
   .picker { width: calc(100% - 2 * var(--gap)); }
 }
+.gap-t { font-style: italic; }
