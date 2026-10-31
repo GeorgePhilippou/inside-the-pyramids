@@ -151,7 +151,7 @@ export default function valley(api) {
 
   return {
     id: 'valley', kind: 'valley', king: 'New Kingdom kings', reign: [1539, 1075], year: 1300, lat: VALLEY.lat0, lon: VALLEY.lon0,
-    short: 'Valley of the Kings', site: 'Valley of the Kings', date: 'c. 1500–1070 BC', title: 'The Valley of the Kings', collection: true,
+    short: 'Valley of the Kings', site: 'Valley of the Kings', thumb: 'photos/seti-hall.jpg', date: 'c. 1500–1070 BC', title: 'The Valley of the Kings', collection: true,
     profile: [[-60, 0], [-24, 18], [-8, 26], [0, 34], [10, 24], [30, 14], [60, 0]],   // icon: the peak of el-Qurn above the valley
     rings: [[300, 0], [300, 0.01]], lowest, start: 'kv62', groundY: Math.min(-60, lowest - 5),
     terrain: { size: [ext.x1 - ext.x0, ext.z1 - ext.z0], center: [(ext.x0 + ext.x1) / 2, (ext.z0 + ext.z1) / 2], step: VALLEY.step, h: groundAt, dem: true },

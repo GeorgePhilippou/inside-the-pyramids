@@ -72,7 +72,7 @@ scene.add(ground);
 const grid = new THREE.GridHelper(6000, 300, COL.grid1, COL.grid2);
 grid.material.transparent = true; grid.material.opacity = 0.9;
 scene.add(grid);
-const humanMat = new THREE.MeshStandardMaterial({ color: COL.human, emissive: COL.human, emissiveIntensity: 0.25, roughness: 0.6 });
+const humanMat = new THREE.MeshStandardMaterial({ color: COL.human, emissive: COL.human, emissiveIntensity: 0.15, roughness: 0.7 });
 const shellMat = new THREE.MeshBasicMaterial({ color: COL.sand, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
 // real terrain in the see-through look: lit, so hills and wadis show their shape
 const terrainXray = new THREE.MeshLambertMaterial({ color: COL.sand, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide });
@@ -243,7 +243,7 @@ function applyLook() {
     const f = ctx.byId[id], key = stone && !f.scan && !f.mark ? TEX_FOR[f.color] : null;
     m.map = key ? TEX[key] : null;
     m.color.copy(key ? (id === 'sarcophagus' ? new THREE.Color(0x6a6a6a) : WHITE) : m.userData.col);
-    m.transparent = !key; m.opacity = key ? 1 : m.userData.op; m.depthWrite = !!key;
+    m.transparent = !key; m.opacity = key ? 1 : m.userData.op; m.depthWrite = !!key; m.userData.faded = false;
     m.needsUpdate = true;
   }
   for (const lm of Object.values(ctx.lineMats)) lm.visible = !stone;
@@ -552,6 +552,16 @@ function doorway(id, p, dir, w, h, pn) {
   const box = new THREE.Box3().setFromObject(recess), side = SIDE_OF(hz), along = side % 2 ? 'z' : 'x';
   ctx.holes.push({ k: side, u0: box.min[along] - 0.05, u1: box.max[along] + 0.05, y0: box.min.y - 0.05, y1: box.max.y + 0.05 });
 }
+function fadeInside() {
+  const stone = toggles.stone, p = camera.position;
+  ctx.boxes ??= Object.fromEntries(Object.entries(ctx.groups).filter(([id]) => id !== 'pyramid' && ctx.mats[id]).map(([id, g]) => [id, g.children.filter(o => o.isMesh).map(o => new THREE.Box3().setFromObject(o).expandByScalar(0.05))]));
+  for (const [id, boxes] of Object.entries(ctx.boxes)) {
+    const m = ctx.mats[id], inside = !stone && boxes.some(b => b.containsPoint(p));
+    if (inside === !!m.userData.faded) continue;
+    m.userData.faded = inside;
+    m.opacity = inside ? 0.05 : m.userData.op;
+  }
+}
 function syncRecesses(force) {
   for (const r of ctx.recesses) {
     const inside = r.near.containsPoint(camera.position);
@@ -720,12 +730,13 @@ function wallImage(id, file, aspect, facing, plane, along, cy, maxW, maxH) {
 function person(x, y, z, turn = 0) {
   const g = new THREE.Group();
   const add = (geo, px, py) => { const m = new THREE.Mesh(geo, humanMat); m.position.set(px, py, 0); m.castShadow = true; g.add(m); };
-  add(new THREE.BoxGeometry(0.13, 0.84, 0.16), -0.09, 0.42);
-  add(new THREE.BoxGeometry(0.13, 0.84, 0.16), 0.09, 0.42);
-  add(new THREE.BoxGeometry(0.42, 0.62, 0.22), 0, 1.15);
-  add(new THREE.BoxGeometry(0.09, 0.62, 0.11), -0.27, 1.13);
-  add(new THREE.BoxGeometry(0.09, 0.62, 0.11), 0.27, 1.13);
-  add(new THREE.SphereGeometry(0.12, 14, 10), 0, 1.62);
+  // 1.75 m tall: legs, body, arms and head as rounded capsules
+  add(new THREE.CapsuleGeometry(0.065, 0.74, 4, 10), -0.085, 0.44);
+  add(new THREE.CapsuleGeometry(0.065, 0.74, 4, 10), 0.085, 0.44);
+  add(new THREE.CapsuleGeometry(0.17, 0.32, 4, 14), 0, 1.16);
+  add(new THREE.CapsuleGeometry(0.045, 0.56, 4, 8), -0.235, 1.12);
+  add(new THREE.CapsuleGeometry(0.045, 0.56, 4, 8), 0.235, 1.12);
+  add(new THREE.SphereGeometry(0.11, 16, 12), 0, 1.62);
   g.position.set(x, y, z);
   g.rotation.y = turn;
   ctx.humans.add(g);
@@ -1018,20 +1029,30 @@ addEventListener('keydown', e => {
 // Contents panel and navigation help
 const contentsEl = document.getElementById('contents'), contentsBtn = document.getElementById('btn-contents');
 function setContents(open) { contentsEl.hidden = !open; contentsBtn.setAttribute('aria-expanded', open); }
-contentsBtn.addEventListener('click', () => setContents(contentsEl.hidden));
+contentsBtn.addEventListener('click', () => { if (!detail.hidden) { clearSelection(); setContents(true); } else setContents(contentsEl.hidden); });
 setContents(!matchMedia('(max-width: 860px)').matches);
 const helpEl = document.getElementById('welcome'), helpBtn = document.getElementById('btn-help');
 let helpSeen = false;
 try { helpSeen = localStorage.getItem('pyramids-welcome-seen') === '1'; } catch (e) {}
+// The start screen: every site as a card, grouped by place
+function renderWelcome() {
+  const thumb = d => d.thumb ?? d.features.map(f => typeof f.photos === 'function' ? f.photos() : f.photos).find(p => p?.length)?.[0]?.src;
+  document.getElementById('welcome-sites').innerHTML = SITES.map(site => `<div class="site-col"><h3>${site}</h3>${
+    PYRAMIDS.filter(d => d.site === site).map(d => { const src = thumb(d); return `<button type="button" class="site-card" data-id="${d.id}">
+      ${src ? `<img src="${src}" alt="" loading="lazy">` : `<span class="site-icon">${profileSVG(d, 40, 24)}</span>`}
+      <span><b>${d.short}</b><small>${d.date}</small></span></button>`; }).join('')}</div>`).join('');
+}
 function setHelp(open) {
+  if (open) renderWelcome();
   helpEl.hidden = !open; helpBtn.setAttribute('aria-expanded', open);
   if (open) document.getElementById('welcome-go').focus();
   else try { localStorage.setItem('pyramids-welcome-seen', '1'); } catch (e) {}
 }
 helpBtn.addEventListener('click', () => setHelp(helpEl.hidden));
 document.getElementById('welcome-go').addEventListener('click', () => setHelp(false));
+document.getElementById('welcome-x').addEventListener('click', () => setHelp(false));
+document.getElementById('welcome-sites').addEventListener('click', e => { const t = e.target.closest('[data-id]'); if (t) { setHelp(false); switchTo(PYRAMIDS.find(p => p.id === t.dataset.id)); } });
 helpEl.addEventListener('click', e => { if (e.target === helpEl) setHelp(false); });
-setHelp(!helpSeen);
 
 // Toolbar menus: one open at a time; close on outside click, Esc, or after a one-off action
 const menus = [['menu-view', 'view-menu'], ['menu-show', 'show-menu']].map(([b, m]) => [document.getElementById(b), document.getElementById(m)]);
@@ -2080,6 +2101,7 @@ resize();
 
 setMode('model');
 openFromHash(false);
+setHelp(!helpSeen && !location.hash.includes('/'));   // first visit: the start screen, unless a link points at a feature
 addEventListener('hashchange', () => { if (location.hash !== lastHash) openFromHash(true); });
 
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -2096,6 +2118,7 @@ renderer.setAnimationLoop(now => {
   if (ctx.mats.bigVoid && ctx.groups.bigVoid.visible) ctx.mats.bigVoid.opacity = 0.32 + 0.14 * Math.sin(now / 600);
   controls.update();
   if (ctx.recesses.length) syncRecesses();
+  if (now - (fadeInside.t ?? 0) > 120) { fadeInside.t = now; fadeInside(); }
   renderer.render(scene, camera);
   layoutLabels();
   labelRenderer.render(scene, camera);
