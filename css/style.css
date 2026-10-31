@@ -1,15 +1,22 @@
-/* Layout: full-bleed 3D model on warm paper. Floating chrome only: top bar (monument picker), collapsible contents on the left,
-   detail card on the right when something is selected, tool bar at the bottom. Deliberately light, single theme. */
+/* Layout: full-bleed 3D model under a night sky of gold stars, like a painted tomb ceiling. Floating chrome: a lapis
+   top bar with the monument's name in a cartouche, papyrus panels edged with a tomb-wall frieze, a lapis tool bar. */
 :root {
   color-scheme: light;
-  --bg: #f0eee6;          /* warm paper */
-  --surface: #faf9f5;     /* cards */
-  --ink: #141413;
-  --ink-2: #3d3d3a;
-  --muted: #6b6a64;
-  --rule: #e2ded3;
-  --accent: #c96442;      /* clay */
-  --accent-tint: #f5e4dc;
+  --bg: #0f1a2e;          /* lapis night, behind the 3D scene */
+  --lapis: #13213a;
+  --lapis-2: #1d2f50;
+  --gold: #c99a3c;
+  --gold-hi: #e8c97a;
+  --papyrus: #f3ead4;
+  --cream: #f2e7cc;
+  --link: #1d7a78;        /* faience */
+  --surface: #f6eedb;     /* papyrus panels */
+  --ink: #22190f;
+  --ink-2: #4a3a26;
+  --muted: #7c6a4e;
+  --rule: #e2d3b0;
+  --accent: #a8731d;      /* burnished gold */
+  --accent-tint: #f0dfb6;
   --sand: #cdb88c;        /* casing */
   --edge: #9c8456;        /* casing edges */
   --lime: #d2aa6c;        /* limestone-built passages */
@@ -26,17 +33,17 @@
   --mark: #c96442;        /* inscriptions and marks */
   --texts: #2f6f9f;       /* Pyramid Texts, carved and painted blue */
   --human: #3d4b66;
-  --grid1: #d8d2c4;
-  --grid2: #e6e1d6;
+  --grid1: #2c3d5c;
+  --grid2: #1b2943;
   --ok: #2f7a4b;
   --warn: #9a5f22;
-  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 6px 24px rgba(20,20,19,.08);
+  --shadow: 0 1px 2px rgba(5,10,20,.25), 0 10px 30px rgba(5,10,20,.35);
   --gap: 12px;
   --side-w: 340px;
   --r-card: 14px;
   --r-ctl: 9px;
   --bar-h: 52px;
-  --f-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;   /* figures use Inter's tabular numbers */
 }
@@ -492,3 +499,110 @@ body.walking .orient, body.touring .orient, body:not([data-mode="model"]) .orien
   .toolbar .tbtn { padding: 5px 7px; min-width: 0; }
   .look button { padding: 7px 7px; font-size: 12.5px; }
 }
+
+/* ======================================================================
+   Egyptian theme: a night ceiling of gold stars, lapis bars, papyrus panels,
+   a tomb-wall frieze, and the current monument's name in a cartouche
+   ====================================================================== */
+:root {
+  /* the coloured block border painted along the tops of tomb walls */
+  --frieze: repeating-linear-gradient(90deg, #1f4f8a 0 12px, var(--cream) 12px 14px, #a83a26 14px 26px, var(--cream) 26px 28px, var(--gold) 28px 40px, var(--cream) 40px 42px, #237f73 42px 54px, var(--cream) 54px 56px);
+  /* five-pointed stars in rows, as painted on burial-chamber ceilings */
+  --stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='%23e8c97a'%3E%3Cpath d='M16 9l1.6 4.8h5l-4 3 1.5 4.8-4.1-3-4.1 3 1.5-4.8-4-3h5z'/%3E%3Cpath d='M48 41l1.6 4.8h5l-4 3 1.5 4.8-4.1-3-4.1 3 1.5-4.8-4-3h5z'/%3E%3C/g%3E%3C/svg%3E");
+}
+body { background: radial-gradient(ellipse at 50% 35%, #1a2b4a 0%, var(--bg) 60%, #0a1222 100%); }
+body::before { content: ""; position: fixed; inset: 0; background: var(--stars); background-size: 64px 64px; opacity: .14; pointer-events: none; animation: twinkle 7s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .09; } to { opacity: .17; } }
+body.stone::before { opacity: 0; animation: none; }
+
+/* Panels: papyrus, with the frieze along the top */
+.card { background: linear-gradient(180deg, #f8f1e0, var(--surface)); border-color: rgba(201,154,60,.35); }
+.welcome { position: relative; }
+.contents::before, .detail::before, .welcome::before, .view::before, .picker::before, .tourhud::before, .walkhud::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--frieze); border-radius: var(--r-card) var(--r-card) 0 0; opacity: .9; }
+.contents-head, .detail-head { padding-top: 20px; }
+.eyebrow, .group-title, .pick-group h3, .site-col h3, .why b { font-family: var(--f-body); letter-spacing: .14em; text-transform: uppercase; font-size: 10.5px; font-weight: 600; color: var(--accent); }
+.contents-head h1, .detail h2, .welcome h2, .picker-head h2, .view-head h2, .tourhud h3 { font-family: var(--f-display); font-weight: 600; letter-spacing: .005em; }
+.contents-head h1 { font-size: 27px; line-height: 1.05; }
+.detail h2 { font-size: 26px; }
+.welcome h2 { font-size: 46px; line-height: 1; }
+.why { background: linear-gradient(180deg, #f1e1b9, #ecd9a8); border-left: 3px solid var(--gold); border-radius: 4px 8px 8px 4px; }
+.feat[aria-current="true"] { background: var(--accent-tint); box-shadow: inset 2px 0 0 var(--gold); }
+.facts dt { color: var(--muted); }
+.text-btn { background: #fbf5e6; border-color: rgba(168,115,29,.35); }
+.text-btn:hover { border-color: var(--gold); }
+.primary { background: var(--lapis); color: var(--gold-hi); border: 1px solid rgba(201,154,60,.5); letter-spacing: .02em; }
+.primary:hover { background: var(--lapis-2); }
+a { color: var(--link); }
+
+/* Lapis bars: top bar, tool bar, position card */
+.topbar, .toolbar, .orient { background: linear-gradient(180deg, rgba(29,47,80,.92), rgba(15,26,46,.92)); border: 1px solid rgba(201,154,60,.4); color: var(--cream);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.topbar .brand b { font-family: var(--f-display); font-size: 21px; font-weight: 600; color: var(--gold-hi); letter-spacing: .02em; }
+.topbar .icon-btn, .toolbar .tbtn, .orient .key-btn { color: var(--cream); }
+.topbar .icon-btn:hover, .toolbar .tbtn:hover { background: rgba(232,201,122,.12); color: var(--gold-hi); }
+.topbar .icon-btn[aria-expanded="true"], .topbar .icon-btn[aria-pressed="true"], .toolbar .tbtn[aria-pressed="true"], .toolbar .tbtn[aria-expanded="true"] { background: rgba(232,201,122,.18); color: var(--gold-hi); }
+.modes, .look { background: rgba(5,10,20,.35); border: 1px solid rgba(201,154,60,.25); }
+.mode, .look button { color: rgba(242,231,204,.8); }
+.mode:hover, .look button:hover { color: var(--gold-hi); }
+.mode[aria-pressed="true"], .look button[aria-pressed="true"] { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #241a0c; box-shadow: none; }
+.orient-txt b { color: var(--cream); }
+.orient-txt span { color: rgba(242,231,204,.65); }
+.orient .key-btn { background: rgba(232,201,122,.14); }
+.orient .key-btn[aria-expanded="true"] { background: var(--gold); color: #241a0c; }
+.orient .key { border-top-color: rgba(201,154,60,.3); }
+.orient .key div { color: var(--cream); }
+.orient .key-conf { color: rgba(242,231,204,.75); border-top-color: rgba(201,154,60,.3); }
+.compass circle { fill: rgba(5,10,20,.4); stroke: rgba(201,154,60,.6); }
+.compass .n, .compass text { fill: var(--gold-hi); }
+.compass .s { fill: rgba(242,231,204,.35); }
+.toolbar .menu { color: var(--ink); }
+
+/* The monument's name in a cartouche: an oval ring tied off with a bar at one end */
+.pick-btn { position: relative; background: transparent; border: 1.5px solid var(--gold); border-radius: 999px; padding: 4px 22px 4px 12px; color: var(--cream); }
+.pick-btn::after { content: ""; position: absolute; right: -6px; top: 18%; bottom: 18%; width: 4px; border-radius: 2px; background: var(--gold); }
+.pick-btn:hover, .pick-btn[aria-expanded="true"] { background: rgba(232,201,122,.1); }
+.pick-txt b { font-family: var(--f-display); font-size: 19px; font-weight: 700; color: var(--gold-hi); letter-spacing: .03em; }
+.pick-txt small { color: rgba(242,231,204,.7); }
+.pick-icon svg { color: var(--gold-hi); }
+.pick-btn .chev { color: var(--gold); }
+.pick-wrap .icon-btn { color: var(--gold-hi); }
+
+/* Labels over the night sky: cream with a dark halo; the selected one in gold */
+.tag { color: #f6ecd2; text-shadow: 0 0 2px #0b1426, 0 0 4px #0b1426, 0 0 7px #0b1426, 0 0 12px rgba(11,20,38,.8); }
+.tag:hover { color: var(--gold-hi); }
+.tag.on { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #241a0c; text-shadow: none; }
+.tag.quiet { color: rgba(232,201,122,.7); letter-spacing: .2em; }
+.tag.dot { background: var(--gold-hi); border-color: #0b1426; }
+.tag.nb { background: rgba(15,26,46,.75); color: var(--cream); border: 1px dashed rgba(201,154,60,.6); }
+
+/* Start screen over the stars */
+.welcome-back { background: radial-gradient(ellipse at 50% 30%, rgba(26,43,74,.75), rgba(8,13,25,.88)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.welcome { animation: rise .5s cubic-bezier(.2,.7,.2,1); }
+.welcome .eyebrow { font-size: 11px; }
+.site-card { background: #fbf6e9; border-color: rgba(201,154,60,.3); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.site-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 6px 18px rgba(60,40,10,.15); }
+.site-card b { font-family: var(--f-display); font-size: 17px; font-weight: 700; }
+.pick-card[aria-current="true"] { border-color: var(--gold); background: var(--accent-tint); }
+.strip-item.on polygon { fill: var(--gold); }
+.scale-strip { background: linear-gradient(180deg, #1d2f50, #13213a); }
+.scale-strip .ground { stroke: var(--gold); }
+.strip-item polygon { fill: #c9b88f; }
+.strip-item .nm { fill: var(--cream); font-family: var(--f-display); font-weight: 700; }
+.strip-item .dt, .strip-item .ht { fill: rgba(242,231,204,.65); }
+
+/* Motion */
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.detail:not([hidden]), .contents:not([hidden]) { animation: slide-in .28s cubic-bezier(.2,.7,.2,1); }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.picker:not([hidden]), .menu:not([hidden]), .key:not([hidden]) { animation: fade .2s ease; }
+
+/* A title card when you arrive at a site */
+.site-title { position: fixed; inset: 0; z-index: 9; display: grid; place-content: center; justify-items: center; gap: 10px; pointer-events: none; }
+.site-title .cartouche { position: relative; padding: 10px 44px 12px 30px; border: 2px solid var(--gold); border-radius: 999px; font-family: var(--f-display); font-size: clamp(30px, 5vw, 54px); font-weight: 700; color: var(--gold-hi); letter-spacing: .04em; background: rgba(11,20,38,.55); text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+.site-title .cartouche::after { content: ""; position: absolute; right: -9px; top: 16%; bottom: 16%; width: 6px; border-radius: 3px; background: var(--gold); }
+.site-title small { font: 600 12px var(--f-body); letter-spacing: .22em; text-transform: uppercase; color: var(--cream); text-shadow: 0 1px 8px rgba(0,0,0,.7); }
+.site-title.show { animation: title-card 2.2s ease forwards; }
+@keyframes title-card { 0% { opacity: 0; transform: scale(.96); } 18% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } .site-title { display: none !important; } }
