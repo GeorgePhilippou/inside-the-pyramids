@@ -16,6 +16,11 @@ export default function unas(api) {
     id: 'unas', king: 'Unas', reign: [2375, 2345], year: 2350, lat: 29.86833, lon: 31.21472,
     short: 'Unas', site: 'Saqqara', date: 'c. 2350 BC', title: 'The Pyramid of Unas',
     rings: [[B, 0], [0, H]], lowest: fl - 1, start: 'texts',
+    // A phone LiDAR scan of the antechamber and the doorways off it (M. Teresa Soria Trastoy, CC BY-NC-SA), in metres.
+    // Shown in place of the drawn rooms while you stand in the antechamber; it covers the near ends of the burial chamber and serdab.
+    interiorScan: { url: 'models/unas-antechamber.glb', centre: [1.15, 0, -0.23], rotY: -Math.PI / 2, at: [0, fl, 0],
+      clip: [[0, 0, 1, 2.3]], box: [[-2.1, fl - 0.3, -1.95], [1.85, fl + 5.2, 1.95]],
+      hides: ['antechamber', 'ptAN', 'ptAS', 'ptAE', 'ptAW', 'burial', 'ptBN', 'ptBS', 'ptBE', 'serdab'] },
     tour: () => [
       { id: 'pyramid', path: [V(0, 1.65, -B - 30)], look: V(0, 10, 0), say: 'Unas\u2019s pyramid is now a low mound, but the rooms underneath are almost intact. Their walls are the first ever covered in writing.' },
       { id: 'descending', path: [V(0, 1.65, entrance.z - 4), up(entrance, 1.0), up(entrance.clone().lerp(V(0, fl, vS0), 0.6), 1.0)], look: up(V(0, fl, vS0), 1.0), say: 'The entrance opens in the floor of a chapel against the north face. The corridor slopes down at 22\u00b0.' },
@@ -45,8 +50,8 @@ export default function unas(api) {
         facts: [['Length', '14.10 m'], ['Portcullises', '3, granite']] },
       { id: 'antechamber', group: 'Burial rooms', name: 'Antechamber', color: 'lime', conf: 'surveyed', major: true,
         why: 'Its texts describe the king’s passage from earth to the sky; it sits right under the apex of the pyramid.',
-        text: 'The central room, directly under the apex. Its walls are covered in Pyramid Texts, and its pointed ceiling is painted with stars.',
-        facts: [['Size', '3.75 × 3.08 m'], ['Position', 'Under the apex'], ['Height', 'Approximate in model']] },
+        text: 'The central room, directly under the apex. Its walls are covered in Pyramid Texts, and its pointed ceiling is painted with stars. Step inside it to see a 3D scan of the real room and its texts.',
+        facts: [['Size', '3.75 × 3.08 m'], ['Position', 'Under the apex'], ['Height', 'Approximate in model'], ['3D scan', 'M. Teresa Soria Trastoy \u00b7 CC BY-NC-SA']] },
       { id: 'burial', group: 'Burial rooms', name: 'Burial chamber', color: 'lime', conf: 'surveyed', major: true,
         why: 'This is the first royal burial chamber in Egypt with its walls covered in writing.',
         photos: () => [

@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import bent from './pyramids/bent.js';
 import red from './pyramids/red.js';
 import khufu from './pyramids/khufu.js';
@@ -572,6 +574,57 @@ function syncRecesses(force) {
     for (const c of r.collars) c.visible = solidVisible('door', stone, hasToday) || inside;
   }
 }
+// ---------- Scanned models ----------
+// def.scan: a scan that replaces a monument's hand-made shape (scaled, turned and moved into place).
+// def.interiorScan: a scan of a room, shown in place of the drawn room while you are inside it.
+const gltfLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const scanCache = {};
+const loadScan = url => scanCache[url] ??= new Promise((res, rej) => gltfLoader.load(url, g => res(g.scene), undefined, rej));
+function placeScan(scene, s) {
+  const inner = scene.clone(true); inner.position.set(...s.centre.map(v => -v));
+  const turn = new THREE.Group(); turn.rotation.y = s.rotY ?? 0; turn.add(inner);
+  const place = new THREE.Group(); place.scale.set(...(s.scale ?? [1, 1, 1])); place.position.set(...(s.at ?? [0, 0, 0])); place.add(turn);
+  return place;
+}
+function addScans(def) {
+  const c = ctx;
+  if (def.scan) loadScan(def.scan.url).then(scene => {
+    if (ctx !== c) return;
+    const base = def.scan.keepAbove != null ? [new THREE.Plane(V(0, 1, 0), -def.scan.keepAbove)] : [];
+    // solid: the scan with its own texture
+    const solid = placeScan(scene, def.scan);
+    solid.traverse(o => { if (!o.isMesh) return;
+      o.material = o.material.clone(); Object.assign(o.material, { metalness: 0, roughness: 1, side: THREE.DoubleSide }); o.material.clipShadows = true;
+      if (def.scan.tint) o.material.color.setRGB(...def.scan.tint);   // e.g. warm a bronze cast to the colour of limestone
+      o.material.userData.baseClip = base; o.material.clippingPlanes = base; o.castShadow = o.receiveShadow = true; });
+    ctx.ext.built.clear(); ctx.ext.built.add(solid);
+    // see-through: the same surface, faint and lit, so its shape still reads
+    const glass = placeScan(scene, def.scan);
+    glass.traverse(o => { if (!o.isMesh) return;
+      o.material = new THREE.MeshLambertMaterial({ map: o.material.map, color: 0xf3e6cc, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
+      o.material.userData.baseClip = base; o.material.clippingPlanes = base; o.renderOrder = 10; });
+    ctx.groups.pyramid.remove(ctx.shell); ctx.shell = glass; ctx.groups.pyramid.add(glass);
+    applyToggles();
+  }).catch(e => console.warn('Scan did not load', e));
+  if (def.interiorScan) loadScan(def.interiorScan.url).then(scene => {
+    if (ctx !== c) return;
+    const s = def.interiorScan, g = placeScan(scene, s);
+    const clip = (s.clip ?? []).map(([nx, ny, nz, d]) => new THREE.Plane(V(nx, ny, nz), d));
+    g.traverse(o => { if (o.isMesh) { o.material = new THREE.MeshBasicMaterial({ map: o.material.map, side: THREE.DoubleSide, clippingPlanes: clip }); } });
+    g.visible = false;
+    ctx.root.add(g);
+    ctx.interior = { g, box: new THREE.Box3(V(...s.box[0]), V(...s.box[1])), hides: s.hides, inside: false };
+  }).catch(e => console.warn('Scan did not load', e));
+}
+// Inside a scanned room: show the scan and hide the drawn room it replaces
+function syncInterior() {
+  const it = ctx.interior; if (!it) return;
+  const inside = it.box.containsPoint(camera.position);
+  if (inside === it.inside) return;
+  it.inside = inside; it.g.visible = inside;
+  if (inside) for (const id of it.hides) ctx.groups[id].visible = false; else applyToggles();
+  refreshLabels();
+}
 function addDoorways() {
   for (const d of ctx.faceEnds) {
     if (ctx.doors.some(q => q.distanceTo(d.p) < 1.5)) continue;
@@ -878,6 +931,7 @@ function load(def, fly) {
   clip.normal.set(...(def.cut ?? [-1, 0, 0])).normalize();   // the cut-away runs along each site's own plane
   buildShell(def);
   def.build();
+  addScans(def);
   if (def.rotateY) for (const [id, g] of [...Object.entries(ctx.groups), ['humans', ctx.humans]]) if (id !== 'pyramid') g.rotation.y = def.rotateY;   // built along its own axis
   addDoorways();
   buildSurroundings(def);
@@ -1131,7 +1185,7 @@ function applyToggles() {
   const planes = toggles.cut ? [clip] : [];
   const cutMats = new Set([shellMat, terrainXray, shellStone, doorMat, doorRimMat, recessMat, ...Object.values(MAIN_MATS)]);
   ctx.groups.pyramid.traverse(o => { if (o.material) cutMats.add(o.material); });
-  for (const m of cutMats) if (m.clippingPlanes?.length !== planes.length) { m.clippingPlanes = planes; m.needsUpdate = true; }
+  for (const m of cutMats) { const want = [...(m.userData.baseClip ?? []), ...planes]; if ((m.clippingPlanes?.length ?? 0) !== want.length) { m.clippingPlanes = want; m.needsUpdate = true; } }
   const seeBelow = toggles.cut && toggles.stone;
   if (groundStone.transparent !== seeBelow) { groundStone.transparent = seeBelow; groundStone.opacity = seeBelow ? 0.5 : 1; groundStone.depthWrite = !seeBelow; groundStone.needsUpdate = true; }
   refreshLabels();
@@ -2118,6 +2172,7 @@ renderer.setAnimationLoop(now => {
   if (ctx.mats.bigVoid && ctx.groups.bigVoid.visible) ctx.mats.bigVoid.opacity = 0.32 + 0.14 * Math.sin(now / 600);
   controls.update();
   if (ctx.recesses.length) syncRecesses();
+  if (ctx.interior) syncInterior();
   if (now - (fadeInside.t ?? 0) > 120) { fadeInside.t = now; fadeInside(); }
   renderer.render(scene, camera);
   layoutLabels();

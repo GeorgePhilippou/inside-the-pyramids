@@ -112,3 +112,12 @@ Run `scripts/stamp.sh` before committing a change to `css/` or `js/`. It stamps 
 ## Valley of the Kings data
 
 `js/data/kv-raw.json` holds the Theban Mapping Project survey of each tomb (position, entrance height, and the size and relative bearing of every room). `scripts/build-valley-data.py` turns it, with AWS Terrain Tiles (SRTM) elevation tiles, into `js/data/valley-data.js`. The survey grid runs 27.5° off true north; that rotation and shift were fitted to the elevation data (entrance heights agree to about 6 m) and checked against published tomb coordinates (about 10 m). Tomb layouts in the valley scene are schematic: room sizes are surveyed, but where side rooms sit and how steeply corridors slope are not published.
+
+## 3D scans
+
+| File | What it is | By | Licence | Source |
+|---|---|---|---|---|
+| `models/sphinx.glb` | Scan of a bronze model of the Great Sphinx and its enclosure by Bert W. Longworth, cast by F. Rudier, Paris. Simplified, textures resized, tinted from bronze to limestone, and scaled to the Sphinx's published length (73 m) and height (20 m). | The Watt Institution | CC BY | [Sketchfab](https://sketchfab.com/3d-models/the-great-sphinx-of-giza-c126509af31142a9a0d116e264e7b629) |
+| `models/unas-antechamber.glb` | Phone LiDAR scan of the antechamber of the Pyramid of Unas and the doorways off it. Simplified and textures resized. This adapted copy is shared under the same licence. | M. Teresa Soria Trastoy | CC BY-NC-SA | [Sketchfab](https://sketchfab.com/3d-models/inside-the-pyramid-of-unas-saqqara-egypt-c48ecd23a1eb40778dbc6efa52a299d2) |
+
+Both were reduced with [gltf-transform](https://gltf-transform.dev) (mesh simplification, 2048 px WebP textures, meshopt compression).
