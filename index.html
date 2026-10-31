@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/style.css?v=8b8871ae">
+<link rel="stylesheet" href="css/style.css?v=7da4679e">
 </head>
 <body>
 <div id="scene"></div>
@@ -73,8 +73,8 @@
   <div class="contents-body">
     <nav id="features" aria-label="Inside this pyramid"></nav>
     <details class="more">
-      <summary>What about hieroglyphs?</summary>
-      <p class="note">The five 4th-Dynasty pyramids here have no carved hieroglyphic texts on their inside walls; what survives in them are builders’ marks and later inscriptions, shown on the stone where a picture of them exists, or as a dashed clay outline where only the place is known. Inscribed burial chambers first appear about 150 years after Menkaure, in the Pyramid of Unas at Saqqara (c. 2350 BC). Open it to see where its Pyramid Texts are, shown in blue.</p>
+      <summary>Writing and decoration</summary>
+      <p class="note" id="writing"></p>
     </details>
     <details class="more">
       <summary>Sources</summary>
@@ -105,8 +105,8 @@
     <svg class="i" viewBox="0 0 24 24"><path d="M5 19c2-6 5-2 7-8s5-5 7-6"/><circle cx="5" cy="19" r="1.6"/><circle cx="19" cy="5" r="1.6"/></svg><span>Tour</span>
   </button>
   <div class="look" role="group" aria-label="How the pyramid looks">
-    <button type="button" data-look="xray" aria-pressed="true"><span class="long">See-through</span><span class="short">X-ray</span></button>
-    <button type="button" data-look="built" aria-pressed="false"><span class="long">As built</span><span class="short">Built</span></button>
+    <button type="button" data-look="xray" aria-pressed="true"><span class="long">See-through</span><span class="short">See-through</span></button>
+    <button type="button" data-look="built" aria-pressed="false"><span class="long" id="look-built">As built</span><span class="short" id="look-built-s">Built</span></button>
     <button type="button" data-look="today" aria-pressed="false"><span class="long">Today</span><span class="short">Today</span></button>
   </div>
   <div class="menu-wrap">
@@ -116,7 +116,7 @@
     <div class="menu card" id="view-menu" hidden>
       <button class="menu-row" id="btn-overview" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M8.5 20 12 13l3.5 7"/></svg>Overview</button>
       <button class="menu-row" id="btn-side" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18L12 4z"/><path d="M12 20V9"/></svg>Side profile of the passages</button>
-      <button class="menu-row switch" id="btn-cut" type="button" aria-pressed="false"><i></i>Cut away east half</button>
+      <button class="menu-row switch" id="btn-cut" type="button" aria-pressed="false"><i></i><span id="cut-label">Cut away east half</span></button>
     </div>
   </div>
   <div class="menu-wrap">
@@ -162,7 +162,7 @@
     <ul class="tries">
       <li><b>Click any chamber or name</b> to see photos, measurements and why it matters.</li>
       <li><b>Take the Tour</b> to be walked through the passages, or <b>Walk</b> on your own at human height.</li>
-      <li><b>Change the Look</b> to see the pyramid as built or as it is today, or open the <b>Timeline</b> and <b>Map</b>.</li>
+      <li><b>Change the look</b> from see-through to solid stone, or open the <b>Timeline</b> and <b>Map</b>.</li>
     </ul>
     <details class="moves">
       <summary>How to move around</summary>
@@ -191,22 +191,22 @@
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=8b8871ae",
-  "./js/pyramids/red.js": "./js/pyramids/red.js?v=8b8871ae",
-  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=8b8871ae",
-  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=8b8871ae",
-  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=8b8871ae",
-  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=8b8871ae",
-  "./js/pyramids/djoser.js": "./js/pyramids/djoser.js?v=8b8871ae",
-  "./js/pyramids/sphinx.js": "./js/pyramids/sphinx.js?v=8b8871ae",
-  "./js/pyramids/tut.js": "./js/pyramids/tut.js?v=8b8871ae",
-  "./js/pyramids/seti.js": "./js/pyramids/seti.js?v=8b8871ae",
-  "./js/pyramids/valley.js": "./js/pyramids/valley.js?v=8b8871ae",
-  "./js/data/valley-data.js": "./js/data/valley-data.js?v=8b8871ae",
-  "./js/data/ground.js": "./js/data/ground.js?v=8b8871ae"
+  "./js/pyramids/bent.js": "./js/pyramids/bent.js?v=7da4679e",
+  "./js/pyramids/red.js": "./js/pyramids/red.js?v=7da4679e",
+  "./js/pyramids/khufu.js": "./js/pyramids/khufu.js?v=7da4679e",
+  "./js/pyramids/khafre.js": "./js/pyramids/khafre.js?v=7da4679e",
+  "./js/pyramids/menkaure.js": "./js/pyramids/menkaure.js?v=7da4679e",
+  "./js/pyramids/unas.js": "./js/pyramids/unas.js?v=7da4679e",
+  "./js/pyramids/djoser.js": "./js/pyramids/djoser.js?v=7da4679e",
+  "./js/pyramids/sphinx.js": "./js/pyramids/sphinx.js?v=7da4679e",
+  "./js/pyramids/tut.js": "./js/pyramids/tut.js?v=7da4679e",
+  "./js/pyramids/seti.js": "./js/pyramids/seti.js?v=7da4679e",
+  "./js/pyramids/valley.js": "./js/pyramids/valley.js?v=7da4679e",
+  "./js/data/valley-data.js": "./js/data/valley-data.js?v=7da4679e",
+  "./js/data/ground.js": "./js/data/ground.js?v=7da4679e"
 } }
 </script>
-<script type="module" src="js/viewer.js?v=8b8871ae"></script>
+<script type="module" src="js/viewer.js?v=7da4679e"></script>
 
 </body>
 </html>

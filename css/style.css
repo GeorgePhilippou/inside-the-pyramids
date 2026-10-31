@@ -453,3 +453,6 @@ body.walking .orient, body.touring .orient, body:not([data-mode="model"]) .orien
   .picker { width: calc(100% - 2 * var(--gap)); }
 }
 .gap-t { font-style: italic; }
+.facts dd.txt { font-family: var(--f-body); font-size: 13px; }
+.key-conf { grid-column: 1 / -1; margin: 4px 0 0; padding-top: 8px; border-top: 1px solid var(--rule); font-size: 12px; line-height: 2; color: var(--ink-2); }
+.key-conf .conf { margin-right: 2px; }

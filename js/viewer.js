@@ -823,6 +823,20 @@ const info = document.getElementById('info');
 const detail = document.getElementById('detail');
 const list = document.getElementById('features');
 const confText = { surveyed: 'Surveyed', approx: 'Approximate', uncertain: 'Uncertain · scan data' };
+// What each site has in the way of texts and decoration
+const WRITING = {
+  djoser: 'No texts are carved inside the pyramid. Below it, the blue chambers have carved panels showing Djoser at his jubilee festival, with his names. A statue base found in the complex names Imhotep, probably his architect.',
+  bent: 'No texts were carved inside. Like every pyramid before Unas, its rooms are plain stone.',
+  red: 'No texts were carved inside. Red-painted builders\u2019 marks on casing blocks name work gangs and give dates in Sneferu\u2019s reign (see Dated builders\u2019 marks).',
+  khufu: 'No texts were carved inside. Red-painted builders\u2019 marks in the relieving chambers name Khufu and his work gangs, and in 1842 the Lepsius expedition carved a hieroglyphic text over the entrance. Both are listed under Inscriptions and marks.',
+  khafre: 'No ancient texts have been found inside. The only writing is Giovanni Belzoni\u2019s name and date, painted in the burial chamber in 1818.',
+  menkaure: 'No texts were carved inside, apart from the carved palace-front panelling. A wooden coffin lid naming Menkaure, made about 1,900 years after his death, was found here.',
+  sphinx: 'The Sphinx carries no ancient text of its own. The main inscription is the Dream Stela between its paws, set up by Thutmose IV around 1400 BC.',
+  unas: 'The first pyramid with texts. The Pyramid Texts cover the walls of the burial chamber, the antechamber and part of the corridor, carved and filled with blue pigment. The Pyramid Texts group lists them wall by wall.',
+  valley: 'Royal tombs here are decorated with guides to the afterlife: the Amduat, the Book of Gates, the Litany of Ra and the Books of the Sky, carved or painted on corridors and chambers. Tombs with decoration are coloured gold.',
+  tut: 'Only the burial chamber is painted; the rest of the tomb was left plain, probably because the king died young and suddenly. Its four walls are listed under Painted walls.',
+  seti: 'Almost every wall and ceiling is carved in raised relief and painted, from the Litany of Ra near the entrance to the map of the night sky on the burial chamber\u2019s vault.',
+};
 const toggles = { humans: true, shafts: true, scan: true, marks: true, surround: true, labels: true, cut: false, stone: false, today: true };
 
 function load(def, fly) {
@@ -886,7 +900,13 @@ function load(def, fly) {
   // Panel
   document.getElementById('eyebrow').textContent = `${def.site}, Egypt · ${def.date}`;
   document.getElementById('title').textContent = def.title;
-  document.getElementById('stats').innerHTML = [['King', def.king], ['Reign', fmtReign(def)], ...def.stats, ['Human figures', '1.75 m']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  document.getElementById('stats').innerHTML = [...(def.collection ? [] : [['King', def.king], ['Reign', fmtReign(def)]]), ...def.stats].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  document.getElementById('writing').textContent = WRITING[def.id] ?? '';
+  // look and cut-away names that fit what this is
+  const carved = def.shape || def.terrain;
+  document.getElementById('look-built').textContent = carved ? 'Solid' : 'As built';
+  document.getElementById('look-built-s').textContent = carved ? 'Solid' : 'Built';
+  document.getElementById('cut-label').textContent = def.cut ? 'Cut away along the tomb' : 'Cut away east half';
   document.getElementById('lede').textContent = def.features[0].text.split('. ')[0] + '.';
   document.getElementById('sources').innerHTML = `<b>Measurements from</b> ${def.sources} Each feature is tagged with how sure the published figures are. Where surveys disagree, both values are given. Passages and chambers are drawn at true scale; routes marked approximate are simplified.`;
   const groupsOrder = [...new Set(def.features.map(f => f.group))];
@@ -932,15 +952,14 @@ function select(id, fly, photo = 0) {
     </figure>` : ''}
     <p>${f.text}</p>
     ${f.why ? `<div class="why"><b>Why it matters</b><p>${f.why}</p></div>` : ''}
-    <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <dl class="facts">${f.facts.map(([k, v]) => `<dt>${k}</dt><dd${/\d/.test(v) ? '' : ' class="txt"'}>${v}</dd>`).join('')}</dl>
     ${f.link ? `<button type="button" class="text-btn open-link" data-open="${f.link}"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8"/></svg>Open the detailed model</button>` : ''}`;
   for (const b of list.querySelectorAll('.feat')) b.setAttribute('aria-current', b.dataset.id === id);
   setEmissive();
   for (const o of ctx.labels) o.element.classList.toggle('on', o.userData.id === id);
   refreshLabels();
   showPhotoMarker(ph);
-  const vp = ph ?? f.view;
-  if (fly) { if (walk.on) walkToFeature(id, vp); else if (vp) flyTo(V(...vp.look), V(...vp.cam)); else flyToFeature(id); }
+  if (fly) { if (walk.on) walkToFeature(id, ph ?? f.view); else if (f.view) flyTo(V(...f.view.look), V(...f.view.cam)); else flyToFeature(id); }
 }
 info.addEventListener('click', e => {
   const o = e.target.closest('[data-open]');
@@ -1027,8 +1046,7 @@ function syncLook() {
   const look = !toggles.stone ? 'xray' : toggles.today && ctx?.ext?.today ? 'today' : 'built';
   for (const b of lookButtons) b.setAttribute('aria-pressed', b.dataset.look === look);
   const todayBtn = lookButtons.find(b => b.dataset.look === 'today');
-  todayBtn.disabled = !ctx?.ext?.today;
-  todayBtn.title = todayBtn.disabled ? 'No \u201ctoday\u201d model for this pyramid yet' : '';
+  todayBtn.hidden = !ctx?.ext?.today;
 }
 function setLook(look) {
   toggles.stone = look !== 'xray';
@@ -2015,7 +2033,8 @@ function buildKey() {
   const used = new Set(ctx.def.features.filter(f => f.id !== 'pyramid').map(f => f.color));
   keyEl.innerHTML = Object.entries(KEY_TEXT).filter(([c]) => used.has(c)).map(([c, t]) => `<div><i style="background:var(--${c})"></i>${t}</div>`).join('')
     + (ctx.doors.length ? '<div><i class="door"></i>Opening in the outer face</div>' : '')
-    + '<div><i style="background:var(--human)"></i>Person, 1.75 m tall</div>';
+    + '<div><i style="background:var(--human)"></i>Person, 1.75 m tall</div>'
+    + '<p class="key-conf"><span class="conf surveyed">Surveyed</span> measured figures <span class="conf approx">Approximate</span> simplified or estimated <span class="conf uncertain">Uncertain</span> known only from scans</p>';
 }
 keyBtn.addEventListener('click', () => { keyEl.hidden = !keyEl.hidden; keyBtn.setAttribute('aria-expanded', !keyEl.hidden); layoutLabels.t = 0; });
 const rose = document.getElementById('compass-rose'), whereEl = document.getElementById('orient-where'), heightEl = document.getElementById('orient-height');

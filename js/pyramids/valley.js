@@ -131,7 +131,7 @@ export default function valley(api) {
   const features = [
     { id: 'pyramid', group: 'The valley', name: 'The Valley of the Kings', color: 'sand', conf: 'surveyed',
       why: 'For nearly 500 years the kings of the New Kingdom were buried here instead of in pyramids, in tombs hidden in the rock.',
-      text: `A desert valley on the west bank of the Nile at Thebes (modern Luxor), under a pyramid-shaped peak, el-Qurn. It holds over 60 tombs, from great royal tombs to small pits. This model shows the ${located.length} with a surveyed position, each built from its measured rooms. ${TOMBS.length - located.length} small pits have no published position and are not shown. The ground comes from satellite elevation data and is approximate.`,
+      text: `A desert valley on the west bank of the Nile at Thebes (modern Luxor), under a pyramid-shaped peak, el-Qurn. It holds over 60 tombs, from great royal tombs to small pits. This model shows the ${located.length} with a surveyed position, each built from its measured rooms. ${TOMBS.length - located.length} small pits have no published position and are not shown. Room sizes come from the survey; where side rooms sit along a wall and how steeply corridors slope are not published, so each tomb\u2019s layout is schematic. The ground comes from satellite elevation data and is approximate.`,
       facts: [['Tombs surveyed', String(TOMBS.length)], ['Shown', String(located.length)], ['In use', 'c. 1500–1070 BC'], ['Dynasties', '18th to 20th']] },
   ];
   for (const t of located) {
@@ -143,15 +143,15 @@ export default function valley(api) {
     features.push({
       id: fid(t), group: dyn ? DYN[dyn] : 'Owner unknown', name: `${kvName(t)}: ${owner}`, color: deco ? 'paint' : 'rock', conf: 'approx', major: isKing || [5, 46, 55].includes(t.kv),
       link: t.kv === 62 ? 'tut' : t.kv === 17 ? 'seti' : null,
-      why: NOTES[t.kv] ?? (isKing ? 'A royal tomb of the New Kingdom.' : 'One of the smaller tombs and pits around the royal tombs.'),
-      text: `${owner}${dyn ? `, ${DYN[dyn]}` : ''}${reign ? ` (${reign})` : ''}. ${t.len ? `${t.len} m long` : 'Length not published'}, with ${rooms} room${rooms === 1 ? '' : 's'} and corridor${rooms === 1 ? '' : 's'}${deco ? ', partly decorated' : ''}. Sizes are surveyed; where side rooms sit and how steeply corridors slope are not published, so this layout is schematic.`,
-      facts: [['Length', t.len ? `${t.len} m` : '—'], ['Floor area', t.area ? `${t.area} m²` : '—'], ['Rooms and corridors', String(rooms)], ['Entrance', t.entrance ?? '—'], ['Bearing', bearing != null ? `${bearing}° (true)` : '—'], ['Entrance height', t.elev ? `${t.elev} m above sea level` : '—'], ...(t.disc ? [['Recorded by', t.disc.replace(' | ', ', ')]] : [])],
+      why: NOTES[t.kv],
+      text: `${owner}${dyn ? `, ${DYN[dyn]}` : ''}${reign ? ` (${reign})` : ''}. ${t.len ? `${t.len} m long` : 'Length not published'}, with ${rooms} room${rooms === 1 ? '' : 's'} and corridor${rooms === 1 ? '' : 's'}${deco ? ', partly decorated' : ', undecorated'}.`,
+      facts: [['Length', t.len ? `${t.len} m` : '—'], ['Floor area', t.area ? `${t.area} m²` : '—'], ['Rooms and corridors', String(rooms)], ['Entrance', t.entrance ?? '—'], ['Bearing', bearing != null ? `${bearing}° (true)` : '—'], ['Entrance height', t.elev ? `${t.elev} m above sea level` : '—'], ...(t.disc ? [['Recorded by', t.disc.replace(' | ', ', ')]] : []), ['Layout', 'Schematic (see the valley)']],
     });
   }
 
   return {
     id: 'valley', kind: 'valley', king: 'New Kingdom kings', reign: [1539, 1075], year: 1300, lat: VALLEY.lat0, lon: VALLEY.lon0,
-    short: 'Valley', site: 'Valley of the Kings', date: 'c. 1500–1070 BC', title: 'The Valley of the Kings', collection: true,
+    short: 'Valley of the Kings', site: 'Valley of the Kings', date: 'c. 1500–1070 BC', title: 'The Valley of the Kings', collection: true,
     profile: [[-60, 0], [-24, 18], [-8, 26], [0, 34], [10, 24], [30, 14], [60, 0]],   // icon: the peak of el-Qurn above the valley
     rings: [[300, 0], [300, 0.01]], lowest, start: 'kv62', groundY: Math.min(-60, lowest - 5),
     terrain: { size: [ext.x1 - ext.x0, ext.z1 - ext.z0], center: [(ext.x0 + ext.x1) / 2, (ext.z0 + ext.z1) / 2], step: VALLEY.step, h: groundAt, dem: true },
