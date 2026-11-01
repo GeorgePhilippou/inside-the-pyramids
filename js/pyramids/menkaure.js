@@ -15,6 +15,10 @@ export default function menkaure(api) {
     id: 'menkaure', king: 'Menkaure', reign: [2532, 2503], year: 2510, lat: 29.97250, lon: 31.12806,
     short: 'Menkaure', site: 'Giza', date: 'c. 2510 BC', title: 'The Pyramid of Menkaure',
     rings: [[B, 0], [0, H]], today: 61, lowest: BCy - 1, start: 'burial',
+    // Photogrammetry of the pyramid. Levelled and turned by fitting a plane to each face (51.3°; the great gash marks the north face),
+    // and scaled so the surviving granite at the foot sits on the casing line; the stripped core above is about 2.2 m inside it.
+    // The scan shows no hollow at the entrance (something stands in front of it, probably the visitors' steps), so the opening is drawn flush on the granite.
+    scan: { url: 'models/menkaure.glb', today: true, centre: [-26.7574, 9.7189, 4.8773], up: [0.0095, 0.9999, 0.0086], rotY: 1.5734, scale: [1.2869, 1.2869, 1.2869], keepAbove: -0.3, inset: 0.5, flushDoors: true, keepWithin: B + 9 },
     tour: () => [
       { id: 'pyramid', path: [V(0, 1.65, -B - 40)], look: V(0, 8, entrance.z), say: 'Menkaure\u2019s is the smallest of the three great Giza pyramids. Its lowest courses were cased in red granite, and some of it is still in place.' },
       { id: 'descending', path: [V(0, 4.5, entrance.z - 6), up(entrance, 1.0), up(entrance.clone().lerp(dEnd, 0.6), 1.0)], look: up(dEnd, 1.0), say: 'The entrance passage, lined with granite, slopes down into the rock.' },
@@ -29,7 +33,7 @@ export default function menkaure(api) {
       { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
         why: 'The last of the three great Giza pyramids. Its smaller size may reflect changing priorities or resources late in the 4th Dynasty.',
         photos: () => [ph('menkaure-exterior.jpg', 'Menkaure\'s pyramid behind smaller queens\' pyramids', 'Menkaure\'s pyramid from the south, behind its queens\' pyramids.', 'Vincent Brown', 'CC BY 2.0', 'https://commons.wikimedia.org/wiki/File:Pyramid_of_Menkaure_(29197729700).jpg', V(15, 1.7, B + 170), V(0, 25, 0))],
-        text: 'The smallest of the three main Giza pyramids, built for Menkaure. Its lowest 16 courses were cased in red granite from Aswan, some of it never smoothed. It was probably finished in a hurry after the king died.',
+        text: 'The smallest of the three main Giza pyramids, built for Menkaure. Its lowest 16 courses were cased in red granite from Aswan, some of it never smoothed. It was probably finished in a hurry after the king died. In the Today look the pyramid is a 3D scan (photogrammetry by PolarNick239, CC BY), with the great gash torn into the north face in 1196 when Sultan al-Aziz tried to demolish it.',
         facts: [['Base', '102.2 × 104.6 m'], ['Original height', 'c. 65 m · 125 cubits'], ['Height today', 'c. 61 m'], ['Face slope', '51° 20′ 25″'], ['Granite casing', '16 courses']] },
       { id: 'descending', group: 'Main passage', name: 'Entrance and descending passage', color: 'granite', conf: 'approx', major: true,
         why: 'Its granite lining shows the care taken even in a smaller pyramid.',

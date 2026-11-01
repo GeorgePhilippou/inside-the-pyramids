@@ -469,7 +469,7 @@ function faceEnd(p, inward) {
   if (inward.dot(F.n) > -0.2) return null;
   const q = p.clone().addScaledVector(F.hz, r - m);
   const T = TODAY[ctx.def.id];
-  const stepped = !!(T && !T.smooth && p.y < (T.capFrom ?? T.top) && p.y >= (T.baseTo ?? 0) - 0.01);
+  const stepped = !!(ctx.def.scan?.today || (T && !T.smooth && p.y < (T.capFrom ?? T.top) && p.y >= (T.baseTo ?? 0) - 0.01));   // a scanned face is weathered everywhere
   return { ...F, q, stepped };
 }
 // A passage-shaped box from a to b, with either end trimmed onto a plane {p, n} (projected along the passage)
@@ -545,7 +545,9 @@ function doorway(id, p, dir, w, h, pn) {
   ctx.groups[id].add(face);
   if (!e.stepped) return;
   const inward = dir.clone().negate(), reach = (coreDepth() + 3) / Math.max(0.2, inward.dot(hz.clone().negate()));
-  const recess = cutBox(p.clone().addScaledVector(inward, -2), p.clone().addScaledVector(inward, reach), w + 0.1, h + 0.1, ctx.def.scan?.inset != null ? innerPlane(e, ctx.def.scan.inset - 0.4) : { p: fq.clone().addScaledVector(hz, 0.2), n }, innerPlane(e, coreDepth()));
+  // where a scan shows no hollow at the doorway (flushDoors), the recess is a shallow dark mouth just proud of the scanned face
+  const { inset, flushDoors } = ctx.def.scan ?? {};
+  const recess = cutBox(p.clone().addScaledVector(inward, -2), p.clone().addScaledVector(inward, reach), w + 0.1, h + 0.1, inset != null ? innerPlane(e, inset - 0.4) : { p: fq.clone().addScaledVector(hz, 0.2), n }, innerPlane(e, flushDoors ? inset - 0.05 : coreDepth()));
   recess.material = recessMat;
   recess.userData.solid = 'today';
   ctx.groups[id].add(recess);

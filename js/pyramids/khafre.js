@@ -19,6 +19,10 @@ export default function khafre(api) {
     id: 'khafre', king: 'Khafre', reign: [2558, 2532], year: 2540, lat: 29.97611, lon: 31.13083,
     short: 'Khafre', site: 'Giza', date: 'c. 2540 BC', title: 'The Pyramid of Khafre',
     rings: [[B, 0], [0, H]], today: 136.4, lowest: -13, start: 'burial',
+    // Cut from a photogrammetry model of the plateau. Levelled and turned by fitting a plane to each face (53.2°; Khufu lies to the NE),
+    // and scaled so the casing left near the top sits on the casing line; the stripped faces below are 2–3 m inside it.
+    // The scan is too coarse to show the entrance hollow, so the opening is drawn flush on the scanned face.
+    scan: { url: 'models/khafre.glb', today: true, centre: [-1.1176, 1.1068, 1.5344], up: [-0.0389, 0.9987, 0.0337], rotY: -0.7168, scale: [132.36, 132.36, 132.36], keepAbove: -0.3, inset: 2.6, flushDoors: true, keepWithin: B + 9 },
     tour: () => [
       { id: 'pyramid', path: [V(AX, 1.65, -B - 55)], look: V(AX, 12, upEntrance.z), say: 'Khafre\u2019s pyramid has two entrances on the north side: one in the face about 11.5 m up, and one in the pavement below it.' },
       { id: 'upper', path: [V(AX, 10, upEntrance.z - 8), up(upEntrance, 1.0), up(upEntrance.clone().lerp(upEnd, 0.6), 1.0)], look: up(upEnd, 1.0), say: 'The upper passage, lined with granite, slopes down to bedrock level. A granite portcullis once blocked its lower end.' },
@@ -32,7 +36,7 @@ export default function khafre(api) {
       { id: 'pyramid', group: 'Exterior', name: 'The pyramid', color: 'sand', conf: 'surveyed',
         why: 'It is linked by its causeway to the Great Sphinx, which most scholars attribute to Khafre.',
         photos: () => [ph('khafre-exterior.jpg', 'Khafre\'s pyramid with casing still at the top', 'Khafre\'s pyramid, with original casing still near the top.', 'MusikAnimal', 'CC BY-SA 3.0', 'https://commons.wikimedia.org/wiki/File:Pyramid_of_Khafre_Giza_Egypt_in_2015_2.jpg', V(40, 1.7, B + 150), V(0, 50, 0))],
-        text: 'Built for Khafre, Khufu’s son. It is slightly smaller than the Great Pyramid but stands on bedrock about 10 m higher and has a steeper slope, so it often looks taller. The top of the pyramid still keeps part of its original limestone casing.',
+        text: 'Built for Khafre, Khufu’s son. It is slightly smaller than the Great Pyramid but stands on bedrock about 10 m higher and has a steeper slope, so it often looks taller. The top of the pyramid still keeps part of its original limestone casing. In the Today look the pyramid is a 3D scan, cut from a model of the plateau (photogrammetry by pierre391, CC BY).',
         facts: [['Base side', '215.25 m · 411 cubits'], ['Original height', '143.5 m · 274 cubits'], ['Height today', '136.4 m'], ['Face slope', '53° 10′']] },
       { id: 'upper', group: 'Upper system', name: 'Upper entrance and passage', color: 'granite', conf: 'approx', major: true,
         photos: () => [ph('khafre-passage.jpg', 'Looking up a steep, narrow passage with a modern walkway and handrails', 'Looking back up the sloping passage toward the entrance.', 'Jon Bodsworth', 'Copyrighted free use', 'https://commons.wikimedia.org/wiki/File:04_khafre_passage.jpg', up(upEnd, 1.5), upEntrance)],
